@@ -22,6 +22,8 @@
 | 選択・ズーム・表示範囲 | app/WaveformEditor.swift | select、setZoom、pan、fitSelection、AudioSelection | tests/AudioTests.swift |
 | 選択区間の音声 | app/SelectionAudio.swift | SelectionAudio.write、framePosition、frameCount | tests/AudioTests.swift |
 | WAV書き出し | app/WAVExport.swift、app/PlayerModel.swift | WAVExport.write、exportSelection、export、NSSavePanel | tests/AudioTests.swift |
+| 単音楽器・音程 | app/SampleInstrument.swift、app/PlayerModel.swift | InstrumentSample.load、NotePitch.rate、SampleInstrument.play、prepareInstrument、playNote、releaseNote | tests/AudioTests.swift / --playback |
+| 画面鍵盤・基準音 | app/InstrumentKeyboard.swift | InstrumentKeyboard、Root note、Use Selection | 実UI確認 |
 | UI・波形・メーター | app/StudioView.swift | StudioView、WaveCanvas、StudioButton | 実アプリ手動確認 |
 | ビルド・テスト | scripts/build.sh、scripts/test.sh | swiftc、AudioTests、codesign | 標準Verify |
 

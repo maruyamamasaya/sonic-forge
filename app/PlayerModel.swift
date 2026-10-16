@@ -14,10 +14,16 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var playingSelection = false
     @Published private(set) var exporting = false
     @Published private(set) var exportMessage: String?
-    var busy: Bool { loading || exporting }
+    var busy: Bool { loading || exporting || preparingInstrument }
+    @Published private(set) var preparingInstrument = false
+    @Published private(set) var instrumentSample: InstrumentSample?
+    @Published private(set) var activeNote: Int?
+    @Published var rootNote = 60 { didSet { releaseNote() } }
+    private let instrument = SampleInstrument()
     @Published var error: String?
     @Published var gainDB = -12.0 { didSet {
         let gain = Float(pow(10, gainDB / 20))
+        instrument.gain = gain
         player?.volume = gain
         selectionPlayer?.volume = gain
     } }
@@ -32,6 +38,7 @@ final class PlayerModel: ObservableObject {
     private var demoDirectory: URL?
 
     init() {
+        instrument.onFinished = { [weak self] in self?.activeNote = nil; self?.levels = [-60, -60] }
         timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.refreshPlaybackState() }
     }
 
@@ -110,6 +117,7 @@ final class PlayerModel: ObservableObject {
                 loading = false
             }
             await load(url, demo: true)
+            if asset?.url == url { await prepareInstrument(useSelection: false) }
         } catch { loading = false; self.error = error.localizedDescription }
     }
 
@@ -123,6 +131,9 @@ final class PlayerModel: ObservableObject {
             replacement.isMeteringEnabled = true
             replacement.volume = Float(pow(10, gainDB / 20))
             guard replacement.prepareToPlay() else { throw AudioError.invalid("再生デバイスの準備ができませんでした。出力設定を確認してください。") }
+            instrument.shutdown()
+            instrumentSample = nil
+            activeNote = nil
             selectionPlayer?.stop()
             selectionPlayer = nil
             previewSelection = nil
@@ -131,6 +142,7 @@ final class PlayerModel: ObservableObject {
             player = replacement
             exportMessage = nil
             asset = loaded
+            rootNote = demo ? 57 : 60
             editor = WaveformEditor(frameCount: Int64((loaded.duration * loaded.sampleRate).rounded()), sampleRate: loaded.sampleRate)
             playing = false
             position = 0
@@ -139,8 +151,38 @@ final class PlayerModel: ObservableObject {
         } catch { self.error = "読み込みに失敗しました。\n" + error.localizedDescription }
     }
 
+    func prepareInstrument(useSelection: Bool = true) async {
+        guard !busy, let asset else { return }
+        let selection = useSelection ? editor.selection : nil
+        preparingInstrument = true
+        defer { preparingInstrument = false }
+        releaseNote()
+        do {
+            let sample = try await Task.detached(priority: .userInitiated) {
+                try InstrumentSample.load(url: asset.url, selection: selection)
+            }.value
+            instrument.install(sample)
+            instrument.gain = Float(pow(10, gainDB / 20))
+            instrumentSample = sample
+            error = nil
+        } catch { self.error = error.localizedDescription }
+    }
+    func playNote(_ note: Int) {
+        guard !busy else { return }
+        stop()
+        do { try instrument.play(note: note, root: rootNote); activeNote = note }
+        catch { self.error = error.localizedDescription; activeNote = nil }
+    }
+    func releaseNote(_ note: Int? = nil) {
+        guard note == nil || activeNote == note else { return }
+        instrument.stop()
+        activeNote = nil
+        levels = [-60, -60]
+    }
+
     func toggle() {
         guard !busy, let player = activePlayer, asset != nil else { return }
+        releaseNote()
         if player.isPlaying { player.pause(); playing = false; levels = [-60, -60] }
         else {
             if position >= playbackEnd - 0.000001 { player.currentTime = 0; position = previewOffset }
@@ -150,6 +192,7 @@ final class PlayerModel: ObservableObject {
 
     func playSelection() async {
         guard !busy, let asset, let selected = editor.selection else { return }
+        releaseNote()
         loading = true
         defer { loading = false }
         leaveSelectionPlayback()
@@ -216,6 +259,7 @@ final class PlayerModel: ObservableObject {
     func pan(to center: Double) { editor.pan(to: center) }
 
     func stop() {
+        releaseNote()
         leaveSelectionPlayback()
         player?.stop(); player?.currentTime = 0; position = 0; playing = false; levels = [-60, -60]
     }
@@ -226,6 +270,7 @@ final class PlayerModel: ObservableObject {
         player?.currentTime = position
     }
     func refreshPlaybackState() {
+        if activeNote != nil { levels = instrument.meter.read(); return }
         guard let player = activePlayer else { return }
         if playing && !player.isPlaying {
             playing = false
@@ -239,6 +284,7 @@ final class PlayerModel: ObservableObject {
         }
     }
     func cleanup() {
+        instrument.shutdown()
         if let keyboardMonitor { NSEvent.removeMonitor(keyboardMonitor); self.keyboardMonitor = nil }
         selectionPlayer?.stop()
         player?.stop()

@@ -36,3 +36,12 @@ WAVExportは選択を32-bit Float WAVへ書き出す。保存先と同じディ�
 ## Deployment
 scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署名を行う。配布・公証・CIは未整備。
 検証コマンドは [TESTING.md](TESTING.md)、起動は [OPERATIONS.md](OPERATIONS.md)。
+
+## Sample Instrument
+InstrumentSampleが全体／選択をバックグラウンドでFloat32 PCMへ取り込む（最大30秒・デコード後64 MB）。
+SampleInstrumentはAVAudioEngineのPlayerNode → Varispeed → Mixer → system outputで単音を演奏。
+再生速度は2^((鍵盤ノート−基準音)/12)。C3〜C5の25鍵、基準音もC3〜C5。高い音ほど短くなる。
+デモの基準音はA3、外部WAVは手動指定の初期値C4。自動ピッチ検出は行わない。
+MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。世代番号で古い完了通知を無視する。
+Mixer tapのRMSを右メーターへ表示。音声スレッドのメーター更新はロックが取れなければ待たずに破棄する。
+従来の試聴とは排他再生。停止・音源交換・基準音変更・フォーカス喪失で発音を止める。

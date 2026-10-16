@@ -120,6 +120,20 @@ struct AudioTests {
         precondition(FileManager.default.fileExists(atPath: blocked.path, isDirectory: &isDirectory) && isDirectory.boolValue)
         let leftovers = try FileManager.default.contentsOfDirectory(atPath: root.path)
         precondition(!leftovers.contains { $0.hasPrefix(".sonicforge-export-") })
+        precondition(NotePitch.rate(note: 60, root: 60) == 1)
+        precondition(NotePitch.rate(note: 72, root: 60) == 2)
+        precondition(NotePitch.rate(note: 48, root: 60) == 0.5)
+        precondition(abs(NotePitch.rate(note: 61, root: 60) - 1.0594631) < 0.00001)
+        precondition(NotePitch.name(60) == "C4" && NotePitch.name(57) == "A3")
+        let instrumentPart = try InstrumentSample.load(url: demo, selection: selected)
+        precondition(Int64(instrumentPart.buffer.frameLength) == selected.frameCount)
+        for channel in 0..<2 {
+            for frame in 0..<Int(instrumentPart.buffer.frameLength) {
+                precondition(instrumentPart.buffer.floatChannelData![channel][frame] == expected.floatChannelData![channel][frame])
+            }
+        }
+        do { _ = try InstrumentSample.load(url: demo, selection: AudioSelection(startFrame: 5, endFrame: 4)); fatalError("Invalid instrument range") } catch {}
+        print("PASS: root note naming, semitone/octave ratios, instrument selection sample equality and invalid range")
         print("PASS: WAV export/reimport, exact frames/samples, mono/stereo, overwrite, original/symlink/hardlink protection, failure preservation and cleanup")
         print("PASS: reversed/clamped/one-frame selection, zoom/pan/fit invariants, exact selected audio across chunks, invalid ranges, EOF")
         print("PASS: demo synthesis, waveform, duration, stereo PCM16, mono Float32, time formatting, corrupt/missing files")
@@ -189,6 +203,62 @@ struct AudioTests {
             model.toggle()
             precondition(model.playing)
             model.stop()
+            model.rootNote = 60
+            await model.prepareInstrument(useSelection: false)
+            precondition(model.instrumentSample != nil, model.error ?? "No sample; busy=\(model.busy)")
+            model.playNote(60)
+            precondition(model.activeNote == 60)
+            try await Task.sleep(nanoseconds: 150_000_000)
+            model.refreshPlaybackState()
+            precondition(model.levels[0] > -60)
+            model.playNote(72)
+            precondition(model.activeNote == 72)
+            model.releaseNote(60)
+            precondition(model.activeNote == 72)
+            model.releaseNote(72)
+            precondition(model.activeNote == nil)
+            model.playNote(60)
+            model.rootNote = 57
+            precondition(model.activeNote == nil)
+            await model.load(demo, demo: true)
+            model.select(from: 0, to: 0.025)
+            await model.prepareInstrument()
+            precondition(abs(model.instrumentSample!.duration - 0.2) < 0.00001)
+            model.playNote(57)
+            try await Task.sleep(nanoseconds: 600_000_000)
+            precondition(model.activeNote == nil)
+            print("PASS: instrument preparation, note on/off, replacement voice, stale note-off, gain metering, root change and natural end")
+
+            // Render the production voice graph offline to verify audible pitch,
+            // rather than testing only the semitone formula.
+            for (note, frequency) in [(60, 440.0), (72, 880.0), (48, 220.0)] {
+                let engine = AVAudioEngine()
+                let sampler = SampleInstrument(engine: engine)
+                let sample = try InstrumentSample.load(url: mono)
+                sampler.install(sample)
+                try engine.enableManualRenderingMode(.offline, format: sample.buffer.format, maximumFrameCount: 1024)
+                try sampler.play(note: note, root: 60)
+                let buffer = AVAudioPCMBuffer(pcmFormat: engine.manualRenderingFormat, frameCapacity: 1024)!
+                var previous: Float = 0
+                var crossings: [Int] = []
+                var offset = 0
+                for _ in 0..<32 {
+                    let status = try engine.renderOffline(1024, to: buffer)
+                    precondition(status == .success)
+                    for i in 0..<Int(buffer.frameLength) {
+                        let value = buffer.floatChannelData![0][i]
+                        if offset + i > 2048 && offset + i < 16000 && previous <= 0 && value > 0 { crossings.append(offset + i) }
+                        previous = value
+                    }
+                    offset += Int(buffer.frameLength)
+                }
+                precondition(crossings.count > 20)
+                let measured = Double(crossings.count - 1) * 44100 / Double(crossings.last! - crossings.first!)
+                precondition(abs(measured - frequency) < 3, "Unexpected pitch: \(measured)")
+                sampler.shutdown()
+                engine.disableManualRenderingMode()
+            }
+            print("PASS: production sampler offline render measured 440 / 880 / 220 Hz")
             print("PASS: load, play, pause, seek, stop, failed-load preservation, replace mono, gain, replay at end")
         }
     }

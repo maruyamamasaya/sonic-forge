@@ -7,11 +7,11 @@ struct SonicForgeApp: App {
     var body: some Scene {
         Window("SonicForge", id: "studio") {
             StudioView(model: model)
-                .frame(minWidth: 1000, minHeight: 720)
+                .frame(minWidth: 1000, minHeight: 800)
                 .task { model.installTransportShortcuts(); await model.loadDemo() }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.cleanup() }
         }
-        .defaultSize(width: 1280, height: 820)
+        .defaultSize(width: 1280, height: 920)
         .commands {
             CommandMenu("Playback") {
                 Button("Play / Pause") { model.toggle() }

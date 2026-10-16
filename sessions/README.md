@@ -30,3 +30,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: 波形ズームと範囲試聴](2026-10-16-waveform-selection.md)
 
 - [2026-10-16: 選択範囲のWAV書き出し](2026-10-16-wav-export.md)
+
+- [2026-10-16: サンプル楽器と画面鍵盤](2026-10-16-sample-instrument.md)

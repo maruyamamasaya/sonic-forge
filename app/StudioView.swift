@@ -40,9 +40,10 @@ struct StudioView: View {
                         WaveCanvas(peaks: asset.peaks, fraction: fraction, overview: true,
                                    selection: model.editor.selectionRange, window: model.editor.visibleRange,
                                    seek: model.pan)
-                            .frame(height: 62).background(panel).overlay { Rectangle().stroke(line) }
+                            .frame(height: 42).background(panel).overlay { Rectangle().stroke(line) }
                             .contentShape(Rectangle())
                             .accessibilityLabel("Full file overview. Click or drag to move the zoomed view.")
+                        InstrumentKeyboard(model: model)
                     } else {
                         VStack(spacing: 18) {
                             Image(systemName: "waveform").font(.system(size: 40, weight: .ultraLight)).foregroundStyle(amber)
@@ -61,7 +62,7 @@ struct StudioView: View {
             Rectangle().fill(line).frame(height: 1)
             HStack {
                 Circle().fill(model.playing ? amber : muted).frame(width: 5, height: 5)
-                Text(model.exporting ? "Exporting selection…" : model.exportMessage ?? (model.loading ? "Loading audio…" : asset == nil ? "No audio file loaded" : asset!.isDemo ? "Synthesized demo · Ready to play" : "WAV loaded · \(asset!.url.lastPathComponent)")).lineLimit(1)
+                Text(model.preparingInstrument ? "Preparing instrument…" : model.exporting ? "Exporting selection…" : model.exportMessage ?? (model.loading ? "Loading audio…" : asset == nil ? "No audio file loaded" : asset!.isDemo ? "Synthesized demo · Ready to play" : "WAV loaded · \(asset!.url.lastPathComponent)")).lineLimit(1)
                 Spacer()
                 Text("System output").foregroundStyle(muted)
                 Text("•").foregroundStyle(muted)

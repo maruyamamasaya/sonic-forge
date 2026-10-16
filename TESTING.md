@@ -27,7 +27,7 @@ sh scripts/test.sh --playback
 | 変更 | 必要な検証 |
 | --- | --- |
 | 文書 | Fast → Full + 内容の差分確認 |
-| AudioAsset / デモ生成 / WaveformEditor / SelectionAudio / WAVExport | sh scripts/test.sh → Full |
+| AudioAsset / デモ生成 / WaveformEditor / SelectionAudio / WAVExport / InstrumentSample | sh scripts/test.sh → Full |
 | PlayerModel | sh scripts/test.sh --playback → Full |
 | SwiftUI / UI | Full + 実アプリで視覚・操作・ウィンドウ縮小を確認 |
 | build / test / verify | 正常系と関連失敗検出 → Full |
@@ -44,3 +44,10 @@ Space、⌘O、再生末尾、音量、最小ウィンドウも確認する。
 専用lint・format・CIは未導入。Swiftの型検査はビルドで行う。AI作業の実行結果と未実行はsessionsへ記録する。
 
 書き出しUI: デモ選択→Export WAV→保存→成功表示→Open WAVから再読み込み→長さ・形式・再生を確認。保存キャンセル時は選択と音源が残ることを確認。
+
+## Instrument Tests
+通常テストは基準音の名称、半音・オクターブの倍率、取り込みフレームと元音声のサンプル一致、不正範囲を確認。
+--playbackでは楽器取り込み、発音・離鍵、音の置き換え、古い離鍵の無視、ゲインと実メーター、基準音変更、末尾停止を確認。
+実装のAVAudioEngineグラフをoffline renderし、440 Hz素材を440／880／220 Hzとして出力することをゼロ交差で測定する。
+UIはデモのRoot A3、白鍵・黒鍵、離鍵、Root変更、Use Selection、音源交換時のリセットと小型ウィンドウを確認する。
+低遅延性能・クリックのない離鍵・長時間負荷は保証しない。

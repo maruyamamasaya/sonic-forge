@@ -6,7 +6,8 @@ GitHub: [maruyamamasaya/sonic-forge](https://github.com/maruyamamasaya/sonic-for
 
 macOS向けのSample Studio。WAVを読み込み、波形を見ながら再生・一時停止・停止・シーク・音量調整ができます。
 波形のズーム、ドラッグによる範囲選択、選択部分だけの再生とWAV書き出しにも対応しています。
-音源がなくても、起動時に読み込まれる合成デモを再生できます。
+音源がなくても、起動時に読み込まれる合成デモを再生・画面鍵盤で演奏できます。
+Rootで基準音を設定し、Use Selectionで選択した部分を単音サンプラーとして演奏できます。
 
 ## 起動
 macOS 14以上とXcodeの開発ツールが必要です。
