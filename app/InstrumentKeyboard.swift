@@ -185,6 +185,7 @@ struct LoopControls: View {
 }
 
 struct MIDIControls: View {
+    @State private var editingPerformance = false
     @ObservedObject var model: PlayerModel
     @ObservedObject var midi: MIDIInput
     var body: some View {
@@ -216,18 +217,21 @@ struct MIDIControls: View {
                         .toggleStyle(.checkbox)
                     Divider().frame(height: 12)
                 }
-                Picker("Performance preset", selection: $midi.performancePreset) {
-                    ForEach(MIDIPerformancePreset.allCases) { preset in Text(preset.rawValue).tag(preset) }
+                Picker("Performance preset", selection: Binding<MIDIPerformancePreset?>(get: { midi.customPerformance ? nil : midi.performancePreset }, set: { if let preset = $0 { midi.performancePreset = preset } })) {
+                    if midi.customPerformance { Text((midi.performanceDirty ? "● " : "") + midi.performance.name).tag(Optional<MIDIPerformancePreset>.none) }
+                    ForEach(MIDIPerformancePreset.allCases) { preset in Text(preset.rawValue).tag(Optional(preset)) }
                 }.labelsHidden().controlSize(.small).frame(width: 125).disabled(midi.performing)
                 Button(midi.performing ? "Stop auto" : "Auto play") {
                     model.suspendMIDI(false)
                     if midi.performing { midi.stopPerformance() } else { midi.playPerformance() }
                 }.controlSize(.small).disabled(model.instrumentSample == nil)
                     .help("演奏できなくてもプリセットで試聴できます。仮想MIDI入力へ切り替えて演奏します。")
+                Button(midi.performanceDirty ? "Edit ●" : "Edit…") { editingPerformance = true }
+                    .controlSize(.small).disabled(midi.performing)
                 Spacer(minLength: 0)
                 Text(model.sustainChannels.isEmpty ? "PEDAL OFF" : "PEDAL CH " + model.sustainChannels.sorted().map { String(Int($0) + 1) }.joined(separator: ","))
                     .foregroundStyle(model.sustainChannels.isEmpty ? Color.secondary : Color.orange).lineLimit(1)
             }.font(.system(size: 9))
-        }
+        }.sheet(isPresented: $editingPerformance) { PerformanceEditor(midi: midi) }
     }
 }

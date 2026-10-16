@@ -4,6 +4,7 @@ import AVFoundation
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        try PerformanceTests.run()
         MIDITests.parser()
         EnvelopeTests.run()
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForgeTests-" + UUID().uuidString)
@@ -437,6 +438,7 @@ struct AudioTests {
 
             try await MIDITests.integration()
             try await MIDITests.expression()
+            try await PerformanceTests.integration()
 
             // Render the production voice graph offline to verify audible pitch,
             // rather than testing only the semitone formula.

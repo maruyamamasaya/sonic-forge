@@ -37,7 +37,7 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var midiSuspended = false
     private var computerKeys: [UInt16: Int] = [:]
     static let computerKeyboard: [UInt16: Int] = [0: 60, 13: 61, 1: 62, 14: 63, 2: 64, 3: 65, 17: 66, 5: 67, 16: 68, 4: 69, 32: 70, 38: 71, 40: 72]
-    @Published var rootNote = 60 { didSet { stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
+    @Published var rootNote = 60 { didSet { midi.performanceRoot = rootNote; stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
     @Published private(set) var sampleLoop = SampleLoop(endFrame: 2)
     func setLoop(_ value: SampleLoop) {
         guard !busy, let sample = instrumentSample,
@@ -85,6 +85,7 @@ final class PlayerModel: ObservableObject {
     private var demoDirectory: URL?
 
     init() {
+        midi.performanceRoot = rootNote
         midi.onMessages = { [weak self] messages in self?.receiveMIDI(messages) }
         midi.onReset = { [weak self] in self?.releaseMIDI(immediate: true) }
         timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.refreshPlaybackState() }

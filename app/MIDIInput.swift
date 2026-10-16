@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Combine
 import CoreMIDI
 
@@ -64,41 +65,6 @@ struct MIDIInputSource: Identifiable, Equatable {
     let name: String
 }
 
-struct MIDIPerformanceEvent: Equatable {
-    let time: Double
-    let bytes: [UInt8]
-}
-
-enum MIDIPerformancePreset: String, CaseIterable, Identifiable {
-    case softChords = "Soft chords", arpeggio = "Arpeggio", pedalStudy = "Pedal phrase"
-    var id: String { rawValue }
-    var events: [MIDIPerformanceEvent] {
-        switch self {
-        case .softChords:
-            var events: [MIDIPerformanceEvent] = []
-            for (index, notes) in [[60, 64, 67], [60, 65, 69], [59, 62, 67], [60, 64, 67]].enumerated() {
-                let velocity = [45, 75, 105, 60][index]
-                events.append(MIDIPerformanceEvent(time: Double(index) * 1.3, bytes: notes.flatMap { [0x90, UInt8($0), UInt8(velocity)] }))
-                events.append(MIDIPerformanceEvent(time: Double(index) * 1.3 + 0.9, bytes: notes.flatMap { [0x80, UInt8($0), 0] }))
-            }
-            return events
-        case .arpeggio:
-            return [60, 64, 67, 72, 67, 64, 60, 55, 60, 64, 67, 72].enumerated().flatMap { index, note in
-                [MIDIPerformanceEvent(time: Double(index) * 0.24, bytes: [0x90, UInt8(note), UInt8(50 + index % 4 * 20)]),
-                 MIDIPerformanceEvent(time: Double(index) * 0.24 + 0.18, bytes: [0x80, UInt8(note), 0])]
-            }
-        case .pedalStudy:
-            return [MIDIPerformanceEvent(time: 0, bytes: [0xB0, 64, 127, 0x90, 60, 40]),
-                    MIDIPerformanceEvent(time: 0.2, bytes: [0x80, 60, 0]),
-                    MIDIPerformanceEvent(time: 0.4, bytes: [0x90, 64, 80]),
-                    MIDIPerformanceEvent(time: 0.6, bytes: [0x80, 64, 0]),
-                    MIDIPerformanceEvent(time: 0.8, bytes: [0x90, 67, 120]),
-                    MIDIPerformanceEvent(time: 1, bytes: [0x80, 67, 0]),
-                    MIDIPerformanceEvent(time: 2, bytes: [0xB0, 64, 0])]
-        }
-    }
-}
-
 @MainActor
 final class MIDIInput: ObservableObject {
     @Published private(set) var sources: [MIDIInputSource] = []
@@ -107,7 +73,47 @@ final class MIDIInput: ObservableObject {
     @Published private(set) var testSource: MIDIEndpointRef = 0
     @Published private(set) var testingChord = false
     @Published var testVelocity = 100
-    @Published var performancePreset = MIDIPerformancePreset.softChords
+    @Published var performancePreset = MIDIPerformancePreset.softChords {
+        didSet { resetPerformance() }
+    }
+    @Published var performance = PerformanceDocument.preset(.softChords) {
+        didSet { performanceDirty = true; customPerformance = true }
+    }
+    @Published private(set) var customPerformance = false
+    @Published private(set) var performanceDirty = false
+    @Published private(set) var performanceFileURL: URL?
+    var performanceRoot: Int?
+    func resetPerformance() {
+        performance = .preset(performancePreset)
+        performanceFileURL = nil; performanceDirty = false; customPerformance = false
+    }
+    @discardableResult
+    func loadPerformance(_ url: URL) -> Bool {
+        guard !performing else { return false }
+        do {
+            let replacement = try PerformanceDocument.load(url)
+            performance = replacement; performanceFileURL = url; performanceDirty = false
+            error = nil; return true
+        } catch { self.error = error.localizedDescription; return false }
+    }
+    @discardableResult
+    func savePerformance(to url: URL) -> Bool {
+        guard !performing else { return false }
+        do {
+            try performance.save(to: url)
+            performanceFileURL = url; performanceDirty = false; error = nil; return true
+        } catch { self.error = error.localizedDescription; return false }
+    }
+    func openPerformancePanel() {
+        let panel = NSOpenPanel(); panel.allowedContentTypes = [.sonicForgePerformance, .json]
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url { _ = loadPerformance(url) }
+    }
+    func savePerformancePanel() {
+        let panel = NSSavePanel(); panel.allowedContentTypes = [.sonicForgePerformance]
+        panel.nameFieldStringValue = performanceFileURL?.lastPathComponent ?? "My Performance.sfperformance"
+        if panel.runModal() == .OK, let url = panel.url { _ = savePerformance(to: url) }
+    }
     @Published private(set) var performing = false
     private var performanceTask: Task<Void, Never>?
     var onMessages: (([MIDIMessage]) -> Void)?
@@ -187,10 +193,12 @@ final class MIDIInput: ObservableObject {
         testingChord.toggle()
     }
     func playPerformance() {
+        let events: [MIDIPerformanceEvent]
+        do { events = try performance.events(root: performanceRoot) }
+        catch { self.error = error.localizedDescription; return }
         createTestInput()
         guard selected != 0 && selected == testSource else { return }
         let token = generation
-        let events = performancePreset.events
         performing = true
         performanceTask = Task { @MainActor [weak self] in
             var previous = 0.0

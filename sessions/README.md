@@ -48,3 +48,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: MIDI強弱・ペダルと自動演奏](2026-10-16-midi-expression-presets.md)
 
 - [2026-10-16: AI操作ガイド](2026-10-16-ai-operation-guide.md)
+
+- [2026-10-16: 演奏の編集と保存](2026-10-16-editable-performances.md)

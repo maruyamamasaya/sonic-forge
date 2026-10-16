@@ -105,4 +105,11 @@ PlayerModelはチャンネル別CC64状態を持ち、離鍵時にmidiの所有�
 CC121はペダルを解除して待機中の離鍵を処理する。全音停止・フォーカス喪失・素材交換は全チャンネルを初期化する。
 MIDIPerformancePresetは時刻とMIDIバイト列のイベントを返す。playPerformanceがMainActor Taskで順番に仮想sourceへ送る。
 プリセット停止時はTaskをキャンセルして接続世代を更新し、古い配送と残音を破棄する。通常終了は最後のNote Off/CC64 OffからADSRの余韻を残す。
-これは固定プリセットの自動演奏で、AI生成やサンプル精度のシーケンサーではない。[判断](decisions/0012-midi-expression-presets.md)。
+これはプリセットを元にしたデータ演奏で、AI生成やサンプル精度のシーケンサーではない。[判断](decisions/0012-midi-expression-presets.md)。
+
+## Editable Performances
+PerformanceDocument.swiftが音符・ペダルを拍単位で保持し、tempo/transpose/velocityPercentを適用してMIDIイベントへ変換する。
+値・重複・同時保持音数・ペダル終端を検証し、再生時は楽器音域も検証する。形式の正本は[演奏形式v1](PERFORMANCE_FORMAT.md)。
+PerformanceEditorが独立したシートで編集し、MIDIInputが演奏ファイルとdirtyを管理する。音色ファイルと保存状態は分離する。
+開始時に検証済みイベントを固定し、既存の仮想CoreMIDI再生とキャンセル処理を再利用。JSON読込にコード実行は伴わない。
+[判断](decisions/0013-editable-performances.md)。
