@@ -11,9 +11,11 @@ private struct InstrumentArchive: Codable {
     let rootNote: Int
     let sampleName: String
     let sampleWAV: Data
+    let envelope: ADSRParameters?
 }
 
 struct RestoredInstrument {
+    let envelope: ADSRParameters
     let rootNote: Int
     let sample: InstrumentSample
     let asset: AudioAsset
@@ -21,8 +23,8 @@ struct RestoredInstrument {
 }
 
 enum InstrumentDocument {
-    static func save(sample: InstrumentSample, rootNote: Int, to url: URL) throws {
-        guard url.pathExtension.lowercased() == "sfinstrument", (48...72).contains(rootNote) else {
+    static func save(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters = .standard, to url: URL) throws {
+        guard url.pathExtension.lowercased() == "sfinstrument", (48...72).contains(rootNote), envelope.isValid else {
             throw AudioError.invalid("楽器の保存形式または基準音が無効です。")
         }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Save-" + UUID().uuidString)
@@ -36,8 +38,8 @@ enum InstrumentDocument {
             let file = try AVAudioFile(forWriting: audioURL, settings: settings)
             try file.write(from: sample.buffer)
         }
-        let archive = InstrumentArchive(version: 1, rootNote: rootNote, sampleName: sample.name,
-                                        sampleWAV: try Data(contentsOf: audioURL))
+        let archive = InstrumentArchive(version: 2, rootNote: rootNote, sampleName: sample.name,
+                                        sampleWAV: try Data(contentsOf: audioURL), envelope: envelope)
         let data = try JSONEncoder().encode(archive)
         try data.write(to: url, options: .atomic)
     }
@@ -46,7 +48,9 @@ enum InstrumentDocument {
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size > 0 && size <= 96 * 1024 * 1024 else { throw AudioError.invalid("楽器ファイルのサイズが無効です（最大96 MB）。") }
         let archive = try JSONDecoder().decode(InstrumentArchive.self, from: Data(contentsOf: url))
-        guard archive.version == 1 else { throw AudioError.invalid("このバージョンの楽器ファイルには対応していません。") }
+        guard (1...2).contains(archive.version) else { throw AudioError.invalid("このバージョンの楽器ファイルには対応していません。") }
+        let envelope = archive.version == 1 ? ADSRParameters.legacy : archive.envelope
+        guard let envelope, envelope.isValid else { throw AudioError.invalid("ADSRの設定が無効です。") }
         guard (48...72).contains(archive.rootNote), archive.sampleName.count <= 255,
               archive.sampleWAV.count <= 64 * 1024 * 1024 + 8192 else {
             throw AudioError.invalid("楽器の設定または同梱音源が無効です。")
@@ -59,7 +63,7 @@ enum InstrumentDocument {
             let asset = try AudioAsset.load(audioURL)
             let decoded = try InstrumentSample.load(url: audioURL)
             let sample = InstrumentSample(buffer: decoded.buffer, name: archive.sampleName, selection: decoded.selection)
-            return RestoredInstrument(rootNote: archive.rootNote, sample: sample, asset: asset, directory: directory)
+            return RestoredInstrument(envelope: envelope, rootNote: archive.rootNote, sample: sample, asset: asset, directory: directory)
         } catch {
             try? FileManager.default.removeItem(at: directory)
             throw error

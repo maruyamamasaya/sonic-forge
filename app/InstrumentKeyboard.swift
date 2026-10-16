@@ -22,6 +22,7 @@ struct InstrumentKeyboard: View {
                 Text(model.activeNote.map { NotePitch.name($0) + String(format: "  %+d st", $0 - model.rootNote) } ?? "—")
                     .foregroundStyle(accent).font(.system(size: 12, weight: .medium, design: .monospaced)).frame(width: 90)
             }
+            EnvelopeControls(model: model)
             GeometryReader { geometry in
                 let width = geometry.size.width / CGFloat(whiteNotes.count)
                 ZStack(alignment: .topLeading) {
@@ -44,9 +45,9 @@ struct InstrumentKeyboard: View {
             }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
         }
         .disabled(model.busy || model.asset == nil)
-        .onDisappear { model.releaseNote() }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in model.releaseNote() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in model.releaseNote() }
+        .onDisappear { model.stopInstrument() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in model.stopInstrument() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in model.stopInstrument() }
     }
     private func key(note: Int, black: Bool) -> some View {
         let active = model.activeNote == note
@@ -70,5 +71,36 @@ struct InstrumentKeyboard: View {
         .accessibilityAction { model.playNote(note) }
         .disabled(model.instrumentSample == nil)
         .opacity(model.instrumentSample == nil ? 0.45 : 1)
+    }
+}
+
+struct EnvelopeControls: View {
+    @ObservedObject var model: PlayerModel
+    var body: some View {
+        HStack(spacing: 16) {
+            parameter("ATTACK", keyPath: \.attack, seconds: true, help: "押鍵から最大音量になるまで。次の発音から反映。")
+            parameter("DECAY", keyPath: \.decay, seconds: true, help: "最大音量からSustainまで下がる時間。")
+            parameter("SUSTAIN", keyPath: \.sustain, seconds: false, help: "押している間の音量。元音源の自然な減衰は維持します。")
+            parameter("RELEASE", keyPath: \.release, seconds: true, help: "離鍵後に消えるまで。音源の末尾では先に停止します。")
+        }.padding(.vertical, 4)
+    }
+    private func parameter(_ name: String, keyPath: WritableKeyPath<ADSRParameters, Double>, seconds: Bool, help: String) -> some View {
+        let value = model.envelope[keyPath: keyPath]
+        return VStack(spacing: 2) {
+            HStack {
+                Text(name).font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
+                Spacer(minLength: 4)
+                Text(seconds ? String(format: "%.3f s", value) : String(format: "%.0f %%", value * 100))
+                    .font(.system(size: 10, design: .monospaced))
+            }
+            Slider(value: Binding(get: { seconds ? sqrt(value / 5) : value }, set: { position in
+                var parameters = model.envelope
+                parameters[keyPath: keyPath] = seconds ? position * position * 5 : position
+                model.setEnvelope(parameters)
+            }), in: 0...1)
+                .controlSize(.small).tint(Color(red: 0.96, green: 0.72, blue: 0.33))
+                .accessibilityLabel(name)
+                .accessibilityValue(seconds ? String(format: "%.3f seconds", value) : String(format: "%.0f percent", value * 100))
+        }.help(help)
     }
 }

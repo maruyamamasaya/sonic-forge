@@ -66,50 +66,95 @@ final class InstrumentMeter: @unchecked Sendable {
     func read() -> [Float] { lock.lock(); defer { lock.unlock() }; return [left, right] }
 }
 
-/// One held voice, preloaded PCM, no file I/O when a key is pressed.
+/// Render-owned envelope and PCM cursor. UI operations use a short lock; the
+/// audio callback only tries the lock, never waits, and performs no file I/O.
+final class InstrumentVoice: @unchecked Sendable {
+    private let lock = NSLock()
+    private var sample: InstrumentSample?
+    private var position = 0
+    private var envelope = ADSREnvelope()
+    private var rate = 1.0
+    private var active = false
+
+    func install(_ sample: InstrumentSample) {
+        lock.lock(); defer { lock.unlock() }
+        self.sample = sample; active = false; envelope.stop(); position = 0
+    }
+    func trigger(_ parameters: ADSRParameters, rate: Double) {
+        lock.lock(); defer { lock.unlock() }
+        self.rate = rate; position = 0; envelope.trigger(parameters); active = true
+    }
+    func release() { lock.lock(); defer { lock.unlock() }; envelope.noteOff() }
+    func stop() { lock.lock(); defer { lock.unlock() }; active = false; envelope.stop() }
+    var isActive: Bool { lock.lock(); defer { lock.unlock() }; return active }
+    func render(frames: AVAudioFrameCount, output: UnsafeMutablePointer<AudioBufferList>) {
+        let buffers = UnsafeMutableAudioBufferListPointer(output)
+        for buffer in buffers { if let data = buffer.mData { memset(data, 0, Int(buffer.mDataByteSize)) } }
+        guard lock.try() else { return }
+        defer { lock.unlock() }
+        guard active, let sample, let pcm = sample.buffer.floatChannelData else { return }
+        for frame in 0..<Int(frames) {
+            guard position < Int(sample.buffer.frameLength) else { active = false; envelope.stop(); break }
+            let amplitude = envelope.next(sampleRate: sample.buffer.format.sampleRate * rate)
+            if envelope.stage == .idle { active = false; break }
+            for channel in 0..<min(buffers.count, Int(sample.buffer.format.channelCount)) {
+                buffers[channel].mData?.assumingMemoryBound(to: Float.self)[frame] = pcm[channel][position] * amplitude
+            }
+            position += 1
+        }
+    }
+}
+
 @MainActor
 final class SampleInstrument {
     private let engine: AVAudioEngine
-    private let voice = AVAudioPlayerNode()
+    private var source: AVAudioSourceNode?
     private let speed = AVAudioUnitVarispeed()
+    private let voice = InstrumentVoice()
     private(set) var sample: InstrumentSample?
-    private var generation = 0
+    private var awaitingCompletion = false
     let meter = InstrumentMeter()
     var onFinished: (() -> Void)?
-    var gain: Float = 0.25 { didSet { voice.volume = gain } }
+    var gain: Float = 0.25 { didSet { engine.mainMixerNode.outputVolume = gain } }
+    var isSounding: Bool { voice.isActive }
 
     init(engine: AVAudioEngine = AVAudioEngine()) {
         self.engine = engine
-        engine.attach(voice); engine.attach(speed)
+        engine.attach(speed)
         let meter = self.meter
         engine.mainMixerNode.installTap(onBus: 0, bufferSize: 512, format: nil) { buffer, _ in meter.update(buffer) }
     }
     func install(_ sample: InstrumentSample) {
-        stop()
-        engine.stop()
-        engine.disconnectNodeOutput(voice)
+        stop(); engine.stop()
+        if let source { engine.detach(source) }
         engine.disconnectNodeOutput(speed)
-        engine.connect(voice, to: speed, format: sample.buffer.format)
+        voice.install(sample)
+        let voice = self.voice
+        let source = AVAudioSourceNode(format: sample.buffer.format) { _, _, count, output in
+            voice.render(frames: count, output: output)
+            return noErr
+        }
+        engine.attach(source)
+        engine.connect(source, to: speed, format: sample.buffer.format)
         engine.connect(speed, to: engine.mainMixerNode, format: sample.buffer.format)
+        self.source = source
         self.sample = sample
     }
-    func play(note: Int, root: Int) throws {
-        guard let sample else { throw AudioError.invalid("先にサンプルを楽器へ取り込んでください。") }
+    func play(note: Int, root: Int, envelope: ADSRParameters = .standard) throws {
+        guard sample != nil else { throw AudioError.invalid("先にサンプルを楽器へ取り込んでください。") }
         let rate = NotePitch.rate(note: note, root: root)
-        guard (0.25...4).contains(rate) else { throw AudioError.invalid("演奏できる音域は基準音から上下2オクターブです。") }
+        guard (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
         stop()
         speed.rate = rate
-        voice.volume = gain
+        engine.mainMixerNode.outputVolume = gain
         if !engine.isRunning { engine.prepare(); try engine.start() }
-        let token = generation
-        voice.scheduleBuffer(sample.buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, self.generation == token else { return }
-                self.onFinished?()
-            }
-        }
-        voice.play()
+        voice.trigger(envelope, rate: Double(rate))
+        awaitingCompletion = true
     }
-    func stop() { generation += 1; voice.stop() }
+    func noteOff() { voice.release() }
+    func refreshCompletion() {
+        if awaitingCompletion && !voice.isActive { awaitingCompletion = false; onFinished?() }
+    }
+    func stop() { awaitingCompletion = false; voice.stop() }
     func shutdown() { stop(); engine.stop(); sample = nil }
 }

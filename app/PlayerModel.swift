@@ -18,7 +18,13 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var preparingInstrument = false
     @Published private(set) var instrumentSample: InstrumentSample?
     @Published private(set) var activeNote: Int?
-    @Published var rootNote = 60 { didSet { releaseNote(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
+    @Published var rootNote = 60 { didSet { stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
+    @Published private(set) var envelope = ADSRParameters.standard
+    func setEnvelope(_ value: ADSRParameters) {
+        guard value.isValid, value != envelope, !busy else { return }
+        envelope = value
+        if instrumentSample != nil { instrumentDirty = true }
+    }
     @Published private(set) var instrumentDirty = false
     @Published private(set) var instrumentFileURL: URL?
     private var instrumentDirectory: URL?
@@ -118,25 +124,27 @@ final class PlayerModel: ObservableObject {
     func saveInstrumentPanel() {
         guard !busy, let sample = instrumentSample else { return }
         let root = rootNote
+        let adsr = envelope
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.sonicForgeInstrument]
         panel.canCreateDirectories = true
         panel.nameFieldStringValue = instrumentFileURL?.lastPathComponent ?? URL(fileURLWithPath: sample.name).deletingPathExtension().lastPathComponent + ".sfinstrument"
         panel.title = "Save Instrument"
-        panel.message = "サンプル音源と基準音をまとめて保存します。元のWAVがなくても開けます。"
+        panel.message = "サンプル音源・基準音・ADSRをまとめて保存します。元のWAVがなくても開けます。"
         guard let window = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.title == "SonicForge" && $0.isVisible }) else { return }
         panel.beginSheetModal(for: window) { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
-            Task { @MainActor in await self?.saveInstrument(sample: sample, root: root, to: url) }
+            Task { @MainActor in await self?.saveInstrument(sample: sample, root: root, envelope: adsr, to: url) }
         }
     }
 
-    func saveInstrument(sample: InstrumentSample, root: Int, to url: URL, remember: Bool = true) async {
+    func saveInstrument(sample: InstrumentSample, root: Int, envelope parameters: ADSRParameters? = nil, to url: URL, remember: Bool = true) async {
         guard !busy else { return }
+        let adsr = parameters ?? envelope
         exporting = true
         defer { exporting = false }
         do {
-            try await Task.detached(priority: .userInitiated) { try InstrumentDocument.save(sample: sample, rootNote: root, to: url) }.value
+            try await Task.detached(priority: .userInitiated) { try InstrumentDocument.save(sample: sample, rootNote: root, envelope: adsr, to: url) }.value
             instrumentFileURL = url
             instrumentDirty = false
             exportMessage = "Instrument saved · " + url.lastPathComponent
@@ -179,6 +187,7 @@ final class PlayerModel: ObservableObject {
             editor = WaveformEditor(frameCount: Int64(restored.sample.buffer.frameLength), sampleRate: restored.sample.buffer.format.sampleRate)
             instrumentSample = restored.sample
             rootNote = restored.rootNote
+            envelope = restored.envelope
             instrumentFileURL = url
             instrumentDirty = false
             exportMessage = "Instrument opened · " + url.lastPathComponent
@@ -239,6 +248,7 @@ final class PlayerModel: ObservableObject {
             exportMessage = nil
             asset = loaded
             rootNote = demo ? 57 : 60
+            envelope = .standard
             editor = WaveformEditor(frameCount: Int64((loaded.duration * loaded.sampleRate).rounded()), sampleRate: loaded.sampleRate)
             playing = false
             position = 0
@@ -252,7 +262,7 @@ final class PlayerModel: ObservableObject {
         let selection = useSelection ? editor.selection : nil
         preparingInstrument = true
         defer { preparingInstrument = false }
-        releaseNote()
+        stopInstrument()
         do {
             let sample = try await Task.detached(priority: .userInitiated) {
                 try InstrumentSample.load(url: asset.url, selection: selection)
@@ -267,11 +277,15 @@ final class PlayerModel: ObservableObject {
     func playNote(_ note: Int) {
         guard !busy else { return }
         stop()
-        do { try instrument.play(note: note, root: rootNote); activeNote = note }
+        do { try instrument.play(note: note, root: rootNote, envelope: envelope); activeNote = note }
         catch { self.error = error.localizedDescription; activeNote = nil }
     }
     func releaseNote(_ note: Int? = nil) {
         guard note == nil || activeNote == note else { return }
+        instrument.noteOff()
+        activeNote = nil
+    }
+    func stopInstrument() {
         instrument.stop()
         activeNote = nil
         levels = [-60, -60]
@@ -279,7 +293,7 @@ final class PlayerModel: ObservableObject {
 
     func toggle() {
         guard !busy, let player = activePlayer, asset != nil else { return }
-        releaseNote()
+        stopInstrument()
         if player.isPlaying { player.pause(); playing = false; levels = [-60, -60] }
         else {
             if position >= playbackEnd - 0.000001 { player.currentTime = 0; position = previewOffset }
@@ -289,7 +303,7 @@ final class PlayerModel: ObservableObject {
 
     func playSelection() async {
         guard !busy, let asset, let selected = editor.selection else { return }
-        releaseNote()
+        stopInstrument()
         loading = true
         defer { loading = false }
         leaveSelectionPlayback()
@@ -356,7 +370,7 @@ final class PlayerModel: ObservableObject {
     func pan(to center: Double) { editor.pan(to: center) }
 
     func stop() {
-        releaseNote()
+        stopInstrument()
         leaveSelectionPlayback()
         player?.stop(); player?.currentTime = 0; position = 0; playing = false; levels = [-60, -60]
     }
@@ -367,7 +381,8 @@ final class PlayerModel: ObservableObject {
         player?.currentTime = position
     }
     func refreshPlaybackState() {
-        if activeNote != nil { levels = instrument.meter.read(); return }
+        instrument.refreshCompletion()
+        if instrument.isSounding { levels = instrument.meter.read(); return }
         guard let player = activePlayer else { return }
         if playing && !player.isPlaying {
             playing = false

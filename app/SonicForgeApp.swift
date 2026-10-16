@@ -7,7 +7,7 @@ struct SonicForgeApp: App {
     var body: some Scene {
         Window("SonicForge", id: "studio") {
             StudioView(model: model)
-                .frame(minWidth: 1000, minHeight: 800)
+                .frame(minWidth: 1000, minHeight: 850)
                 .task { model.installTransportShortcuts(); await model.startSession() }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.cleanup() }
         }

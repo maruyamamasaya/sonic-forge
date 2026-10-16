@@ -4,6 +4,7 @@ import AVFoundation
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        EnvelopeTests.run()
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForgeTests-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -135,13 +136,14 @@ struct AudioTests {
         do { _ = try InstrumentSample.load(url: demo, selection: AudioSelection(startFrame: 5, endFrame: 4)); fatalError("Invalid instrument range") } catch {}
         let originalCopy = root.appendingPathComponent("independent-source.wav")
         try FileManager.default.copyItem(at: demo, to: originalCopy)
+        let savedEnvelope = ADSRParameters(attack: 0.12, decay: 0.34, sustain: 0.56, release: 0.78)
         let documentSample = try InstrumentSample.load(url: originalCopy, selection: selected)
         let documentURL = root.appendingPathComponent("My Instrument.sfinstrument")
-        try InstrumentDocument.save(sample: documentSample, rootNote: 64, to: documentURL)
+        try InstrumentDocument.save(sample: documentSample, rootNote: 64, envelope: savedEnvelope, to: documentURL)
         try FileManager.default.removeItem(at: originalCopy)
         let restored = try InstrumentDocument.load(documentURL)
         defer { try? FileManager.default.removeItem(at: restored.directory) }
-        precondition(restored.rootNote == 64 && restored.sample.name == documentSample.name)
+        precondition(restored.rootNote == 64 && restored.sample.name == documentSample.name && restored.envelope == savedEnvelope)
         precondition(restored.sample.buffer.frameLength == documentSample.buffer.frameLength)
         precondition(restored.sample.buffer.format.sampleRate == documentSample.buffer.format.sampleRate)
         for channel in 0..<2 {
@@ -158,6 +160,21 @@ struct AudioTests {
             try JSONSerialization.data(withJSONObject: badJSON).write(to: invalidDocument)
             do { _ = try InstrumentDocument.load(invalidDocument); fatalError("Invalid archive accepted") } catch {}
         }
+        var legacyJSON = json
+        legacyJSON["version"] = 1
+        legacyJSON.removeValue(forKey: "envelope")
+        let legacyURL = root.appendingPathComponent("legacy.sfinstrument")
+        try JSONSerialization.data(withJSONObject: legacyJSON).write(to: legacyURL)
+        let legacy = try InstrumentDocument.load(legacyURL)
+        defer { try? FileManager.default.removeItem(at: legacy.directory) }
+        precondition(legacy.envelope == .legacy && legacy.rootNote == 64)
+        for sustain in [-0.1, 1.1] {
+            var invalid = json
+            invalid["envelope"] = ["attack": 0.1, "decay": 0.1, "sustain": sustain, "release": 0.1]
+            try JSONSerialization.data(withJSONObject: invalid).write(to: invalidDocument)
+            do { _ = try InstrumentDocument.load(invalidDocument); fatalError("Invalid ADSR accepted") } catch {}
+        }
+        print("PASS: ADSR v2 persistence, legacy v1 sound compatibility, invalid envelope rejection")
         let monoDocument = root.appendingPathComponent("Mono.sfinstrument")
         try InstrumentDocument.save(sample: InstrumentSample.load(url: mono), rootNote: 60, to: monoDocument)
         let restoredMono = try InstrumentDocument.load(monoDocument)
@@ -262,8 +279,10 @@ struct AudioTests {
             precondition(abs(model.instrumentSample!.duration - 0.2) < 0.00001)
             model.playNote(57)
             try await Task.sleep(nanoseconds: 600_000_000)
+            model.refreshPlaybackState()
             precondition(model.activeNote == nil)
             model.rootNote = 64
+            model.setEnvelope(savedEnvelope)
             let modelDocument = root.appendingPathComponent("model.sfinstrument")
             await model.saveInstrument(sample: model.instrumentSample!, root: model.rootNote, to: modelDocument, remember: false)
             precondition(!model.instrumentDirty && model.instrumentFileURL == modelDocument)
@@ -272,11 +291,13 @@ struct AudioTests {
             let reopened = PlayerModel()
             defer { reopened.cleanup() }
             let opened = await reopened.loadInstrument(modelDocument, remember: false)
-            precondition(opened && reopened.rootNote == 64 && !reopened.instrumentDirty)
+            precondition(opened && reopened.rootNote == 64 && !reopened.instrumentDirty && reopened.envelope == savedEnvelope)
             precondition(abs(reopened.instrumentSample!.duration - 0.2) < 0.00001)
             reopened.playNote(64)
             precondition(reopened.activeNote == 64)
             reopened.releaseNote()
+            reopened.setEnvelope(.standard)
+            precondition(reopened.instrumentDirty)
             let rejected = await reopened.loadInstrument(invalidDocument, remember: false)
             precondition(!rejected && reopened.rootNote == 64 && reopened.instrumentSample != nil)
             print("PASS: fresh model restoration, unchanged root/audio, dirty tracking, keyboard playback, failed-open preservation")
@@ -311,6 +332,33 @@ struct AudioTests {
                 sampler.shutdown()
                 engine.disableManualRenderingMode()
             }
+            for note in [48, 60, 72] {
+                let engine = AVAudioEngine()
+                let sampler = SampleInstrument(engine: engine)
+                let sample = try InstrumentSample.load(url: mono)
+                sampler.install(sample)
+                try engine.enableManualRenderingMode(.offline, format: sample.buffer.format, maximumFrameCount: 512)
+                try sampler.play(note: note, root: 60, envelope: ADSRParameters(attack: 0.04, decay: 0.04, sustain: 0.5, release: 0.1))
+                let output = AVAudioPCMBuffer(pcmFormat: engine.manualRenderingFormat, frameCapacity: 512)!
+                var rendered: [Float] = []
+                for block in 0..<40 {
+                    if block == 16 { sampler.noteOff() }
+                    let status = try engine.renderOffline(512, to: output)
+                    precondition(status == .success)
+                    rendered.append(contentsOf: UnsafeBufferPointer(start: output.floatChannelData![0], count: Int(output.frameLength)))
+                }
+                func rms(_ range: Range<Int>) -> Double {
+                    sqrt(rendered[range].reduce(0.0) { $0 + Double($1 * $1) } / Double(range.count))
+                }
+                let held = rms(5000..<7000)
+                precondition(held > 0.001)
+                precondition(rms(0..<441) < held)
+                precondition(rms(8704..<9728) > held * 0.05, "Release must continue after note-off")
+                precondition(rms(16000..<19000) < held * 0.001, "Release must end at all pitches")
+                sampler.shutdown()
+                engine.disableManualRenderingMode()
+            }
+            print("PASS: actual audio graph Attack, Sustain and Release tails at three pitches")
             print("PASS: production sampler offline render measured 440 / 880 / 220 Hz")
             print("PASS: load, play, pause, seek, stop, failed-load preservation, replace mono, gain, replay at end")
         }

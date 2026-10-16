@@ -39,17 +39,24 @@ scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署�
 
 ## Sample Instrument
 InstrumentSampleが全体／選択をバックグラウンドでFloat32 PCMへ取り込む（最大30秒・デコード後64 MB）。
-SampleInstrumentはAVAudioEngineのPlayerNode → Varispeed → Mixer → system outputで単音を演奏。
+SampleInstrumentはAVAudioEngineのSourceNode（InstrumentVoice＋ADSR）→ Varispeed → Mixer → system outputで単音を演奏。
 再生速度は2^((鍵盤ノート−基準音)/12)。C3〜C5の25鍵、基準音もC3〜C5。高い音ほど短くなる。
 デモの基準音はA3、外部WAVは手動指定の初期値C4。自動ピッチ検出は行わない。
-MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。世代番号で古い完了通知を無視する。
+MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。完了状態はUIタイマーで確認し、音声コールバックからUIを更新しない。
 Mixer tapのRMSを右メーターへ表示。音声スレッドのメーター更新はロックが取れなければ待たずに破棄する。
-従来の試聴とは排他再生。停止・音源交換・基準音変更・フォーカス喪失で発音を止める。
+従来の試聴とは排他再生。停止・音源交換・基準音変更・フォーカス喪失で発音を止める。離鍵はADSRのReleaseへ移行する。
 
 ## Instrument Documents
-InstrumentDocumentがversion 1の単一JSONファイル（.sfinstrument）を読み書きする。
-取り込み済みPCMを32-bit Float WAVに変換してbase64で同梱し、基準音とサンプル表示名を保存。外部音源パスへの依存はない。
+InstrumentDocumentがversion 2の単一JSONファイル（.sfinstrument）を読み書きする。
+取り込み済みPCMを32-bit Float WAVに変換してbase64で同梱し、基準音・ADSRとサンプル表示名を保存。外部音源パスへの依存はない。
 保存はバックグラウンド生成＋atomic write。読み込みはサイズ・版・基準音・音源を検証後、一時領域へ展開して既存エンジンへ渡す。
 全検証と試聴プレイヤー準備に成功してから現在の状態を置き換え、失敗時は元の楽器を保持する。
 最後に保存／開いたファイルのパスだけをアプリのUserDefaultsに保持し、起動時に復元。未発見・破損時は説明付きでデモへフォールバック。
 展開先は通常終了・楽器交換時に削除。元の楽器ファイルは変更しない。波形編集の選択・ズーム、Master Gain、未保存の変更は保存しない。
+
+## ADSR
+ADSREnvelope.swiftが線形Attack / Decay / Sustain / Releaseを管理。A・D・Rは0〜5秒、Sは0〜1。
+SourceNode内でサンプルごとに乗算し、速度変更の前段では計算用レートに音程倍率を掛けて、音程に依存しない秒数を維持する。
+InstrumentVoiceはPCM位置とエンベロープを短いロックで保護。レンダー側はtry-lockのみで待たず、取得不可ならそのブロックを無音にする。ファイルI/OやUI通知はしない。
+パラメーターは押鍵時にスナップショット化し、変更は次の発音から反映。Releaseは現在のレベルから減衰し、サンプル末尾では先に停止。
+形式v1はA=0 / D=0 / S=1 / R=0で読み込み、従来の鳴り方を維持。v2はADSRを必須とし、不正値は読み込みを拒否する。

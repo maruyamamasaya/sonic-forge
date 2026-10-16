@@ -34,3 +34,5 @@ Status: proposed / accepted / superseded
 - [0005: 単音サンプラー楽器](0005-sample-instrument.md)
 
 - [0006: 音源同梱の楽器保存](0006-instrument-document.md)
+
+- [0007: ADSRと保存形式v2](0007-adsr.md)
