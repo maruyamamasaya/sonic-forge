@@ -47,7 +47,7 @@ Mixer tapのRMSを右メーターへ表示。音声スレッドのメーター�
 従来の試聴とは排他再生。停止・音源交換・基準音変更・フォーカス喪失で発音を止める。離鍵はADSRのReleaseへ移行する。
 
 ## Instrument Documents
-InstrumentDocumentがversion 3の単一JSONファイル（.sfinstrument）を読み書きする。
+InstrumentDocumentがversion 4の単一JSONファイル（.sfinstrument）を読み書きする。
 取り込み済みPCMを32-bit Float WAVに変換してbase64で同梱し、基準音・ADSR・ループとサンプル表示名を保存。外部音源パスへの依存はない。
 保存はバックグラウンド生成＋atomic write。読み込みはサイズ・版・基準音・音源を検証後、一時領域へ展開して既存エンジンへ渡す。
 全検証と試聴プレイヤー準備に成功してから現在の状態を置き換え、失敗時は元の楽器を保持する。
@@ -66,3 +66,10 @@ SampleLoopは取り込み済みPCM先頭からの開始フレームと排他的�
 InstrumentVoiceは先頭から再生し、終了で開始へ戻る。Release中も折り返してエンベロープ終端で停止する。
 押鍵時のスナップショットで、編集は次の発音に反映。無効時は従来のEOF停止。
 保存v3はループを必須検証し、v1/v2は全体範囲・OFFとして復元。[判断](decisions/0008-sample-loop.md)。
+
+## Loop Crossfade
+SampleLoop.crossfadeFramesは0〜min(ループ長の半分, 100 ms相当のフレーム)。0で従来通り。
+末尾Nフレームを先頭Nフレームと線形混合し、折り返し後はstart+Nから続ける。重みの和は1で、ステレオ共通の重みを使用。
+ADSR乗算の前で処理し、Releaseでも継続。再生用スナップショットのみ変更し元PCMは不変。
+重複分だけ定常ループ周期は短くなり、音程変更時は速度に従いフェード時間も変化する。
+v4で保存。v3の欠落値は0、v1/v2は従来通りループOFF。[判断](decisions/0009-loop-crossfade.md)。

@@ -38,3 +38,5 @@ Status: proposed / accepted / superseded
 - [0007: ADSRと保存形式v2](0007-adsr.md)
 
 - [0008: サンプルループ](0008-sample-loop.md)
+
+- [0009: ループクロスフェード](0009-loop-crossfade.md)

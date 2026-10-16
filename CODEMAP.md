@@ -23,7 +23,7 @@
 | 選択区間の音声 | app/SelectionAudio.swift | SelectionAudio.write、framePosition、frameCount | tests/AudioTests.swift |
 | WAV書き出し | app/WAVExport.swift、app/PlayerModel.swift | WAVExport.write、exportSelection、export、NSSavePanel | tests/AudioTests.swift |
 | 楽器保存・復元 | app/InstrumentDocument.swift、app/PlayerModel.swift | InstrumentDocument.save/load、saveInstrument、loadInstrument、startSession、instrumentDirty | tests/AudioTests.swift / --playback |
-| サンプルループ | app/SampleInstrument.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | SampleLoop、loopFromSelection、LoopControls | tests/EnvelopeTests.swift、tests/AudioTests.swift |
+| サンプルループ | app/SampleInstrument.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | SampleLoop.crossfadeFrames、InstrumentVoice.render、loopFromSelection、LoopControls | tests/EnvelopeTests.swift、tests/AudioTests.swift |
 | ADSR | app/ADSREnvelope.swift、app/SampleInstrument.swift、app/InstrumentKeyboard.swift | ADSRParameters、ADSREnvelope.next、InstrumentVoice.render、EnvelopeControls、setEnvelope | tests/EnvelopeTests.swift、tests/AudioTests.swift --playback |
 | 単音楽器・音程 | app/SampleInstrument.swift、app/PlayerModel.swift | InstrumentSample.load、NotePitch.rate、SampleInstrument.play、prepareInstrument、playNote、releaseNote | tests/AudioTests.swift / --playback |
 | 画面鍵盤・基準音 | app/InstrumentKeyboard.swift | InstrumentKeyboard、Root note、Use Selection | 実UI確認 |

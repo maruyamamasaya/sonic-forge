@@ -43,8 +43,23 @@ struct SampleLoop: Codable, Equatable {
     var enabled = false
     var startFrame: Int64 = 0
     var endFrame: Int64
-    func isValid(frameCount: Int64) -> Bool {
+    var crossfadeFrames: Int64 = 0
+    private enum CodingKeys: String, CodingKey { case enabled, startFrame, endFrame, crossfadeFrames }
+    init(enabled: Bool = false, startFrame: Int64 = 0, endFrame: Int64, crossfadeFrames: Int64 = 0) {
+        self.enabled = enabled; self.startFrame = startFrame; self.endFrame = endFrame
+        self.crossfadeFrames = crossfadeFrames
+    }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        enabled = try values.decode(Bool.self, forKey: .enabled)
+        startFrame = try values.decode(Int64.self, forKey: .startFrame)
+        endFrame = try values.decode(Int64.self, forKey: .endFrame)
+        crossfadeFrames = try values.decodeIfPresent(Int64.self, forKey: .crossfadeFrames) ?? 0
+    }
+    func isValid(frameCount: Int64, sampleRate: Double = .infinity) -> Bool {
         startFrame >= 0 && endFrame <= frameCount && endFrame > startFrame && endFrame - startFrame >= (enabled ? 2 : 1)
+            && crossfadeFrames >= 0 && crossfadeFrames <= (endFrame - startFrame) / 2
+            && Double(crossfadeFrames) <= sampleRate * 0.1
     }
 }
 
@@ -94,7 +109,7 @@ final class InstrumentVoice: @unchecked Sendable {
     func trigger(_ parameters: ADSRParameters, rate: Double, loop: SampleLoop? = nil) {
         lock.lock(); defer { lock.unlock() }
         self.loop = loop.flatMap { value in
-            guard let sample, value.enabled, value.isValid(frameCount: Int64(sample.buffer.frameLength)) else { return nil }
+            guard let sample, value.enabled, value.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) else { return nil }
             return value
         }
         self.rate = rate; position = 0; envelope.trigger(parameters); active = true
@@ -109,12 +124,19 @@ final class InstrumentVoice: @unchecked Sendable {
         defer { lock.unlock() }
         guard active, let sample, let pcm = sample.buffer.floatChannelData else { return }
         for frame in 0..<Int(frames) {
-            if let loop, position >= Int(loop.endFrame) { position = Int(loop.startFrame) }
+            if let loop, position >= Int(loop.endFrame) { position = Int(loop.startFrame + loop.crossfadeFrames) }
             guard position < Int(sample.buffer.frameLength) else { active = false; envelope.stop(); break }
             let amplitude = envelope.next(sampleRate: sample.buffer.format.sampleRate * rate)
             if envelope.stage == .idle { active = false; break }
             for channel in 0..<min(buffers.count, Int(sample.buffer.format.channelCount)) {
-                buffers[channel].mData?.assumingMemoryBound(to: Float.self)[frame] = pcm[channel][position] * amplitude
+                var value = pcm[channel][position]
+                if let loop, loop.crossfadeFrames > 0,
+                   position >= Int(loop.endFrame - loop.crossfadeFrames) {
+                    let offset = position - Int(loop.endFrame - loop.crossfadeFrames)
+                    let blend = Float(offset + 1) / Float(loop.crossfadeFrames)
+                    value = value * (1 - blend) + pcm[channel][Int(loop.startFrame) + offset] * blend
+                }
+                buffers[channel].mData?.assumingMemoryBound(to: Float.self)[frame] = value * amplitude
             }
             position += 1
         }
@@ -160,7 +182,7 @@ final class SampleInstrument {
         guard sample != nil else { throw AudioError.invalid("先にサンプルを楽器へ取り込んでください。") }
         let rate = NotePitch.rate(note: note, root: root)
         guard (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
-        if let loop, let sample, !loop.isValid(frameCount: Int64(sample.buffer.frameLength)) {
+        if let loop, let sample, !loop.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) {
             throw AudioError.invalid("ループ範囲が無効です。")
         }
         stop()

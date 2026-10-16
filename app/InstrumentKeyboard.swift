@@ -109,18 +109,37 @@ struct EnvelopeControls: View {
 struct LoopControls: View {
     @ObservedObject var model: PlayerModel
     var body: some View {
-        HStack(spacing: 12) {
-            Toggle("LOOP", isOn: Binding(get: { model.sampleLoop.enabled }, set: {
-                var loop = model.sampleLoop; loop.enabled = $0; model.setLoop(loop)
-            })).toggleStyle(.checkbox).font(.system(size: 10, weight: .medium))
-            boundary("START", start: true)
-            boundary("END", start: false)
-            Button("From Selection") { model.loopFromSelection() }
-                .controlSize(.small).disabled(!model.canSetLoopFromSelection)
-                .help("波形の選択範囲をループに設定。取り込み済みサンプルの範囲内で選択してください。")
+        VStack(spacing: 5) {
+            HStack(spacing: 12) {
+                Toggle("LOOP", isOn: Binding(get: { model.sampleLoop.enabled }, set: {
+                    var loop = model.sampleLoop; loop.enabled = $0; model.setLoop(loop)
+                })).toggleStyle(.checkbox).font(.system(size: 10, weight: .medium))
+                    .help("次の発音から反映。離鍵後はループしながらReleaseで減衰します。")
+                boundary("START", start: true)
+                boundary("END", start: false)
+                Button("From Selection") { model.loopFromSelection() }
+                    .controlSize(.small).disabled(!model.canSetLoopFromSelection)
+                    .help("波形の選択範囲をループに設定。取り込み済みサンプルの範囲内で選択してください。")
+            }
+            HStack(spacing: 10) {
+                Text("CROSSFADE").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
+                let rate = model.instrumentSample?.buffer.format.sampleRate ?? 1
+                let limit = max(1, min(Int64(rate * 0.1), (model.sampleLoop.endFrame - model.sampleLoop.startFrame) / 2))
+                Slider(value: Binding(get: { Double(model.sampleLoop.crossfadeFrames) }, set: { value in
+                    var loop = model.sampleLoop
+                    loop.crossfadeFrames = Int64(value.rounded())
+                    model.setLoop(loop)
+                }), in: 0...Double(limit)).controlSize(.small)
+                    .tint(Color(red: 0.96, green: 0.72, blue: 0.33))
+                    .accessibilityLabel("Loop crossfade")
+                    .accessibilityValue(String(format: "%.2f milliseconds", Double(model.sampleLoop.crossfadeFrames) / rate * 1000))
+                Text(model.sampleLoop.crossfadeFrames == 0 ? "OFF" : String(format: "%.2f ms", Double(model.sampleLoop.crossfadeFrames) / rate * 1000))
+                    .font(.system(size: 10, design: .monospaced)).frame(width: 72, alignment: .trailing)
+            }.disabled(!model.sampleLoop.enabled)
+                .help("ループ末尾と先頭を重ねて継ぎ目を滑らかにします。0でOFF。最大100 msまたはループの半分。次の発音から反映。")
         }
         .disabled(model.instrumentSample == nil)
-        .help("次の発音から反映。離鍵後はループしながらReleaseで減衰します。位置は楽器サンプル先頭からの秒数です。")
+
     }
     private func boundary(_ label: String, start: Bool) -> some View {
         let sample = model.instrumentSample
@@ -133,6 +152,7 @@ struct LoopControls: View {
                 var updated = model.sampleLoop
                 if start { updated.startFrame = min(Int64(value.rounded()), updated.endFrame - 2) }
                 else { updated.endFrame = max(Int64(value.rounded()), updated.startFrame + 2) }
+                updated.crossfadeFrames = min(updated.crossfadeFrames, max(0, updated.endFrame - updated.startFrame) / 2)
                 model.setLoop(updated)
             }), in: start ? 0...Double(max(1, count - 2)) : 2...Double(max(3, count)))
                 .controlSize(.small).tint(Color(red: 0.96, green: 0.72, blue: 0.33))

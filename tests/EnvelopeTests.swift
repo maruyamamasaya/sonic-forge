@@ -82,6 +82,29 @@ enum EnvelopeTests {
         precondition(!voice.isActive && output.floatChannelData![0][3000] == 0)
         precondition(!SampleLoop(enabled: true, startFrame: 4, endFrame: 4).isValid(frameCount: 3000))
         precondition(!SampleLoop(enabled: true, startFrame: 0, endFrame: Int64.min).isValid(frameCount: 3000))
+        // A deliberately discontinuous stereo ramp exposes the boundary jump.
+        for i in 0..<3000 { pcm.floatChannelData![0][i] = Float(i % 100) / 50 - 1; pcm.floatChannelData![1][i] = -pcm.floatChannelData![0][i] }
+        for rate in [0.5, 1.0, 2.0] {
+            voice.trigger(ADSRParameters(attack: 0, decay: 0, sustain: 1, release: 0.1), rate: rate,
+                          loop: SampleLoop(enabled: true, startFrame: 0, endFrame: 100, crossfadeFrames: 25))
+            var last: Float = -1
+            var maximum: Float = 0
+            for _ in 0..<3 {
+                voice.render(frames: 4000, output: output.mutableAudioBufferList)
+                for i in 0..<4000 {
+                    let value = output.floatChannelData![0][i]
+                    maximum = max(maximum, abs(value - last)); last = value
+                    precondition(abs(value) <= 1 && output.floatChannelData![1][i] == -value)
+                }
+            }
+            precondition(maximum < 0.1) // OFF produces a 1.98 step.
+            voice.release()
+            voice.render(frames: 4000, output: output.mutableAudioBufferList)
+            precondition(!voice.isActive)
+        }
+        precondition(!SampleLoop(endFrame: 100, crossfadeFrames: -1).isValid(frameCount: 100))
+        precondition(!SampleLoop(endFrame: 100, crossfadeFrames: 51).isValid(frameCount: 100))
+        print("PASS: crossfade reduces discontinuity below 0.1 (OFF 1.98), stereo, block continuity, pitched Release")
         print("PASS: loop exact wrap across blocks, stereo, hold beyond EOF, release and disabled EOF")
         print("PASS: ADSR stages, mid-attack release, zero times, validation, stereo gain and pitch-independent timing in production render")
     }

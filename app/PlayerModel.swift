@@ -22,7 +22,7 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var sampleLoop = SampleLoop(endFrame: 2)
     func setLoop(_ value: SampleLoop) {
         guard !busy, let sample = instrumentSample,
-              value.isValid(frameCount: Int64(sample.buffer.frameLength)), value != sampleLoop else { return }
+              value.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate), value != sampleLoop else { return }
         sampleLoop = value
         instrumentDirty = true
     }
@@ -30,7 +30,8 @@ final class PlayerModel: ObservableObject {
         guard let sample = instrumentSample, let selection = editor.selection else { return }
         let start = selection.startFrame - sample.selection.startFrame
         let end = selection.endFrame - sample.selection.startFrame
-        setLoop(SampleLoop(enabled: true, startFrame: start, endFrame: end))
+        setLoop(SampleLoop(enabled: true, startFrame: start, endFrame: end,
+                           crossfadeFrames: min(sampleLoop.crossfadeFrames, max(0, end - start) / 2)))
     }
     var canSetLoopFromSelection: Bool {
         guard let sample = instrumentSample, let selection = editor.selection else { return false }

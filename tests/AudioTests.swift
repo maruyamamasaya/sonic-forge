@@ -10,6 +10,22 @@ struct AudioTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let demo = root.appendingPathComponent("demo.wav")
         try DemoAudio.write(to: demo)
+        let demoSample = try InstrumentSample.load(url: demo)
+        let pcm = demoSample.buffer.floatChannelData!
+        let loopStart = 4800
+        let loopEnd = (7200..<12000).max { abs(pcm[0][$0 - 1] - pcm[0][loopStart]) < abs(pcm[0][$1 - 1] - pcm[0][loopStart]) }!
+        let voice = InstrumentVoice()
+        voice.install(demoSample)
+        let rendered = AVAudioPCMBuffer(pcmFormat: demoSample.buffer.format, frameCapacity: AVAudioFrameCount(loopEnd + 2))!
+        rendered.frameLength = AVAudioFrameCount(loopEnd + 2)
+        var boundarySteps: [Float] = []
+        for fade: Int64 in [0, 480] {
+            voice.trigger(.legacy, rate: 1, loop: SampleLoop(enabled: true, startFrame: Int64(loopStart), endFrame: Int64(loopEnd), crossfadeFrames: fade))
+            voice.render(frames: rendered.frameLength, output: rendered.mutableAudioBufferList)
+            boundarySteps.append(abs(rendered.floatChannelData![0][loopEnd] - rendered.floatChannelData![0][loopEnd - 1]))
+        }
+        precondition(boundarySteps[1] < boundarySteps[0] * 0.1)
+        print("PASS: demo crossfade boundary step reduced by over 90 percent")
         let asset = try AudioAsset.load(demo, isDemo: true)
         precondition(asset.duration == 8 && asset.channels == 2 && asset.sampleRate == 48000 && asset.bitDepth == 16)
         precondition(asset.peaks.count == 2 && asset.peaks[0].count == 115200)
@@ -138,7 +154,7 @@ struct AudioTests {
         try FileManager.default.copyItem(at: demo, to: originalCopy)
         let savedEnvelope = ADSRParameters(attack: 0.12, decay: 0.34, sustain: 0.56, release: 0.78)
         let documentSample = try InstrumentSample.load(url: originalCopy, selection: selected)
-        let savedLoop = SampleLoop(enabled: true, startFrame: 100, endFrame: 200)
+        let savedLoop = SampleLoop(enabled: true, startFrame: 100, endFrame: 200, crossfadeFrames: 20)
         let documentURL = root.appendingPathComponent("My Instrument.sfinstrument")
         try InstrumentDocument.save(sample: documentSample, rootNote: 64, envelope: savedEnvelope, loop: savedLoop, to: documentURL)
         try FileManager.default.removeItem(at: originalCopy)
@@ -190,6 +206,22 @@ struct AudioTests {
             try JSONSerialization.data(withJSONObject: invalid).write(to: invalidDocument)
             do { _ = try InstrumentDocument.load(invalidDocument); fatalError("Invalid loop accepted") } catch {}
         }
+        var v3 = json
+        v3["version"] = 3
+        var oldLoop = v3["loop"] as! [String: Any]
+        oldLoop.removeValue(forKey: "crossfadeFrames")
+        v3["loop"] = oldLoop
+        try JSONSerialization.data(withJSONObject: v3).write(to: legacyURL)
+        let oldLoopDocument = try InstrumentDocument.load(legacyURL)
+        defer { try? FileManager.default.removeItem(at: oldLoopDocument.directory) }
+        precondition(oldLoopDocument.loop.enabled && oldLoopDocument.loop.startFrame == 100 && oldLoopDocument.loop.crossfadeFrames == 0)
+        for fade in [-1, 51, Int64.max] {
+            var invalid = json
+            invalid["loop"] = ["enabled": true, "startFrame": 100, "endFrame": 200, "crossfadeFrames": fade]
+            try JSONSerialization.data(withJSONObject: invalid).write(to: invalidDocument)
+            do { _ = try InstrumentDocument.load(invalidDocument); fatalError("Invalid crossfade accepted") } catch {}
+        }
+        print("PASS: v4 crossfade persistence and v3 OFF compatibility, invalid lengths rejected")
         print("PASS: v3 loop persistence, v1/v2 loop-off compatibility, invalid loop/envelope rejection")
         let monoDocument = root.appendingPathComponent("Mono.sfinstrument")
         try InstrumentDocument.save(sample: InstrumentSample.load(url: mono), rootNote: 60, to: monoDocument)
