@@ -99,6 +99,7 @@ final class InstrumentVoice: @unchecked Sendable {
     private var position = 0
     private var envelope = ADSREnvelope()
     private var rate = 1.0
+    private var velocityGain: Float = 1
     private var active = false
     private var loop: SampleLoop?
 
@@ -106,12 +107,13 @@ final class InstrumentVoice: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         self.sample = sample; active = false; envelope.stop(); position = 0
     }
-    func trigger(_ parameters: ADSRParameters, rate: Double, loop: SampleLoop? = nil) {
+    func trigger(_ parameters: ADSRParameters, rate: Double, loop: SampleLoop? = nil, velocity: Int = 127) {
         lock.lock(); defer { lock.unlock() }
         self.loop = loop.flatMap { value in
             guard let sample, value.enabled, value.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) else { return nil }
             return value
         }
+        velocityGain = Float(max(0, min(127, velocity))) / 127
         self.rate = rate; position = 0; envelope.trigger(parameters); active = true
     }
     func release() { lock.lock(); defer { lock.unlock() }; envelope.noteOff() }
@@ -136,7 +138,7 @@ final class InstrumentVoice: @unchecked Sendable {
                     let blend = Float(offset + 1) / Float(loop.crossfadeFrames)
                     value = value * (1 - blend) + pcm[channel][Int(loop.startFrame) + offset] * blend
                 }
-                buffers[channel].mData?.assumingMemoryBound(to: Float.self)[frame] = value * amplitude
+                buffers[channel].mData?.assumingMemoryBound(to: Float.self)[frame] = value * amplitude * velocityGain
             }
             position += 1
         }
@@ -193,10 +195,10 @@ final class SampleInstrument {
         }
         self.sample = sample
     }
-    func play(note: Int, root: Int, envelope: ADSRParameters = .standard, loop: SampleLoop? = nil) throws {
+    func play(note: Int, root: Int, envelope: ADSRParameters = .standard, loop: SampleLoop? = nil, velocity: Int = 127) throws {
         guard let sample else { throw AudioError.invalid("先にサンプルを楽器へ取り込んでください。") }
         let rate = NotePitch.rate(note: note, root: root)
-        guard (0...127).contains(note), (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
+        guard (1...127).contains(velocity), (0...127).contains(note), (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
         if let loop, !loop.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) {
             throw AudioError.invalid("ループ範囲が無効です。")
         }
@@ -210,7 +212,7 @@ final class SampleInstrument {
         if !engine.isRunning { engine.prepare(); try engine.start() }
         sequence &+= 1
         slot.note = note; slot.held = true; slot.age = sequence
-        slot.voice.trigger(envelope, rate: Double(rate), loop: loop)
+        slot.voice.trigger(envelope, rate: Double(rate), loop: loop, velocity: velocity)
     }
     func noteOff(_ note: Int? = nil) {
         for slot in slots where slot.held && (note == nil || slot.note == note) {

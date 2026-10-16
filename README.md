@@ -39,3 +39,7 @@ Export WAV…で選択範囲を32-bit Float WAVとして保存できます。
 最大8音の和音演奏に対応。画面鍵盤のHold keys、PC鍵盤、Demo chordで試せます。詳しくは[演奏操作](OPERATIONS.md#和音の演奏)を参照。
 
 MIDI INで外部キーボードを選択できます。実機なしの確認はTest input → MIDI chord。[MIDI操作](OPERATIONS.md#外部midiキーボード)を参照。
+
+弾けなくてもプリセットを選んでAuto playで試聴できます。MIDIの強弱・サステインペダルにも対応。[自動演奏と操作](OPERATIONS.md#弾かずに試す自動演奏)を参照。
+
+AIによる操作・自動演奏の引き継ぎは[AI操作ガイド](AI_OPERATIONS.md)を参照。

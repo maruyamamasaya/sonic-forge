@@ -54,6 +54,15 @@ enum EnvelopeTests {
             precondition(!voice.isActive)
             precondition(abs(output.floatChannelData![0][frames - 1]) < 0.00001)
         }
+        for velocity in [1, 32, 64, 127] {
+            let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32)!
+            output.frameLength = 32
+            voice.trigger(.legacy, rate: 1, velocity: velocity)
+            voice.render(frames: 32, output: output.mutableAudioBufferList)
+            precondition(abs(output.floatChannelData![0][31] - Float(velocity) / 127) < 0.00001)
+            precondition(abs(output.floatChannelData![1][31] - Float(velocity) / 254) < 0.00001)
+        }
+        print("PASS: velocity scales both channels independently of envelope")
         voice.trigger(parameters, rate: 1)
         voice.stop()
         precondition(!voice.isActive)

@@ -436,6 +436,7 @@ struct AudioTests {
             }
 
             try await MIDITests.integration()
+            try await MIDITests.expression()
 
             // Render the production voice graph offline to verify audible pitch,
             // rather than testing only the semitone formula.

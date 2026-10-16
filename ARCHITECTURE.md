@@ -88,7 +88,7 @@ OutputMeterStateをOutputMeterColumnが直接購読し、メーター更新に�
 ## MIDI Input
 MIDIInputがCoreMIDIのクライアント・入力ポート・選択したsourceを管理する。初期値はNone、機器接続の自動選択や保存はしない。
 CoreMIDI通知でsource一覧を再取得し、選択sourceの消失時は切断してMIDI所有の音を停止する。
-MIDIReceiverがコールバック上でパケットを走査し、MIDIByteParserでMIDI 1.0のNote On/OffとCC120/123を抽出。
+MIDIReceiverがコールバック上でパケットを走査し、MIDIByteParserでMIDI 1.0のNote On/OffとCC64/120/121/123を抽出。
 running statusとパケット跨ぎを保持し、リアルタイムバイトは無視。SysEx・system commonでrunning statusを解除する。
 受信は直列ロックで順序を保ち、Main QueueへFIFOで渡す。接続世代を照合し旧ポート由来の配送を破棄する。音声コールバックからMIDIやUIを操作しない。
 PlayerModel.NoteInput.midi(channel)が既存の入力所有権へ接続。チャンネル別離鍵と全音停止は他入力の保持を尊重する。
@@ -96,3 +96,13 @@ MIDI履歴は離鍵後の余韻もCC120と切断で止めるため保持し、�
 Test inputはMIDISourceCreateで実際の仮想sourceを公開し、MIDIReceivedから通常の受信ポートへ送る。
 背景・ダイアログ中は発音を抑制し、フォーカス喪失で停止。終了時にポート・仮想source・クライアントを破棄する。
 [判断](decisions/0011-midi-input.md)。
+
+## Velocity / Sustain / Performance Presets
+InstrumentVoiceが押鍵時のvelocity/127を保持し、ADSRとは独立した固定倍率としてPCMへ乗算する。
+MIDIは1〜127、0は離鍵。画面・PC鍵盤は従来通り127。複数入力の同音は共有ボイスのため最初の押鍵の強さを維持する。
+PlayerModelはチャンネル別CC64状態を持ち、離鍵時にmidiの所有権をmidiSustainへ移す。ペダル解除でその所有権のみを外し、他の保持入力がなければReleaseへ進む。
+ペダル中の同音再押鍵はそのチャンネルの古い保持を外して再発音。CC123は通常離鍵としてペダルを尊重し、CC120・切断は余韻とペダル状態も解除する。
+CC121はペダルを解除して待機中の離鍵を処理する。全音停止・フォーカス喪失・素材交換は全チャンネルを初期化する。
+MIDIPerformancePresetは時刻とMIDIバイト列のイベントを返す。playPerformanceがMainActor Taskで順番に仮想sourceへ送る。
+プリセット停止時はTaskをキャンセルして接続世代を更新し、古い配送と残音を破棄する。通常終了は最後のNote Off/CC64 OffからADSRの余韻を残す。
+これは固定プリセットの自動演奏で、AI生成やサンプル精度のシーケンサーではない。[判断](decisions/0012-midi-expression-presets.md)。

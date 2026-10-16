@@ -44,3 +44,7 @@ Date: YYYY-MM-DD
 - [2026-10-16: 和音演奏](2026-10-16-polyphony.md)
 
 - [2026-10-16: 外部MIDI入力](2026-10-16-midi-input.md)
+
+- [2026-10-16: MIDI強弱・ペダルと自動演奏](2026-10-16-midi-expression-presets.md)
+
+- [2026-10-16: AI操作ガイド](2026-10-16-ai-operation-guide.md)

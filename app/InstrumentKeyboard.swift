@@ -188,22 +188,46 @@ struct MIDIControls: View {
     @ObservedObject var model: PlayerModel
     @ObservedObject var midi: MIDIInput
     var body: some View {
-        HStack(spacing: 10) {
-            Text("MIDI IN").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
-            Picker("MIDI input", selection: Binding(get: { midi.selected }, set: { model.suspendMIDI(false); midi.select($0) })) {
-                Text("None").tag(UInt32(0))
-                ForEach(midi.sources) { source in Text(source.name).tag(source.id) }
-            }.labelsHidden().controlSize(.small).frame(minWidth: 120, maxWidth: 230)
-            Button("Refresh") { midi.start(); midi.refresh() }.controlSize(.small)
-            Button("Test input") { model.suspendMIDI(false); midi.createTestInput() }.controlSize(.small)
-                .help("仮想MIDI送信元を作成して選択します。実機なしで同じ受信経路を確認できます。")
-            if midi.testSource != 0 && midi.selected == midi.testSource {
-                Button(midi.testingChord ? "Release MIDI" : "MIDI chord") { midi.toggleTestChord() }
-                    .controlSize(.small).disabled(model.instrumentSample == nil)
-            }
-            Spacer(minLength: 0)
-            Text(midi.error ?? (midi.selected == 0 ? "Not connected" : model.midiSuspended ? "Paused" : "Omni · Root ±24 st"))
-                .foregroundStyle(midi.error == nil ? Color.secondary : Color.orange).lineLimit(1).help(midi.error ?? "MIDI 1.0 · 全チャンネル受信 · ベロシティは固定音量")
-        }.font(.system(size: 9))
+        VStack(spacing: 5) {
+            HStack(spacing: 10) {
+                Text("MIDI IN").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
+                Picker("MIDI input", selection: Binding(get: { midi.selected }, set: { model.suspendMIDI(false); midi.select($0) })) {
+                    Text("None").tag(UInt32(0))
+                    ForEach(midi.sources) { source in Text(source.name).tag(source.id) }
+                }.labelsHidden().controlSize(.small).frame(minWidth: 120, maxWidth: 230)
+                Button("Refresh") { midi.start(); midi.refresh() }.controlSize(.small)
+                Button("Test input") { model.suspendMIDI(false); midi.createTestInput() }.controlSize(.small)
+                    .help("仮想MIDI送信元を作成して選択します。実機なしで同じ受信経路を確認できます。")
+                if midi.testSource != 0 && midi.selected == midi.testSource {
+                    Button(midi.testingChord ? "Release MIDI" : "MIDI chord") { midi.toggleTestChord() }
+                        .controlSize(.small).disabled(model.instrumentSample == nil)
+                }
+                Spacer(minLength: 0)
+                Text(midi.error ?? (midi.selected == 0 ? "Not connected" : model.midiSuspended ? "Paused" : "Omni · Root ±24 st"))
+                    .foregroundStyle(midi.error == nil ? Color.secondary : Color.orange).lineLimit(1).help(midi.error ?? "MIDI 1.0 · 全チャンネル受信 · ベロシティ対応")
+            }.font(.system(size: 9))
+            HStack(spacing: 8) {
+                if midi.testSource != 0 && midi.selected == midi.testSource {
+                    Text("VELOCITY").foregroundStyle(.secondary)
+                    Slider(value: Binding(get: { Double(midi.testVelocity) }, set: { midi.testVelocity = Int($0.rounded()) }), in: 1...127)
+                        .controlSize(.small).frame(width: 90).accessibilityLabel("Test velocity")
+                    Text("\(midi.testVelocity)").monospacedDigit().frame(width: 23)
+                    Toggle("Test pedal", isOn: Binding(get: { model.sustainChannels.contains(0) }, set: { midi.stopPerformance(); midi.sendTest([0xB0, 64, $0 ? 127 : 0]) }))
+                        .toggleStyle(.checkbox)
+                    Divider().frame(height: 12)
+                }
+                Picker("Performance preset", selection: $midi.performancePreset) {
+                    ForEach(MIDIPerformancePreset.allCases) { preset in Text(preset.rawValue).tag(preset) }
+                }.labelsHidden().controlSize(.small).frame(width: 125).disabled(midi.performing)
+                Button(midi.performing ? "Stop auto" : "Auto play") {
+                    model.suspendMIDI(false)
+                    if midi.performing { midi.stopPerformance() } else { midi.playPerformance() }
+                }.controlSize(.small).disabled(model.instrumentSample == nil)
+                    .help("演奏できなくてもプリセットで試聴できます。仮想MIDI入力へ切り替えて演奏します。")
+                Spacer(minLength: 0)
+                Text(model.sustainChannels.isEmpty ? "PEDAL OFF" : "PEDAL CH " + model.sustainChannels.sorted().map { String(Int($0) + 1) }.joined(separator: ","))
+                    .foregroundStyle(model.sustainChannels.isEmpty ? Color.secondary : Color.orange).lineLimit(1)
+            }.font(.system(size: 9))
+        }
     }
 }

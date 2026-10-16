@@ -6,6 +6,7 @@
 3. [CODEMAPの検索戦略](CODEMAP.md#検索方法) に従い検索結果から対象を絞る（Level 3）。
 4. 対象ファイルと適用される子AGENTS.mdを読む（Level 4）。
 5. 定義・参照元・関連テスト・設定・データ依存を確認してから変更する（Level 5）。
+AIによる操作・演奏・プリセットを扱う場合は [AI_OPERATIONS.md](AI_OPERATIONS.md) の関係する節を読み、変更時は操作入口・状態判定・停止方法も保守する。
 必要な場合だけ [OPERATIONS.md](OPERATIONS.md) と [decisions/](decisions/README.md) を参照する。履歴全件を毎回読み込まない。
 
 ## 階層ルール

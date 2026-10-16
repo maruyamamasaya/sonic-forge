@@ -5,6 +5,7 @@
 | --- | --- | --- |
 | コンセプト・人間向け案内 | README.md | SonicForge、音 |
 | 現在地・次の作業 | CURRENT.md | 未実装、次に行うこと |
+| AIによる操作・演奏 | AI_OPERATIONS.md | 操作とアプリ内の入口、成功判定、演奏データ |
 | AI作業規則 | AGENTS.md | 開始時、終了時 |
 | 実装構成 | ARCHITECTURE.md | Technology、API、Database |
 | 検証 | TESTING.md | 検証、未整備 |
@@ -25,7 +26,7 @@
 | 楽器保存・復元 | app/InstrumentDocument.swift、app/PlayerModel.swift | InstrumentDocument.save/load、saveInstrument、loadInstrument、startSession、instrumentDirty | tests/AudioTests.swift / --playback |
 | サンプルループ | app/SampleInstrument.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | SampleLoop.crossfadeFrames、InstrumentVoice.render、loopFromSelection、LoopControls | tests/EnvelopeTests.swift、tests/AudioTests.swift |
 | ADSR | app/ADSREnvelope.swift、app/SampleInstrument.swift、app/InstrumentKeyboard.swift | ADSRParameters、ADSREnvelope.next、InstrumentVoice.render、EnvelopeControls、setEnvelope | tests/EnvelopeTests.swift、tests/AudioTests.swift --playback |
-| 外部MIDI | app/MIDIInput.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | MIDIInput.select/refresh、MIDIByteParser、MIDIReceiver、receiveMIDI、MIDIControls | tests/MIDITests.swift / --playback |
+| 外部MIDI | app/MIDIInput.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | MIDIInput.select/refresh、MIDIByteParser、MIDIReceiver、receiveMIDI、setMIDISustain、MIDIPerformancePreset、playPerformance、MIDIControls | tests/MIDITests.swift / --playback |
 | 和音楽器・音程 | app/SampleInstrument.swift、app/PlayerModel.swift | InstrumentSample.load、NotePitch.rate、SampleInstrument.Slot、heldNotes、playNote、releaseNote、synchronizeNotes、computerKeyboard | tests/AudioTests.swift / --playback |
 | 画面鍵盤・基準音 | app/InstrumentKeyboard.swift | InstrumentKeyboard、Root note、Use Selection | 実UI確認 |
 | UI・波形・メーター | app/StudioView.swift | StudioView、WaveCanvas、StudioButton、OutputMeterColumn、OutputMeterState | 実アプリ手動確認 |
