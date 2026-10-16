@@ -32,3 +32,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: 選択範囲のWAV書き出し](2026-10-16-wav-export.md)
 
 - [2026-10-16: サンプル楽器と画面鍵盤](2026-10-16-sample-instrument.md)
+
+- [2026-10-16: 楽器の保存と復元](2026-10-16-instrument-persistence.md)

@@ -133,6 +133,42 @@ struct AudioTests {
             }
         }
         do { _ = try InstrumentSample.load(url: demo, selection: AudioSelection(startFrame: 5, endFrame: 4)); fatalError("Invalid instrument range") } catch {}
+        let originalCopy = root.appendingPathComponent("independent-source.wav")
+        try FileManager.default.copyItem(at: demo, to: originalCopy)
+        let documentSample = try InstrumentSample.load(url: originalCopy, selection: selected)
+        let documentURL = root.appendingPathComponent("My Instrument.sfinstrument")
+        try InstrumentDocument.save(sample: documentSample, rootNote: 64, to: documentURL)
+        try FileManager.default.removeItem(at: originalCopy)
+        let restored = try InstrumentDocument.load(documentURL)
+        defer { try? FileManager.default.removeItem(at: restored.directory) }
+        precondition(restored.rootNote == 64 && restored.sample.name == documentSample.name)
+        precondition(restored.sample.buffer.frameLength == documentSample.buffer.frameLength)
+        precondition(restored.sample.buffer.format.sampleRate == documentSample.buffer.format.sampleRate)
+        for channel in 0..<2 {
+            for frame in 0..<Int(restored.sample.buffer.frameLength) {
+                precondition(restored.sample.buffer.floatChannelData![channel][frame] == documentSample.buffer.floatChannelData![channel][frame])
+            }
+        }
+        let documentBytes = try Data(contentsOf: documentURL)
+        let json = try JSONSerialization.jsonObject(with: documentBytes) as! [String: Any]
+        let invalidDocument = root.appendingPathComponent("invalid.sfinstrument")
+        for bad in ["version", "rootNote", "sampleWAV"] {
+            var badJSON = json
+            badJSON[bad] = bad == "sampleWAV" ? "not base64" : 999
+            try JSONSerialization.data(withJSONObject: badJSON).write(to: invalidDocument)
+            do { _ = try InstrumentDocument.load(invalidDocument); fatalError("Invalid archive accepted") } catch {}
+        }
+        let monoDocument = root.appendingPathComponent("Mono.sfinstrument")
+        try InstrumentDocument.save(sample: InstrumentSample.load(url: mono), rootNote: 60, to: monoDocument)
+        let restoredMono = try InstrumentDocument.load(monoDocument)
+        defer { try? FileManager.default.removeItem(at: restoredMono.directory) }
+        precondition(restoredMono.sample.buffer.format.channelCount == 1 && restoredMono.sample.buffer.format.sampleRate == 44100)
+        // Replacing a saved document must also be a valid round trip.
+        try InstrumentDocument.save(sample: documentSample, rootNote: 57, to: documentURL)
+        let replacedDocument = try InstrumentDocument.load(documentURL)
+        defer { try? FileManager.default.removeItem(at: replacedDocument.directory) }
+        precondition(replacedDocument.rootNote == 57)
+        print("PASS: self-contained instrument save/open after source deletion, root and all samples, mono, overwrite, corrupt/version/root rejection")
         print("PASS: root note naming, semitone/octave ratios, instrument selection sample equality and invalid range")
         print("PASS: WAV export/reimport, exact frames/samples, mono/stereo, overwrite, original/symlink/hardlink protection, failure preservation and cleanup")
         print("PASS: reversed/clamped/one-frame selection, zoom/pan/fit invariants, exact selected audio across chunks, invalid ranges, EOF")
@@ -227,6 +263,23 @@ struct AudioTests {
             model.playNote(57)
             try await Task.sleep(nanoseconds: 600_000_000)
             precondition(model.activeNote == nil)
+            model.rootNote = 64
+            let modelDocument = root.appendingPathComponent("model.sfinstrument")
+            await model.saveInstrument(sample: model.instrumentSample!, root: model.rootNote, to: modelDocument, remember: false)
+            precondition(!model.instrumentDirty && model.instrumentFileURL == modelDocument)
+            model.rootNote = 65
+            precondition(model.instrumentDirty)
+            let reopened = PlayerModel()
+            defer { reopened.cleanup() }
+            let opened = await reopened.loadInstrument(modelDocument, remember: false)
+            precondition(opened && reopened.rootNote == 64 && !reopened.instrumentDirty)
+            precondition(abs(reopened.instrumentSample!.duration - 0.2) < 0.00001)
+            reopened.playNote(64)
+            precondition(reopened.activeNote == 64)
+            reopened.releaseNote()
+            let rejected = await reopened.loadInstrument(invalidDocument, remember: false)
+            precondition(!rejected && reopened.rootNote == 64 && reopened.instrumentSample != nil)
+            print("PASS: fresh model restoration, unchanged root/audio, dirty tracking, keyboard playback, failed-open preservation")
             print("PASS: instrument preparation, note on/off, replacement voice, stale note-off, gain metering, root change and natural end")
 
             // Render the production voice graph offline to verify audible pitch,

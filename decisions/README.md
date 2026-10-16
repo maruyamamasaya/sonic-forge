@@ -32,3 +32,5 @@ Status: proposed / accepted / superseded
 - [0004: 選択範囲のWAV書き出し](0004-wav-export.md)
 
 - [0005: 単音サンプラー楽器](0005-sample-instrument.md)
+
+- [0006: 音源同梱の楽器保存](0006-instrument-document.md)

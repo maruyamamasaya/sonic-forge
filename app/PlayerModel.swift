@@ -18,7 +18,11 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var preparingInstrument = false
     @Published private(set) var instrumentSample: InstrumentSample?
     @Published private(set) var activeNote: Int?
-    @Published var rootNote = 60 { didSet { releaseNote() } }
+    @Published var rootNote = 60 { didSet { releaseNote(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
+    @Published private(set) var instrumentDirty = false
+    @Published private(set) var instrumentFileURL: URL?
+    private var instrumentDirectory: URL?
+    private static let lastInstrumentKey = "lastInstrumentPath"
     private let instrument = SampleInstrument()
     @Published var error: String?
     @Published var gainDB = -12.0 { didSet {
@@ -102,6 +106,95 @@ final class PlayerModel: ObservableObject {
         } catch { self.error = "WAVの書き出しに失敗しました。\n" + error.localizedDescription }
     }
 
+    func startSession() async {
+        if let path = UserDefaults.standard.string(forKey: Self.lastInstrumentKey) {
+            if await loadInstrument(URL(fileURLWithPath: path)) { return }
+            let message = error
+            await loadDemo()
+            error = "前回の楽器を開けなかったため、デモを読み込みました。\n" + (message ?? "")
+        } else { await loadDemo() }
+    }
+
+    func saveInstrumentPanel() {
+        guard !busy, let sample = instrumentSample else { return }
+        let root = rootNote
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.sonicForgeInstrument]
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = instrumentFileURL?.lastPathComponent ?? URL(fileURLWithPath: sample.name).deletingPathExtension().lastPathComponent + ".sfinstrument"
+        panel.title = "Save Instrument"
+        panel.message = "サンプル音源と基準音をまとめて保存します。元のWAVがなくても開けます。"
+        guard let window = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.title == "SonicForge" && $0.isVisible }) else { return }
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in await self?.saveInstrument(sample: sample, root: root, to: url) }
+        }
+    }
+
+    func saveInstrument(sample: InstrumentSample, root: Int, to url: URL, remember: Bool = true) async {
+        guard !busy else { return }
+        exporting = true
+        defer { exporting = false }
+        do {
+            try await Task.detached(priority: .userInitiated) { try InstrumentDocument.save(sample: sample, rootNote: root, to: url) }.value
+            instrumentFileURL = url
+            instrumentDirty = false
+            exportMessage = "Instrument saved · " + url.lastPathComponent
+            if remember { UserDefaults.standard.set(url.path, forKey: Self.lastInstrumentKey) }
+            error = nil
+        } catch { self.error = "楽器を保存できませんでした。\n" + error.localizedDescription }
+    }
+
+    func openInstrumentPanel() {
+        guard !busy else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.sonicForgeInstrument]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.title = "Open Instrument"
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in _ = await self?.loadInstrument(url) }
+        }
+    }
+
+    @discardableResult
+    func loadInstrument(_ url: URL, remember: Bool = true) async -> Bool {
+        guard !busy else { return false }
+        loading = true
+        defer { loading = false }
+        var pendingDirectory: URL?
+        do {
+            let restored = try await Task.detached(priority: .userInitiated) { try InstrumentDocument.load(url) }.value
+            pendingDirectory = restored.directory
+            let replacement = try AVAudioPlayer(contentsOf: restored.asset.url)
+            replacement.isMeteringEnabled = true
+            replacement.volume = Float(pow(10, gainDB / 20))
+            guard replacement.prepareToPlay() else { throw AudioError.invalid("音声出力を準備できませんでした。") }
+            stop()
+            instrument.install(restored.sample)
+            instrument.gain = Float(pow(10, gainDB / 20))
+            player = replacement
+            asset = restored.asset
+            editor = WaveformEditor(frameCount: Int64(restored.sample.buffer.frameLength), sampleRate: restored.sample.buffer.format.sampleRate)
+            instrumentSample = restored.sample
+            rootNote = restored.rootNote
+            instrumentFileURL = url
+            instrumentDirty = false
+            exportMessage = "Instrument opened · " + url.lastPathComponent
+            if let instrumentDirectory { try? FileManager.default.removeItem(at: instrumentDirectory) }
+            instrumentDirectory = restored.directory
+            pendingDirectory = nil
+            if remember { UserDefaults.standard.set(url.path, forKey: Self.lastInstrumentKey) }
+            error = nil
+            return true
+        } catch {
+            if let pendingDirectory { try? FileManager.default.removeItem(at: pendingDirectory) }
+            self.error = "楽器を開けませんでした。\n" + error.localizedDescription
+            return false
+        }
+    }
+
     func loadDemo() async {
         guard !busy else { return }
         do {
@@ -133,6 +226,9 @@ final class PlayerModel: ObservableObject {
             guard replacement.prepareToPlay() else { throw AudioError.invalid("再生デバイスの準備ができませんでした。出力設定を確認してください。") }
             instrument.shutdown()
             instrumentSample = nil
+            instrumentFileURL = nil
+            instrumentDirty = false
+            if let instrumentDirectory { try? FileManager.default.removeItem(at: instrumentDirectory); self.instrumentDirectory = nil }
             activeNote = nil
             selectionPlayer?.stop()
             selectionPlayer = nil
@@ -164,6 +260,7 @@ final class PlayerModel: ObservableObject {
             instrument.install(sample)
             instrument.gain = Float(pow(10, gainDB / 20))
             instrumentSample = sample
+            instrumentDirty = true
             error = nil
         } catch { self.error = error.localizedDescription }
     }
@@ -285,6 +382,7 @@ final class PlayerModel: ObservableObject {
     }
     func cleanup() {
         instrument.shutdown()
+        if let instrumentDirectory { try? FileManager.default.removeItem(at: instrumentDirectory) }
         if let keyboardMonitor { NSEvent.removeMonitor(keyboardMonitor); self.keyboardMonitor = nil }
         selectionPlayer?.stop()
         player?.stop()

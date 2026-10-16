@@ -16,7 +16,7 @@ struct StudioView: View {
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 12) {
-                        Text(asset.map { $0.isDemo ? "Metal Hit — Demo" : $0.url.deletingPathExtension().lastPathComponent } ?? "Sample Studio")
+                        Text(model.instrumentFileURL?.deletingPathExtension().lastPathComponent ?? asset.map { $0.isDemo ? "Metal Hit — Demo" : $0.url.deletingPathExtension().lastPathComponent } ?? "Sample Studio")
                             .font(.system(size: 22, weight: .medium)).lineLimit(1).truncationMode(.middle)
                         if asset?.isDemo == true {
                             Text("DEMO").font(.system(size: 10, weight: .semibold)).foregroundStyle(amber)

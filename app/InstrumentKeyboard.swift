@@ -13,6 +13,9 @@ struct InstrumentKeyboard: View {
                     ForEach(48...72, id: \.self) { note in Text(NotePitch.name(note)).tag(note) }
                 }.labelsHidden().frame(width: 76).controlSize(.small)
                 Spacer(minLength: 0)
+                Button("Open…") { model.openInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small).help("Open Instrument · ⇧⌘O")
+                Button("Save…") { model.saveInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small)
+                    .disabled(model.instrumentSample == nil).help("Save Instrument · ⌘S")
                 Button(model.editor.selection == nil ? "Use Full Sample" : "Use Selection") {
                     Task { await model.prepareInstrument() }
                 }.buttonStyle(.bordered).controlSize(.small)
@@ -35,7 +38,7 @@ struct InstrumentKeyboard: View {
                 }
             }.frame(height: 82)
             HStack {
-                Text(model.instrumentSample.map { "\($0.name) · \(String(format: "%.3f", Double($0.selection.startFrame) / $0.buffer.format.sampleRate))–\(String(format: "%.3f", Double($0.selection.endFrame) / $0.buffer.format.sampleRate)) s" } ?? "Choose a range, then Use Selection to load your instrument.")
+                Text((model.instrumentDirty ? "● " : "") + (model.instrumentSample.map { "\($0.name) · \(String(format: "%.3f", Double($0.selection.startFrame) / $0.buffer.format.sampleRate))–\(String(format: "%.3f", Double($0.selection.endFrame) / $0.buffer.format.sampleRate)) s" } ?? "Choose a range, then Use Selection to load your instrument."))
                 Spacer()
                 Text("Mono voice · Hold to play · Speed changes with pitch")
             }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)

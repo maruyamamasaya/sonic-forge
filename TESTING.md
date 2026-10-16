@@ -27,7 +27,7 @@ sh scripts/test.sh --playback
 | 変更 | 必要な検証 |
 | --- | --- |
 | 文書 | Fast → Full + 内容の差分確認 |
-| AudioAsset / デモ生成 / WaveformEditor / SelectionAudio / WAVExport / InstrumentSample | sh scripts/test.sh → Full |
+| AudioAsset / デモ生成 / WaveformEditor / SelectionAudio / WAVExport / InstrumentSample / InstrumentDocument | sh scripts/test.sh → Full |
 | PlayerModel | sh scripts/test.sh --playback → Full |
 | SwiftUI / UI | Full + 実アプリで視覚・操作・ウィンドウ縮小を確認 |
 | build / test / verify | 正常系と関連失敗検出 → Full |
@@ -51,3 +51,9 @@ Space、⌘O、再生末尾、音量、最小ウィンドウも確認する。
 実装のAVAudioEngineグラフをoffline renderし、440 Hz素材を440／880／220 Hzとして出力することをゼロ交差で測定する。
 UIはデモのRoot A3、白鍵・黒鍵、離鍵、Root変更、Use Selection、音源交換時のリセットと小型ウィンドウを確認する。
 低遅延性能・クリックのない離鍵・長時間負荷は保証しない。
+
+## Instrument Persistence
+通常テスト: 保存後に元WAVを削除しても復元できること、基準音・全サンプル・チャンネル・レートの一致、mono/stereo、保存先更新、未知版・不正Root・壊れた音源の拒否。
+--playback: 別PlayerModelへ読み込んで演奏、dirty状態、失敗時の楽器保持を確認する。remember:falseで通常のアプリ設定をテストから変更しない。
+実UI: デモの短い範囲を取り込みRootを変更→Save…→終了→再起動→同じRoot・音源長・鍵盤発音を確認。Open…の読み込みと保存キャンセルも確認する。
+外部／ネットワーク保存先、大容量ファイル、異常終了の復旧、旧版移行は未検証。

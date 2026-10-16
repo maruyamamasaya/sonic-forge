@@ -8,7 +8,7 @@ struct SonicForgeApp: App {
         Window("SonicForge", id: "studio") {
             StudioView(model: model)
                 .frame(minWidth: 1000, minHeight: 800)
-                .task { model.installTransportShortcuts(); await model.loadDemo() }
+                .task { model.installTransportShortcuts(); await model.startSession() }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.cleanup() }
         }
         .defaultSize(width: 1280, height: 920)
@@ -24,6 +24,9 @@ struct SonicForgeApp: App {
                     .disabled(model.editor.selection == nil || model.busy)
             }
             CommandGroup(replacing: .newItem) {
+                Button("Open Instrument…") { model.openInstrumentPanel() }.keyboardShortcut("o", modifiers: [.command, .shift])
+                Button("Save Instrument…") { model.saveInstrumentPanel() }.keyboardShortcut("s")
+                    .disabled(model.instrumentSample == nil || model.busy)
                 Button("Open WAV…") { model.open() }.keyboardShortcut("o")
                 Button("Export Selection as WAV…") { model.exportSelection() }
                     .keyboardShortcut("e", modifiers: [.command, .shift])
