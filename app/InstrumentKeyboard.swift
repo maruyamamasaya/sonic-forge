@@ -2,6 +2,7 @@ import SwiftUI
 
 struct InstrumentKeyboard: View {
     @ObservedObject var model: PlayerModel
+    @State private var pressedScreenNote: Int?
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private let whiteNotes = (48...72).filter { ![1, 3, 6, 8, 10].contains($0 % 12) }
     var body: some View {
@@ -19,9 +20,19 @@ struct InstrumentKeyboard: View {
                 Button(model.editor.selection == nil ? "Use Full Sample" : "Use Selection") {
                     Task { await model.prepareInstrument() }
                 }.buttonStyle(.bordered).controlSize(.small)
-                Text(model.activeNote.map { NotePitch.name($0) + String(format: "  %+d st", $0 - model.rootNote) } ?? "—")
+                Text(model.activeNotes.isEmpty ? "—" : "\(model.activeNotes.count) held")
                     .foregroundStyle(accent).font(.system(size: 12, weight: .medium, design: .monospaced)).frame(width: 90)
             }
+            HStack(spacing: 12) {
+                Toggle("Hold keys", isOn: $model.holdKeys).toggleStyle(.checkbox)
+                    .help("ONで画面鍵盤をクリックして音を保持。もう一度クリックして離鍵。")
+                Button(model.demoChordActive ? "Release chord" : "Demo chord") { model.toggleDemoChord() }
+                    .controlSize(.small).disabled(model.instrumentSample == nil)
+                    .help("基準音から長三和音を演奏。もう一度押すとRelease。")
+                Button("All Notes Off") { model.stopInstrument() }.controlSize(.small)
+                Spacer(minLength: 0)
+                Text("\(model.soundingVoices)/8 voices · A–K: C4–C5").foregroundStyle(.secondary)
+            }.font(.system(size: 10))
             EnvelopeControls(model: model)
             LoopControls(model: model)
             GeometryReader { geometry in
@@ -42,16 +53,16 @@ struct InstrumentKeyboard: View {
             HStack {
                 Text((model.instrumentDirty ? "● " : "") + (model.instrumentSample.map { "\($0.name) · \(String(format: "%.3f", Double($0.selection.startFrame) / $0.buffer.format.sampleRate))–\(String(format: "%.3f", Double($0.selection.endFrame) / $0.buffer.format.sampleRate)) s" } ?? "Choose a range, then Use Selection to load your instrument."))
                 Spacer()
-                Text("Mono voice · Hold to play · Speed changes with pitch")
+                Text("8 voices · Speed changes with pitch")
             }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
         }
         .disabled(model.busy || model.asset == nil)
-        .onDisappear { model.stopInstrument() }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in model.stopInstrument() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in model.stopInstrument() }
+        .onDisappear { pressedScreenNote = nil; model.stopInstrument() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in pressedScreenNote = nil; model.stopInstrument() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in pressedScreenNote = nil; model.stopInstrument() }
     }
     private func key(note: Int, black: Bool) -> some View {
-        let active = model.activeNote == note
+        let active = model.activeNotes.contains(note)
         return VStack {
             if note == model.rootNote { Circle().fill(accent).frame(width: 4, height: 4).padding(.top, 7) }
             Spacer(minLength: 0)
@@ -65,11 +76,13 @@ struct InstrumentKeyboard: View {
         .overlay { RoundedRectangle(cornerRadius: 3).stroke(Color.black.opacity(0.5)) }
         .contentShape(Rectangle())
         .gesture(DragGesture(minimumDistance: 0)
-            .onChanged { _ in if model.activeNote != note { model.playNote(note) } }
-            .onEnded { _ in model.releaseNote(note) })
+            .onChanged { _ in
+                if pressedScreenNote != note { pressedScreenNote = note; model.screenKeyDown(note) }
+            }
+            .onEnded { _ in pressedScreenNote = nil; model.screenKeyUp(note) })
         .accessibilityLabel("Play " + NotePitch.name(note))
         .accessibilityAddTraits(.isButton)
-        .accessibilityAction { model.playNote(note) }
+        .accessibilityAction { model.screenKeyDown(note); model.screenKeyUp(note) }
         .disabled(model.instrumentSample == nil)
         .opacity(model.instrumentSample == nil ? 0.45 : 1)
     }

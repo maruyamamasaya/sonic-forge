@@ -7,7 +7,7 @@ GitHub: [maruyamamasaya/sonic-forge](https://github.com/maruyamamasaya/sonic-for
 macOS向けのSample Studio。WAVを読み込み、波形を見ながら再生・一時停止・停止・シーク・音量調整ができます。
 波形のズーム、ドラッグによる範囲選択、選択部分だけの再生とWAV書き出しにも対応しています。
 音源がなくても、起動時に読み込まれる合成デモを再生・画面鍵盤で演奏できます。
-Rootで基準音を設定し、Use Selectionで選択した部分を単音サンプラーとして演奏できます。
+Rootで基準音を設定し、Use Selectionで選択した部分をサンプラー楽器として演奏できます。
 鍵盤上のADSRで立ち上がりと余韻を調整できます。
 Save…で音源・基準音・ADSR・ループ設定をまとめて保存し、Open…で復元できます。次回起動時には最後の保存済み楽器を復元します。
 
@@ -35,3 +35,5 @@ Export WAV…で選択範囲を32-bit Float WAVとして保存できます。
 - [作業履歴](sessions/README.md)
 
 サンプルは範囲指定ループとクロスフェードに対応。操作は[運用ガイド](OPERATIONS.md#サンプルループ)を参照。
+
+最大8音の和音演奏に対応。画面鍵盤のHold keys、PC鍵盤、Demo chordで試せます。詳しくは[演奏操作](OPERATIONS.md#和音の演奏)を参照。

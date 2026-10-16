@@ -4,12 +4,21 @@ import Combine
 import UniformTypeIdentifiers
 
 @MainActor
+final class OutputMeterState: ObservableObject {
+    @Published var levels: [Float] = [-60, -60]
+}
+
+@MainActor
 final class PlayerModel: ObservableObject {
     @Published private(set) var asset: AudioAsset?
     @Published private(set) var playing = false
     @Published private(set) var loading = false
     @Published private(set) var position = 0.0
-    @Published private(set) var levels: [Float] = [-60, -60]
+    let outputMeter = OutputMeterState()
+    private(set) var levels: [Float] {
+        get { outputMeter.levels }
+        set { if outputMeter.levels != newValue { outputMeter.levels = newValue } }
+    }
     @Published private(set) var editor = WaveformEditor(frameCount: 1, sampleRate: 1)
     @Published private(set) var playingSelection = false
     @Published private(set) var exporting = false
@@ -17,7 +26,13 @@ final class PlayerModel: ObservableObject {
     var busy: Bool { loading || exporting || preparingInstrument }
     @Published private(set) var preparingInstrument = false
     @Published private(set) var instrumentSample: InstrumentSample?
-    @Published private(set) var activeNote: Int?
+    enum NoteInput: Hashable { case screen, computer, demo }
+    @Published private(set) var activeNotes: Set<Int> = []
+    @Published private(set) var soundingVoices = 0
+    @Published var holdKeys = false { didSet { if oldValue != holdKeys { stopInstrument() } } }
+    @Published private var noteInputs: [Int: Set<NoteInput>] = [:]
+    private var computerKeys: [UInt16: Int] = [:]
+    static let computerKeyboard: [UInt16: Int] = [0: 60, 13: 61, 1: 62, 14: 63, 2: 64, 3: 65, 17: 66, 5: 67, 16: 68, 4: 69, 32: 70, 38: 71, 40: 72]
     @Published var rootNote = 60 { didSet { stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
     @Published private(set) var sampleLoop = SampleLoop(endFrame: 2)
     func setLoop(_ value: SampleLoop) {
@@ -66,7 +81,6 @@ final class PlayerModel: ObservableObject {
     private var demoDirectory: URL?
 
     init() {
-        instrument.onFinished = { [weak self] in self?.activeNote = nil; self?.levels = [-60, -60] }
         timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.refreshPlaybackState() }
     }
 
@@ -74,12 +88,24 @@ final class PlayerModel: ObservableObject {
     // text editors keep their normal keyboard behavior.
     func installTransportShortcuts() {
         guard keyboardMonitor == nil else { return }
-        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, let window = NSApp.keyWindow, window.title == "SonicForge",
+        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            guard let self else { return event }
+            if event.type == .keyUp, let note = self.computerKeys.removeValue(forKey: event.keyCode) {
+                self.releaseNote(note, input: .computer)
+                return nil
+            }
+            guard let window = NSApp.keyWindow, window.title == "SonicForge",
                   window.attachedSheet == nil, NSApp.modalWindow == nil,
                   !(window.firstResponder is NSTextView) else { return event }
             let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
-            guard event.keyCode == 49, modifiers.isEmpty || modifiers == [.shift] else { return event }
+            if event.type == .keyDown, modifiers.isEmpty, let note = Self.computerKeyboard[event.keyCode], self.instrumentSample != nil, !self.busy {
+                if !event.isARepeat && self.computerKeys[event.keyCode] == nil {
+                    self.computerKeys[event.keyCode] = note
+                    self.playNote(note, input: .computer)
+                }
+                return nil
+            }
+            guard event.type == .keyDown, event.keyCode == 49, modifiers.isEmpty || modifiers == [.shift] else { return event }
             if !event.isARepeat {
                 if modifiers == [.shift] { Task { await self.playSelection() } }
                 else { self.toggle() }
@@ -254,12 +280,13 @@ final class PlayerModel: ObservableObject {
             replacement.isMeteringEnabled = true
             replacement.volume = Float(pow(10, gainDB / 20))
             guard replacement.prepareToPlay() else { throw AudioError.invalid("再生デバイスの準備ができませんでした。出力設定を確認してください。") }
+            stopInstrument()
             instrument.shutdown()
             instrumentSample = nil
             instrumentFileURL = nil
             instrumentDirty = false
             if let instrumentDirectory { try? FileManager.default.removeItem(at: instrumentDirectory); self.instrumentDirectory = nil }
-            activeNote = nil
+            activeNotes = []
             selectionPlayer?.stop()
             selectionPlayer = nil
             previewSelection = nil
@@ -296,20 +323,56 @@ final class PlayerModel: ObservableObject {
             error = nil
         } catch { self.error = error.localizedDescription }
     }
-    func playNote(_ note: Int) {
-        guard !busy else { return }
-        stop()
-        do { try instrument.play(note: note, root: rootNote, envelope: envelope, loop: sampleLoop); activeNote = note }
-        catch { self.error = error.localizedDescription; activeNote = nil }
+    func playNote(_ note: Int, input: NoteInput = .screen) {
+        guard !busy, instrumentSample != nil, (48...72).contains(note) else { return }
+        if noteInputs[note]?.contains(input) == true { return }
+        if noteInputs[note]?.isEmpty == false {
+            noteInputs[note, default: []].insert(input)
+            return
+        }
+        leaveSelectionPlayback()
+        player?.stop(); player?.currentTime = 0; position = 0; playing = false
+        do {
+            try instrument.play(note: note, root: rootNote, envelope: envelope, loop: sampleLoop)
+            noteInputs[note, default: []].insert(input)
+            synchronizeNotes()
+            error = nil
+        } catch { self.error = error.localizedDescription }
     }
-    func releaseNote(_ note: Int? = nil) {
-        guard note == nil || activeNote == note else { return }
-        instrument.noteOff()
-        activeNote = nil
+    func releaseNote(_ note: Int? = nil, input: NoteInput = .screen) {
+        guard let note else {
+            noteInputs.removeAll(); computerKeys.removeAll(); instrument.noteOff(); synchronizeNotes(); return
+        }
+        guard noteInputs[note]?.remove(input) != nil else { return }
+        if noteInputs[note]?.isEmpty == true { noteInputs.removeValue(forKey: note); instrument.noteOff(note) }
+        synchronizeNotes()
+    }
+    func screenKeyDown(_ note: Int) {
+        if holdKeys && noteInputs[note]?.contains(.screen) == true { releaseNote(note) }
+        else { playNote(note) }
+    }
+    func screenKeyUp(_ note: Int) { if !holdKeys { releaseNote(note) } }
+    var demoChordActive: Bool { noteInputs.values.contains { $0.contains(.demo) } }
+    func toggleDemoChord() {
+        if demoChordActive {
+            for note in Array(noteInputs.keys) { releaseNote(note, input: .demo) }
+        } else {
+            let base = min(rootNote, 65)
+            for note in [base, base + 4, base + 7] { playNote(note, input: .demo) }
+        }
+    }
+    private func synchronizeNotes() {
+        instrument.refreshCompletion()
+        let held = instrument.heldNotes
+        for note in Array(noteInputs.keys) where !held.contains(note) { noteInputs.removeValue(forKey: note) }
+        if activeNotes != held { activeNotes = held }
+        let count = instrument.soundingCount
+        if soundingVoices != count { soundingVoices = count }
     }
     func stopInstrument() {
         instrument.stop()
-        activeNote = nil
+        noteInputs.removeAll(); computerKeys.removeAll()
+        activeNotes = []; soundingVoices = 0
         levels = [-60, -60]
     }
 
@@ -403,7 +466,7 @@ final class PlayerModel: ObservableObject {
         player?.currentTime = position
     }
     func refreshPlaybackState() {
-        instrument.refreshCompletion()
+        synchronizeNotes()
         if instrument.isSounding { levels = instrument.meter.read(); return }
         guard let player = activePlayer else { return }
         if playing && !player.isPlaying {

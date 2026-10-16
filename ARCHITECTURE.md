@@ -39,7 +39,7 @@ scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署�
 
 ## Sample Instrument
 InstrumentSampleが全体／選択をバックグラウンドでFloat32 PCMへ取り込む（最大30秒・デコード後64 MB）。
-SampleInstrumentはAVAudioEngineのSourceNode（InstrumentVoice＋ADSR）→ Varispeed → Mixer → system outputで単音を演奏。
+SampleInstrumentは8本のSourceNode（InstrumentVoice＋ADSR）→ 各Varispeed → 共通Mixer → system outputで和音を演奏。
 再生速度は2^((鍵盤ノート−基準音)/12)。C3〜C5の25鍵、基準音もC3〜C5。高い音ほど短くなる。
 デモの基準音はA3、外部WAVは手動指定の初期値C4。自動ピッチ検出は行わない。
 MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。完了状態はUIタイマーで確認し、音声コールバックからUIを更新しない。
@@ -73,3 +73,14 @@ SampleLoop.crossfadeFramesは0〜min(ループ長の半分, 100 ms相当のフ�
 ADSR乗算の前で処理し、Releaseでも継続。再生用スナップショットのみ変更し元PCMは不変。
 重複分だけ定常ループ周期は短くなり、音程変更時は速度に従いフェード時間も変化する。
 v4で保存。v3の欠落値は0、v1/v2は従来通りループOFF。[判断](decisions/0009-loop-crossfade.md)。
+
+## Polyphony / Input
+8スロットが独立したPCM位置、ADSR、ループスナップショット、Varispeedを持つ。PCMバッファだけを共有する。
+同音の再押鍵は同スロットを再使用。空き→最古のRelease中→最古の保持音の順で割り当てる。
+各スロット出力を1/8に固定し、合算後にMaster Gainを適用。発音数に追従する自動音量変更はしない。
+PlayerModelはscreen/computer/demoのノート所有権を保持し、最後の入力が離れた音だけをReleaseする。
+activeNotesは保持音、soundingVoicesはRelease中を含む実ボイス数。タイマーが自然終了とスティールを同期する。
+PCキーのkeyDown/keyUpは既存ローカルモニターで処理し、リピートは無視、テキスト入力・ダイアログ・修飾キー付き操作は保持する。
+停止・基準音変更・音源交換・フォーカス喪失は全音停止。Hold keysとデモ和音は演奏中だけの状態で保存しない。
+OutputMeterStateをOutputMeterColumnが直接購読し、メーター更新による鍵盤全体の再レイアウトを避ける。
+[判断](decisions/0010-polyphony.md)。

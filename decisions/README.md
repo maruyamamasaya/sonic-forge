@@ -40,3 +40,5 @@ Status: proposed / accepted / superseded
 - [0008: サンプルループ](0008-sample-loop.md)
 
 - [0009: ループクロスフェード](0009-loop-crossfade.md)
+
+- [0010: 8音ポリフォニー](0010-polyphony.md)

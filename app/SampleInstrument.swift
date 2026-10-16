@@ -145,57 +145,83 @@ final class InstrumentVoice: @unchecked Sendable {
 
 @MainActor
 final class SampleInstrument {
+    static let maximumVoices = 8
+    private final class Slot {
+        let voice = InstrumentVoice()
+        let speed = AVAudioUnitVarispeed()
+        var source: AVAudioSourceNode?
+        var note: Int?
+        var held = false
+        var age: UInt64 = 0
+    }
     private let engine: AVAudioEngine
-    private var source: AVAudioSourceNode?
-    private let speed = AVAudioUnitVarispeed()
-    private let voice = InstrumentVoice()
+    private let slots = (0..<maximumVoices).map { _ in Slot() }
+    private var sequence: UInt64 = 0
     private(set) var sample: InstrumentSample?
-    private var awaitingCompletion = false
     let meter = InstrumentMeter()
-    var onFinished: (() -> Void)?
     var gain: Float = 0.25 { didSet { engine.mainMixerNode.outputVolume = gain } }
-    var isSounding: Bool { voice.isActive }
+    var isSounding: Bool { slots.contains { $0.voice.isActive } }
+    var heldNotes: Set<Int> { Set(slots.compactMap { $0.held && $0.voice.isActive ? $0.note : nil }) }
+    var soundingCount: Int { slots.filter { $0.voice.isActive }.count }
 
     init(engine: AVAudioEngine = AVAudioEngine()) {
         self.engine = engine
-        engine.attach(speed)
+        for slot in slots { engine.attach(slot.speed) }
         let meter = self.meter
         engine.mainMixerNode.installTap(onBus: 0, bufferSize: 512, format: nil) { buffer, _ in meter.update(buffer) }
     }
     func install(_ sample: InstrumentSample) {
         stop(); engine.stop()
-        if let source { engine.detach(source) }
-        engine.disconnectNodeOutput(speed)
-        voice.install(sample)
-        let voice = self.voice
-        let source = AVAudioSourceNode(format: sample.buffer.format) { _, _, count, output in
-            voice.render(frames: count, output: output)
-            return noErr
+        for (index, slot) in slots.enumerated() {
+            if let source = slot.source { engine.detach(source) }
+            engine.disconnectNodeOutput(slot.speed)
+            slot.voice.install(sample)
+            let voice = slot.voice
+            let source = AVAudioSourceNode(format: sample.buffer.format) { _, _, count, output in
+                voice.render(frames: count, output: output)
+                for buffer in UnsafeMutableAudioBufferListPointer(output) {
+                    guard let data = buffer.mData?.assumingMemoryBound(to: Float.self) else { continue }
+                    for frame in 0..<Int(count) { data[frame] *= 1 / Float(SampleInstrument.maximumVoices) }
+                }
+                return noErr
+            }
+            engine.attach(source)
+            engine.connect(source, to: slot.speed, format: sample.buffer.format)
+            engine.connect(slot.speed, to: engine.mainMixerNode, fromBus: 0, toBus: AVAudioNodeBus(index), format: sample.buffer.format)
+            // Fixed headroom avoids gain pumping as notes enter and leave.
+            slot.source = source
         }
-        engine.attach(source)
-        engine.connect(source, to: speed, format: sample.buffer.format)
-        engine.connect(speed, to: engine.mainMixerNode, format: sample.buffer.format)
-        self.source = source
         self.sample = sample
     }
     func play(note: Int, root: Int, envelope: ADSRParameters = .standard, loop: SampleLoop? = nil) throws {
-        guard sample != nil else { throw AudioError.invalid("先にサンプルを楽器へ取り込んでください。") }
+        guard let sample else { throw AudioError.invalid("先にサンプルを楽器へ取り込んでください。") }
         let rate = NotePitch.rate(note: note, root: root)
-        guard (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
-        if let loop, let sample, !loop.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) {
+        guard (48...72).contains(note), (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
+        if let loop, !loop.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) {
             throw AudioError.invalid("ループ範囲が無効です。")
         }
-        stop()
-        speed.rate = rate
+        refreshCompletion()
+        let slot = slots.first { $0.note == note } ?? slots.first { !$0.voice.isActive }
+            ?? slots.filter { !$0.held }.min { $0.age < $1.age }
+            ?? slots.min { $0.age < $1.age }!
+        slot.voice.stop()
+        slot.speed.rate = rate
         engine.mainMixerNode.outputVolume = gain
         if !engine.isRunning { engine.prepare(); try engine.start() }
-        voice.trigger(envelope, rate: Double(rate), loop: loop)
-        awaitingCompletion = true
+        sequence &+= 1
+        slot.note = note; slot.held = true; slot.age = sequence
+        slot.voice.trigger(envelope, rate: Double(rate), loop: loop)
     }
-    func noteOff() { voice.release() }
+    func noteOff(_ note: Int? = nil) {
+        for slot in slots where slot.held && (note == nil || slot.note == note) {
+            slot.held = false; slot.voice.release()
+        }
+    }
     func refreshCompletion() {
-        if awaitingCompletion && !voice.isActive { awaitingCompletion = false; onFinished?() }
+        for slot in slots where !slot.voice.isActive { slot.note = nil; slot.held = false }
     }
-    func stop() { awaitingCompletion = false; voice.stop() }
+    func stop() {
+        for slot in slots { slot.voice.stop(); slot.note = nil; slot.held = false }
+    }
     func shutdown() { stop(); engine.stop(); sample = nil }
 }

@@ -305,22 +305,23 @@ struct AudioTests {
             precondition(model.playing)
             model.stop()
             model.rootNote = 60
+            model.gainDB = -12
             await model.prepareInstrument(useSelection: false)
             precondition(model.instrumentSample != nil, model.error ?? "No sample; busy=\(model.busy)")
             model.playNote(60)
-            precondition(model.activeNote == 60)
+            precondition(model.activeNotes == [60])
             try await Task.sleep(nanoseconds: 150_000_000)
             model.refreshPlaybackState()
             precondition(model.levels[0] > -60)
             model.playNote(72)
-            precondition(model.activeNote == 72)
+            precondition(model.activeNotes == [60, 72])
             model.releaseNote(60)
-            precondition(model.activeNote == 72)
+            precondition(model.activeNotes == [72])
             model.releaseNote(72)
-            precondition(model.activeNote == nil)
+            precondition(model.activeNotes.isEmpty)
             model.playNote(60)
             model.rootNote = 57
-            precondition(model.activeNote == nil)
+            precondition(model.activeNotes.isEmpty)
             await model.load(demo, demo: true)
             model.select(from: 0, to: 0.025)
             await model.prepareInstrument()
@@ -328,7 +329,7 @@ struct AudioTests {
             model.playNote(57)
             try await Task.sleep(nanoseconds: 600_000_000)
             model.refreshPlaybackState()
-            precondition(model.activeNote == nil)
+            precondition(model.activeNotes.isEmpty)
             model.rootNote = 64
             // A short demo loop must outlast its original 0.2-second sample.
             model.select(from: 0.005, to: 0.02)
@@ -338,7 +339,7 @@ struct AudioTests {
             model.playNote(64)
             try await Task.sleep(nanoseconds: 450_000_000)
             model.refreshPlaybackState()
-            precondition(model.activeNote == 64 && model.levels[0] > -60)
+            precondition(model.activeNotes == [64] && model.levels[0] > -60)
             model.releaseNote()
             model.stopInstrument()
             model.setEnvelope(savedEnvelope)
@@ -354,14 +355,84 @@ struct AudioTests {
             precondition(opened && reopened.rootNote == 64 && !reopened.instrumentDirty && reopened.envelope == savedEnvelope && reopened.sampleLoop == savedLoop)
             precondition(abs(reopened.instrumentSample!.duration - 0.2) < 0.00001)
             reopened.playNote(64)
-            precondition(reopened.activeNote == 64)
+            precondition(reopened.activeNotes == [64])
             reopened.releaseNote()
             reopened.setEnvelope(.standard)
             precondition(reopened.instrumentDirty)
             let rejected = await reopened.loadInstrument(invalidDocument, remember: false)
             precondition(!rejected && reopened.rootNote == 64 && reopened.instrumentSample != nil)
             print("PASS: fresh model restoration, unchanged root/audio, dirty tracking, keyboard playback, failed-open preservation")
-            print("PASS: instrument preparation, note on/off, replacement voice, stale note-off, gain metering, root change and natural end")
+            print("PASS: instrument preparation, note on/off, independent note-off, gain metering, root change and natural end")
+
+            // Computer and screen ownership must not release each other's key.
+            reopened.stopInstrument()
+            reopened.playNote(60, input: .computer)
+            reopened.playNote(60, input: .screen)
+            reopened.releaseNote(60, input: .screen)
+            precondition(reopened.activeNotes == [60])
+            reopened.releaseNote(60, input: .computer)
+            precondition(reopened.activeNotes.isEmpty)
+            reopened.holdKeys = true
+            reopened.screenKeyDown(60); reopened.screenKeyUp(60)
+            reopened.screenKeyDown(64); reopened.screenKeyUp(64)
+            precondition(reopened.activeNotes == [60, 64])
+            reopened.screenKeyDown(60); reopened.screenKeyUp(60)
+            precondition(reopened.activeNotes == [64])
+            reopened.stopInstrument()
+            reopened.toggleDemoChord()
+            precondition(reopened.activeNotes.count == 3)
+            reopened.toggleDemoChord()
+            precondition(reopened.activeNotes.isEmpty)
+            print("PASS: input ownership, latched chord and demo chord release")
+
+            do {
+                let engine = AVAudioEngine()
+                let sampler = SampleInstrument(engine: engine)
+                let sample = try InstrumentSample.load(url: mono)
+                sampler.install(sample)
+                try engine.enableManualRenderingMode(.offline, format: sample.buffer.format, maximumFrameCount: 512)
+                let parameters = ADSRParameters(attack: 0.01, decay: 0.02, sustain: 0.8, release: 0.1)
+                let loop = SampleLoop(enabled: true, endFrame: Int64(sample.buffer.frameLength), crossfadeFrames: 441)
+                for note in [60, 64, 67] { try sampler.play(note: note, root: 60, envelope: parameters, loop: loop) }
+                precondition(sampler.heldNotes == [60, 64, 67] && sampler.soundingCount == 3)
+                let buffer = AVAudioPCMBuffer(pcmFormat: sample.buffer.format, frameCapacity: 512)!
+                var rendered: [Float] = []
+                for block in 0..<140 {
+                    if block == 40 { sampler.noteOff(64) }
+                    let status = try engine.renderOffline(512, to: buffer)
+                    precondition(status == .success)
+                    rendered.append(contentsOf: UnsafeBufferPointer(start: buffer.floatChannelData![0], count: Int(buffer.frameLength)))
+                }
+                func amplitude(_ frequency: Double, _ range: Range<Int>) -> Double {
+                    var real = 0.0, imaginary = 0.0
+                    for i in range {
+                        let phase = 2 * Double.pi * frequency * Double(i) / 44100
+                        real += Double(rendered[i]) * cos(phase); imaginary += Double(rendered[i]) * sin(phase)
+                    }
+                    return 2 * hypot(real, imaginary) / Double(range.count)
+                }
+                let frequencies = [440.0, 440 * pow(2.0, 4.0 / 12), 440 * pow(2.0, 7.0 / 12)]
+                for frequency in frequencies { precondition(amplitude(frequency, 8000..<16000) > 0.003) }
+                precondition(amplitude(frequencies[1], 33000..<41000) < amplitude(frequencies[1], 8000..<16000) * 0.05)
+                for frequency in [frequencies[0], frequencies[2]] { precondition(amplitude(frequency, 55000..<63000) > 0.001) }
+                sampler.refreshCompletion()
+                precondition(sampler.heldNotes == [60, 67] && sampler.soundingCount == 2)
+                sampler.noteOff()
+                for _ in 0..<30 { _ = try engine.renderOffline(512, to: buffer) }
+                sampler.refreshCompletion()
+                precondition(!sampler.isSounding && sampler.heldNotes.isEmpty)
+                for note in 48...56 { try sampler.play(note: note, root: 60, loop: loop) }
+                precondition(sampler.soundingCount == 8 && !sampler.heldNotes.contains(48))
+                sampler.noteOff(52)
+                try sampler.play(note: 60, root: 60, loop: loop)
+                precondition(!sampler.heldNotes.contains(52) && sampler.heldNotes.contains(49))
+                try sampler.play(note: 60, root: 60, loop: loop)
+                precondition(sampler.soundingCount == 8)
+                sampler.stop()
+                precondition(!sampler.isSounding)
+                sampler.shutdown(); engine.disableManualRenderingMode()
+                print("PASS: actual polyphonic graph three pitches, independent Release, looping past EOF, eight-voice allocation and all-off")
+            }
 
             // Render the production voice graph offline to verify audible pitch,
             // rather than testing only the semitone formula.

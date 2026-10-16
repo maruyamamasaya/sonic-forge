@@ -113,8 +113,8 @@ struct StudioView: View {
                         Text("\(value)").font(.system(size: 9, design: .monospaced)).foregroundStyle(muted).frame(maxHeight: .infinity)
                     }
                 }.frame(width: 28)
-                meter(channel: 0, name: "L")
-                meter(channel: 1, name: "R")
+                OutputMeterColumn(state: model.outputMeter, channel: 0, name: "L")
+                OutputMeterColumn(state: model.outputMeter, channel: 1, name: "R")
                 Spacer(minLength: 0)
             }.padding(.top, 18).padding(.leading, 28).frame(minHeight: 100, maxHeight: 240)
             Spacer(minLength: 20)
@@ -133,23 +133,6 @@ struct StudioView: View {
             Spacer(minLength: 8)
             Text(value).lineLimit(1).truncationMode(.middle).help(value)
         }.font(.system(size: 11)).frame(height: 35).overlay(alignment: .bottom) { Rectangle().fill(line).frame(height: 1) }
-    }
-    private func meter(channel: Int, name: String) -> some View {
-        VStack(spacing: 6) {
-            Text(name).font(.system(size: 10)).foregroundStyle(muted)
-            GeometryReader { geometry in
-                ZStack(alignment: .bottom) {
-                    Rectangle().fill(Color.black.opacity(0.35))
-                    Rectangle().fill(amber).frame(height: geometry.size.height * CGFloat((model.levels[channel] + 60) / 60))
-                    VStack(spacing: 0) {
-                        ForEach(0..<20, id: \.self) { _ in
-                            Spacer(minLength: 0)
-                            Rectangle().fill(base).frame(height: 2)
-                        }
-                    }
-                }
-            }.frame(width: 20)
-        }.accessibilityLabel("\(name) output \(Int(model.levels[channel])) decibels")
     }
     private func waveform(asset: AudioAsset) -> some View {
         VStack(spacing: 0) {
@@ -327,5 +310,28 @@ struct WaveCanvas: View {
                     dragAnchor = nil
                 })
         }
+    }
+}
+
+private struct OutputMeterColumn: View {
+    @ObservedObject var state: OutputMeterState
+    let channel: Int
+    let name: String
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(name).font(.system(size: 10)).foregroundStyle(muted)
+            GeometryReader { geometry in
+                ZStack(alignment: .bottom) {
+                    Rectangle().fill(Color.black.opacity(0.35))
+                    Rectangle().fill(amber).frame(height: geometry.size.height * CGFloat((state.levels[channel] + 60) / 60))
+                    VStack(spacing: 0) {
+                        ForEach(0..<20, id: \.self) { _ in
+                            Spacer(minLength: 0)
+                            Rectangle().fill(base).frame(height: 2)
+                        }
+                    }
+                }
+            }.frame(width: 20)
+        }.accessibilityLabel("\(name) output \(Int(state.levels[channel])) decibels")
     }
 }
