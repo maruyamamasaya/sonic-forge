@@ -83,6 +83,44 @@ struct AudioTests {
         try SelectionAudio.write(source: mono, selection: AudioSelection(startFrame: 44099, endFrame: 44100), to: root.appendingPathComponent("one-frame.caf"))
         let oneFrame = try AVAudioFile(forReading: root.appendingPathComponent("one-frame.caf"))
         precondition(oneFrame.length == 1)
+        let exported = root.appendingPathComponent("exported.wav")
+        let sourceBytes = try Data(contentsOf: demo)
+        try WAVExport.write(source: demo, selection: selected, to: exported)
+        let imported = try AudioAsset.load(exported)
+        precondition(imported.channels == 2 && imported.sampleRate == 48000 && imported.bitDepth == 32)
+        precondition(abs(imported.duration - Double(selected.frameCount) / 48000) < 0.000001)
+        let wave = try AVAudioFile(forReading: exported)
+        let waveBuffer = AVAudioPCMBuffer(pcmFormat: wave.processingFormat, frameCapacity: AVAudioFrameCount(selected.frameCount))!
+        try wave.read(into: waveBuffer)
+        precondition(wave.length == selected.frameCount)
+        for channel in 0..<2 {
+            for frame in 0..<Int(waveBuffer.frameLength) {
+                precondition(waveBuffer.floatChannelData![channel][frame] == expected.floatChannelData![channel][frame])
+            }
+        }
+        let protected = root.appendingPathComponent("existing.wav")
+        try Data("keep existing file".utf8).write(to: protected)
+        do { try WAVExport.write(source: demo, selection: AudioSelection(startFrame: -1, endFrame: 10), to: protected); fatalError("Invalid export accepted") } catch {}
+        let preserved = try Data(contentsOf: protected)
+        precondition(preserved == Data("keep existing file".utf8))
+        for alias in [demo, root.appendingPathComponent("symlink.wav"), root.appendingPathComponent("hardlink.wav")] {
+            if alias.lastPathComponent == "symlink.wav" { try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: demo) }
+            if alias.lastPathComponent == "hardlink.wav" { try FileManager.default.linkItem(at: demo, to: alias) }
+            do { try WAVExport.write(source: demo, selection: selected, to: alias); fatalError("Source overwrite accepted") } catch {}
+        }
+        let unchanged = try Data(contentsOf: demo)
+        precondition(unchanged == sourceBytes)
+        try WAVExport.write(source: mono, selection: AudioSelection(startFrame: 100, endFrame: 1100), to: protected)
+        let monoExport = try AudioAsset.load(protected)
+        precondition(monoExport.channels == 1 && monoExport.sampleRate == 44100 && monoExport.bitDepth == 32)
+        let blocked = root.appendingPathComponent("blocked.wav")
+        try FileManager.default.createDirectory(at: blocked, withIntermediateDirectories: true)
+        do { try WAVExport.write(source: demo, selection: selected, to: blocked); fatalError("Directory overwrite accepted") } catch {}
+        var isDirectory: ObjCBool = false
+        precondition(FileManager.default.fileExists(atPath: blocked.path, isDirectory: &isDirectory) && isDirectory.boolValue)
+        let leftovers = try FileManager.default.contentsOfDirectory(atPath: root.path)
+        precondition(!leftovers.contains { $0.hasPrefix(".sonicforge-export-") })
+        print("PASS: WAV export/reimport, exact frames/samples, mono/stereo, overwrite, original/symlink/hardlink protection, failure preservation and cleanup")
         print("PASS: reversed/clamped/one-frame selection, zoom/pan/fit invariants, exact selected audio across chunks, invalid ranges, EOF")
         print("PASS: demo synthesis, waveform, duration, stereo PCM16, mono Float32, time formatting, corrupt/missing files")
         if CommandLine.arguments.contains("--playback") {
@@ -90,6 +128,20 @@ struct AudioTests {
             defer { model.cleanup() }
             await model.load(demo)
             precondition(model.asset != nil && model.error == nil)
+            model.select(from: 0.125, to: 0.25)
+            let exportSelection = model.editor.selection!
+            let modelExport = root.appendingPathComponent("model-export.wav")
+            model.gainDB = -40
+            await model.export(asset: model.asset!, selection: exportSelection, to: modelExport)
+            precondition(model.exportMessage != nil && !model.busy && model.editor.selection == exportSelection)
+            precondition(model.asset?.url == demo)
+            await model.load(modelExport)
+            precondition(model.error == nil && model.asset?.duration == 1 && model.asset?.bitDepth == 32)
+            model.toggle()
+            precondition(model.playing)
+            model.stop()
+            await model.load(demo)
+            print("PASS: model export with attenuated monitor gain, reimport and playback")
             model.toggle()
             try await Task.sleep(nanoseconds: 200_000_000)
             precondition(model.playing)

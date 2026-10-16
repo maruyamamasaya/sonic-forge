@@ -28,3 +28,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: WAV Sample Studio](2026-10-16-wav-studio.md)
 
 - [2026-10-16: 波形ズームと範囲試聴](2026-10-16-waveform-selection.md)
+
+- [2026-10-16: 選択範囲のWAV書き出し](2026-10-16-wav-export.md)

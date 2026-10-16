@@ -12,9 +12,9 @@ enum WAVExport {
             throw AudioError.invalid("元の音源には上書きできません。別の名前で保存してください。")
         }
         // Float32 export must remain within the application's import limit.
-        let sourceAsset = try AVAudioFile(forReading: source).processingFormat.channelCount
+        let sourceChannels = try AVAudioFile(forReading: source).processingFormat.channelCount
         guard selection.frameCount > 0,
-              selection.frameCount <= (256 * 1024 * 1024 - 4096) / Int64(sourceAsset) / 4 else {
+              selection.frameCount <= (256 * 1024 * 1024 - 4096) / Int64(sourceChannels) / 4 else {
             throw AudioError.invalid("書き出すWAVが256 MBを超えます。選択範囲を短くしてください。")
         }
         let temporary = destination.deletingLastPathComponent()

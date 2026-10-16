@@ -74,7 +74,7 @@ final class PlayerModel: ObservableObject {
         panel.nameFieldStringValue = asset.url.deletingPathExtension().lastPathComponent + "-selection.wav"
         panel.title = "Export Selection"
         panel.message = "選択範囲を32-bit Float WAVで保存します。サンプルレート・チャンネルを維持し、Master Gainは反映しません。"
-        guard let window = NSApp.keyWindow else { return }
+        guard let window = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.title == "SonicForge" && $0.isVisible }) else { return }
         panel.beginSheetModal(for: window) { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
             Task { @MainActor in await self?.export(asset: asset, selection: selection, to: url) }

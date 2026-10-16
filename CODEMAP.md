@@ -21,6 +21,7 @@
 | 再生・ファイル選択・状態 | app/PlayerModel.swift | open、load、toggle、stop、seek、playSelection、refreshPlaybackState | tests/AudioTests.swift --playback |
 | 選択・ズーム・表示範囲 | app/WaveformEditor.swift | select、setZoom、pan、fitSelection、AudioSelection | tests/AudioTests.swift |
 | 選択区間の音声 | app/SelectionAudio.swift | SelectionAudio.write、framePosition、frameCount | tests/AudioTests.swift |
+| WAV書き出し | app/WAVExport.swift、app/PlayerModel.swift | WAVExport.write、exportSelection、export、NSSavePanel | tests/AudioTests.swift |
 | UI・波形・メーター | app/StudioView.swift | StudioView、WaveCanvas、StudioButton | 実アプリ手動確認 |
 | ビルド・テスト | scripts/build.sh、scripts/test.sh | swiftc、AudioTests、codesign | 標準Verify |
 

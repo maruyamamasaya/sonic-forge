@@ -28,3 +28,5 @@ Status: proposed / accepted / superseded
 - [0002: 最初のmacOS再生基盤](0002-native-playback.md)
 
 - [0003: 選択再生のフレーム境界](0003-selection-preview.md)
+
+- [0004: 選択範囲のWAV書き出し](0004-wav-export.md)
