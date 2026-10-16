@@ -23,7 +23,7 @@ struct StudioView: View {
                                 .padding(.horizontal, 9).padding(.vertical, 5).background(amber.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 3))
                         }
                         Spacer()
-                        if model.loading { ProgressView().controlSize(.small) }
+                        if model.busy { ProgressView().controlSize(.small) }
                     }
                     .padding(.bottom, 8)
                     Text(asset.map { "WAV · \($0.channels == 1 ? "Mono" : "Stereo") · \(($0.sampleRate / 1000).formatted(.number.precision(.fractionLength(0...2)))) kHz · \($0.bitDepth)-bit" } ?? "Open a WAV file, or load the built-in demo to begin.")
@@ -49,10 +49,10 @@ struct StudioView: View {
                             Text("Your sound starts here").font(.system(size: 20, weight: .medium))
                             Text("Open a WAV file or explore with a synthesized demo.")
                                 .foregroundStyle(muted)
-                            Button("Load Demo") { Task { await model.loadDemo() } }.buttonStyle(StudioButton(primary: true)).disabled(model.loading)
+                            Button("Load Demo") { Task { await model.loadDemo() } }.buttonStyle(StudioButton(primary: true)).disabled(model.busy)
                         }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity).disabled(model.loading)
+                }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity).disabled(model.busy)
                 Rectangle().fill(line).frame(width: 1)
                 inspector.frame(width: 268).background(panel)
             }
@@ -61,7 +61,7 @@ struct StudioView: View {
             Rectangle().fill(line).frame(height: 1)
             HStack {
                 Circle().fill(model.playing ? amber : muted).frame(width: 5, height: 5)
-                Text(model.loading ? "Loading audio…" : asset == nil ? "No audio file loaded" : asset!.isDemo ? "Synthesized demo · Ready to play" : "WAV loaded · \(asset!.url.lastPathComponent)").lineLimit(1)
+                Text(model.exporting ? "Exporting selection…" : model.exportMessage ?? (model.loading ? "Loading audio…" : asset == nil ? "No audio file loaded" : asset!.isDemo ? "Synthesized demo · Ready to play" : "WAV loaded · \(asset!.url.lastPathComponent)")).lineLimit(1)
                 Spacer()
                 Text("System output").foregroundStyle(muted)
                 Text("•").foregroundStyle(muted)
@@ -82,10 +82,14 @@ struct StudioView: View {
             Rectangle().fill(line).frame(width: 1, height: 20)
             Text("Sample Studio").font(.system(size: 12)).foregroundStyle(muted)
             Spacer()
+            Button { model.exportSelection() } label: {
+                Label("Export WAV…", systemImage: "square.and.arrow.up")
+            }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
+                .help("Export selected range as 32-bit Float WAV · ⇧⌘E")
             Button("Load Demo") { Task { await model.loadDemo() } }.buttonStyle(StudioButton())
                 .help("Generate an original 8-second stereo demo; no audio file needed")
             Button("Open WAV…") { model.open() }.buttonStyle(StudioButton()).keyboardShortcut("o", modifiers: .command)
-        }.padding(.horizontal, 20).frame(height: 56).background(panel).disabled(model.loading)
+        }.padding(.horizontal, 20).frame(height: 56).background(panel).disabled(model.busy)
     }
     private var inspectorHeader: some View {
         HStack { Text("SOURCE").font(.system(size: 11, weight: .semibold)).tracking(1.4); Spacer() }
@@ -206,7 +210,7 @@ struct StudioView: View {
                 .background(Color.black.opacity(0.18)).clipShape(RoundedRectangle(cornerRadius: 4)).padding(.leading, 24)
             Text(model.playingSelection ? "SELECTION" : "Space  Play / Pause").font(.system(size: 10)).foregroundStyle(muted).padding(.leading, 24)
             Spacer()
-        }.padding(.vertical, 20).background(panel).disabled(asset == nil || model.loading)
+        }.padding(.vertical, 20).background(panel).disabled(asset == nil || model.busy)
     }
 }
 

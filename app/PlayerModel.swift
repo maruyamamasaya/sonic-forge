@@ -12,6 +12,9 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var levels: [Float] = [-60, -60]
     @Published private(set) var editor = WaveformEditor(frameCount: 1, sampleRate: 1)
     @Published private(set) var playingSelection = false
+    @Published private(set) var exporting = false
+    @Published private(set) var exportMessage: String?
+    var busy: Bool { loading || exporting }
     @Published var error: String?
     @Published var gainDB = -12.0 { didSet {
         let gain = Float(pow(10, gainDB / 20))
@@ -51,7 +54,7 @@ final class PlayerModel: ObservableObject {
     }
 
     func open() {
-        guard !loading else { return }
+        guard !busy else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.wav]
         panel.allowsMultipleSelection = false
@@ -63,8 +66,37 @@ final class PlayerModel: ObservableObject {
         }
     }
 
+    func exportSelection() {
+        guard !busy, let asset, let selection = editor.selection else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.wav]
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = asset.url.deletingPathExtension().lastPathComponent + "-selection.wav"
+        panel.title = "Export Selection"
+        panel.message = "選択範囲を32-bit Float WAVで保存します。サンプルレート・チャンネルを維持し、Master Gainは反映しません。"
+        guard let window = NSApp.keyWindow else { return }
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in await self?.export(asset: asset, selection: selection, to: url) }
+        }
+    }
+
+    func export(asset: AudioAsset, selection: AudioSelection, to url: URL) async {
+        guard !busy else { return }
+        exporting = true
+        exportMessage = nil
+        defer { exporting = false }
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try WAVExport.write(source: asset.url, selection: selection, to: url)
+            }.value
+            exportMessage = "Exported · " + url.lastPathComponent
+            error = nil
+        } catch { self.error = "WAVの書き出しに失敗しました。\n" + error.localizedDescription }
+    }
+
     func loadDemo() async {
-        guard !loading else { return }
+        guard !busy else { return }
         do {
             if demoDirectory == nil {
                 let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-" + UUID().uuidString)
@@ -82,7 +114,7 @@ final class PlayerModel: ObservableObject {
     }
 
     func load(_ url: URL, demo: Bool = false) async {
-        guard !loading else { return }
+        guard !busy else { return }
         loading = true
         defer { loading = false }
         do {
@@ -97,6 +129,7 @@ final class PlayerModel: ObservableObject {
             playingSelection = false
             player?.stop()
             player = replacement
+            exportMessage = nil
             asset = loaded
             editor = WaveformEditor(frameCount: Int64((loaded.duration * loaded.sampleRate).rounded()), sampleRate: loaded.sampleRate)
             playing = false
@@ -107,7 +140,7 @@ final class PlayerModel: ObservableObject {
     }
 
     func toggle() {
-        guard !loading, let player = activePlayer, asset != nil else { return }
+        guard !busy, let player = activePlayer, asset != nil else { return }
         if player.isPlaying { player.pause(); playing = false; levels = [-60, -60] }
         else {
             if position >= playbackEnd - 0.000001 { player.currentTime = 0; position = previewOffset }
@@ -116,7 +149,7 @@ final class PlayerModel: ObservableObject {
     }
 
     func playSelection() async {
-        guard !loading, let asset, let selected = editor.selection else { return }
+        guard !busy, let asset, let selected = editor.selection else { return }
         loading = true
         defer { loading = false }
         leaveSelectionPlayback()
@@ -163,17 +196,18 @@ final class PlayerModel: ObservableObject {
         player?.currentTime = position
     }
     func select(from a: Double, to b: Double) {
-        guard !loading, asset != nil else { return }
+        guard !busy, asset != nil else { return }
         leaveSelectionPlayback()
+        exportMessage = nil
         editor.select(from: a, to: b)
     }
     func clearSelection() {
-        guard !loading else { return }
+        guard !busy else { return }
         leaveSelectionPlayback()
         editor.clearSelection()
     }
     func zoom(by multiplier: Double) {
-        guard !loading, let asset else { return }
+        guard !busy, let asset else { return }
         let center = editor.selectionRange.map { ($0.lowerBound + $0.upperBound) / 2 } ?? (position / asset.duration)
         editor.setZoom(editor.zoom * multiplier, around: center)
     }
@@ -186,7 +220,7 @@ final class PlayerModel: ObservableObject {
         player?.stop(); player?.currentTime = 0; position = 0; playing = false; levels = [-60, -60]
     }
     func seek(_ fraction: Double) {
-        guard !loading, let asset else { return }
+        guard !busy, let asset else { return }
         leaveSelectionPlayback()
         position = max(0, min(1, fraction)) * asset.duration
         player?.currentTime = position

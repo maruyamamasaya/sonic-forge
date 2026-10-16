@@ -16,15 +16,18 @@ struct SonicForgeApp: App {
             CommandMenu("Playback") {
                 Button("Play / Pause") { model.toggle() }
                     .keyboardShortcut(.space, modifiers: [])
-                    .disabled(model.asset == nil || model.loading)
+                    .disabled(model.asset == nil || model.busy)
                 Button("Play Selection") { Task { await model.playSelection() } }
                     .keyboardShortcut(.space, modifiers: .shift)
-                    .disabled(model.editor.selection == nil || model.loading)
+                    .disabled(model.editor.selection == nil || model.busy)
                 Button("Clear Selection") { model.clearSelection() }
-                    .disabled(model.editor.selection == nil || model.loading)
+                    .disabled(model.editor.selection == nil || model.busy)
             }
             CommandGroup(replacing: .newItem) {
                 Button("Open WAV…") { model.open() }.keyboardShortcut("o")
+                Button("Export Selection as WAV…") { model.exportSelection() }
+                    .keyboardShortcut("e", modifiers: [.command, .shift])
+                    .disabled(model.editor.selection == nil || model.busy)
                 Button("Load Demo") { Task { await model.loadDemo() } }
             }
         }
