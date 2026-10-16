@@ -37,3 +37,5 @@ Export WAV…で選択範囲を32-bit Float WAVとして保存できます。
 サンプルは範囲指定ループとクロスフェードに対応。操作は[運用ガイド](OPERATIONS.md#サンプルループ)を参照。
 
 最大8音の和音演奏に対応。画面鍵盤のHold keys、PC鍵盤、Demo chordで試せます。詳しくは[演奏操作](OPERATIONS.md#和音の演奏)を参照。
+
+MIDI INで外部キーボードを選択できます。実機なしの確認はTest input → MIDI chord。[MIDI操作](OPERATIONS.md#外部midiキーボード)を参照。

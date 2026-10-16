@@ -33,6 +33,7 @@ struct InstrumentKeyboard: View {
                 Spacer(minLength: 0)
                 Text("\(model.soundingVoices)/8 voices · A–K: C4–C5").foregroundStyle(.secondary)
             }.font(.system(size: 10))
+            MIDIControls(model: model, midi: model.midi)
             EnvelopeControls(model: model)
             LoopControls(model: model)
             GeometryReader { geometry in
@@ -57,9 +58,16 @@ struct InstrumentKeyboard: View {
             }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
         }
         .disabled(model.busy || model.asset == nil)
-        .onDisappear { pressedScreenNote = nil; model.stopInstrument() }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in pressedScreenNote = nil; model.stopInstrument() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in pressedScreenNote = nil; model.stopInstrument() }
+        .onDisappear { pressedScreenNote = nil; model.suspendMIDI(true) }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
+            if let window = notification.object as? NSWindow, window.title == "SonicForge" {
+                pressedScreenNote = nil; model.suspendMIDI(true)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in pressedScreenNote = nil; model.suspendMIDI(true) }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+            if let window = notification.object as? NSWindow, window.title == "SonicForge" { model.suspendMIDI(false) }
+        }
     }
     private func key(note: Int, black: Bool) -> some View {
         let active = model.activeNotes.contains(note)
@@ -172,6 +180,30 @@ struct LoopControls: View {
                 .accessibilityLabel("Loop " + label)
             Text(String(format: "%.3f s", Double(start ? loop.startFrame : loop.endFrame) / rate))
                 .monospacedDigit().frame(width: 63, alignment: .trailing)
+        }.font(.system(size: 9))
+    }
+}
+
+struct MIDIControls: View {
+    @ObservedObject var model: PlayerModel
+    @ObservedObject var midi: MIDIInput
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("MIDI IN").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
+            Picker("MIDI input", selection: Binding(get: { midi.selected }, set: { model.suspendMIDI(false); midi.select($0) })) {
+                Text("None").tag(UInt32(0))
+                ForEach(midi.sources) { source in Text(source.name).tag(source.id) }
+            }.labelsHidden().controlSize(.small).frame(minWidth: 120, maxWidth: 230)
+            Button("Refresh") { midi.start(); midi.refresh() }.controlSize(.small)
+            Button("Test input") { model.suspendMIDI(false); midi.createTestInput() }.controlSize(.small)
+                .help("仮想MIDI送信元を作成して選択します。実機なしで同じ受信経路を確認できます。")
+            if midi.testSource != 0 && midi.selected == midi.testSource {
+                Button(midi.testingChord ? "Release MIDI" : "MIDI chord") { midi.toggleTestChord() }
+                    .controlSize(.small).disabled(model.instrumentSample == nil)
+            }
+            Spacer(minLength: 0)
+            Text(midi.error ?? (midi.selected == 0 ? "Not connected" : model.midiSuspended ? "Paused" : "Omni · Root ±24 st"))
+                .foregroundStyle(midi.error == nil ? Color.secondary : Color.orange).lineLimit(1).help(midi.error ?? "MIDI 1.0 · 全チャンネル受信 · ベロシティは固定音量")
         }.font(.system(size: 9))
     }
 }

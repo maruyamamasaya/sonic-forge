@@ -9,7 +9,7 @@ NSOpenPanel / DemoAudio → AudioAsset.load（background）→ peak配列 → Ca
 
 ## Technology Stack / Important Dependencies
 macOS 14以上、Swift 5言語モード、XcodeのSwiftコンパイラ。
-SwiftUI / AppKit / AVFoundation / CombineとPython標準ライブラリのみ。第三者パッケージなし。
+SwiftUI / AppKit / AVFoundation / CoreMIDI / CombineとPython標準ライブラリのみ。第三者パッケージなし。
 当初提案のC++ / JUCEから、最初のMac専用版はApple標準基盤へ変更。[判断理由](decisions/0002-native-playback.md)。
 
 ## Directory Structure / Main Components
@@ -40,7 +40,7 @@ scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署�
 ## Sample Instrument
 InstrumentSampleが全体／選択をバックグラウンドでFloat32 PCMへ取り込む（最大30秒・デコード後64 MB）。
 SampleInstrumentは8本のSourceNode（InstrumentVoice＋ADSR）→ 各Varispeed → 共通Mixer → system outputで和音を演奏。
-再生速度は2^((鍵盤ノート−基準音)/12)。C3〜C5の25鍵、基準音もC3〜C5。高い音ほど短くなる。
+再生速度は2^((鍵盤ノート−基準音)/12)。画面はC3〜C5の25鍵、基準音もC3〜C5。MIDIは基準音±24半音の範囲で演奏可能。高い音ほど短くなる。
 デモの基準音はA3、外部WAVは手動指定の初期値C4。自動ピッチ検出は行わない。
 MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。完了状態はUIタイマーで確認し、音声コールバックからUIを更新しない。
 Mixer tapのRMSを右メーターへ表示。音声スレッドのメーター更新はロックが取れなければ待たずに破棄する。
@@ -84,3 +84,15 @@ PCキーのkeyDown/keyUpは既存ローカルモニターで処理し、リピ�
 停止・基準音変更・音源交換・フォーカス喪失は全音停止。Hold keysとデモ和音は演奏中だけの状態で保存しない。
 OutputMeterStateをOutputMeterColumnが直接購読し、メーター更新による鍵盤全体の再レイアウトを避ける。
 [判断](decisions/0010-polyphony.md)。
+
+## MIDI Input
+MIDIInputがCoreMIDIのクライアント・入力ポート・選択したsourceを管理する。初期値はNone、機器接続の自動選択や保存はしない。
+CoreMIDI通知でsource一覧を再取得し、選択sourceの消失時は切断してMIDI所有の音を停止する。
+MIDIReceiverがコールバック上でパケットを走査し、MIDIByteParserでMIDI 1.0のNote On/OffとCC120/123を抽出。
+running statusとパケット跨ぎを保持し、リアルタイムバイトは無視。SysEx・system commonでrunning statusを解除する。
+受信は直列ロックで順序を保ち、Main QueueへFIFOで渡す。接続世代を照合し旧ポート由来の配送を破棄する。音声コールバックからMIDIやUIを操作しない。
+PlayerModel.NoteInput.midi(channel)が既存の入力所有権へ接続。チャンネル別離鍵と全音停止は他入力の保持を尊重する。
+MIDI履歴は離鍵後の余韻もCC120と切断で止めるため保持し、全音停止時に破棄する。
+Test inputはMIDISourceCreateで実際の仮想sourceを公開し、MIDIReceivedから通常の受信ポートへ送る。
+背景・ダイアログ中は発音を抑制し、フォーカス喪失で停止。終了時にポート・仮想source・クライアントを破棄する。
+[判断](decisions/0011-midi-input.md)。

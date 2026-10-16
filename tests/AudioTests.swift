@@ -4,6 +4,7 @@ import AVFoundation
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        MIDITests.parser()
         EnvelopeTests.run()
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForgeTests-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -433,6 +434,8 @@ struct AudioTests {
                 sampler.shutdown(); engine.disableManualRenderingMode()
                 print("PASS: actual polyphonic graph three pitches, independent Release, looping past EOF, eight-voice allocation and all-off")
             }
+
+            try await MIDITests.integration()
 
             // Render the production voice graph offline to verify audible pitch,
             // rather than testing only the semitone formula.

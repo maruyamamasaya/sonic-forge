@@ -1,7 +1,7 @@
 # macOSアプリの追加ルール
 
 この配下はSwiftUI / AppKit / AVFoundationを使用する。共通ルールはルートAGENTS.md。
-- 画面はStudioView、再生状態はPlayerModel、ファイル解析・合成はAudioAsset、範囲と表示状態はWaveformEditor、選択音声はSelectionAudio、楽器エンジンはSampleInstrument、鍵盤はInstrumentKeyboard、保存形式はInstrumentDocument、ADSRの状態計算はADSREnvelopeに分離する。
+- 画面はStudioView、再生状態はPlayerModel、ファイル解析・合成はAudioAsset、範囲と表示状態はWaveformEditor、選択音声はSelectionAudio、楽器エンジンはSampleInstrument、鍵盤はInstrumentKeyboard、保存形式はInstrumentDocument、ADSRの状態計算はADSREnvelope、MIDI機器・受信とバイト解析はMIDIInputに分離する。
 - UIと再生状態の更新はMainActor。波形解析・音源合成はバックグラウンドで行う。
 - 波形は線形振幅。メーターのみdB表示。実測しないデバイス名・サンプルレートや架空の状態を表示しない。
 - ファイル読み込みが失敗したら元の音源を保持し、エラーを表示する。元ファイルを書き換えない。

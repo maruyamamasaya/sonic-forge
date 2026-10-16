@@ -196,7 +196,7 @@ final class SampleInstrument {
     func play(note: Int, root: Int, envelope: ADSRParameters = .standard, loop: SampleLoop? = nil) throws {
         guard let sample else { throw AudioError.invalid("先にサンプルを楽器へ取り込んでください。") }
         let rate = NotePitch.rate(note: note, root: root)
-        guard (48...72).contains(note), (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
+        guard (0...127).contains(note), (0.25...4).contains(rate), envelope.isValid else { throw AudioError.invalid("音域またはADSRの設定が無効です。") }
         if let loop, !loop.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) {
             throw AudioError.invalid("ループ範囲が無効です。")
         }
@@ -219,6 +219,9 @@ final class SampleInstrument {
     }
     func refreshCompletion() {
         for slot in slots where !slot.voice.isActive { slot.note = nil; slot.held = false }
+    }
+    func stopNote(_ note: Int) {
+        for slot in slots where slot.note == note { slot.voice.stop(); slot.note = nil; slot.held = false }
     }
     func stop() {
         for slot in slots { slot.voice.stop(); slot.note = nil; slot.held = false }

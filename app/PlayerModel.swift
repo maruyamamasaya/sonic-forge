@@ -26,11 +26,14 @@ final class PlayerModel: ObservableObject {
     var busy: Bool { loading || exporting || preparingInstrument }
     @Published private(set) var preparingInstrument = false
     @Published private(set) var instrumentSample: InstrumentSample?
-    enum NoteInput: Hashable { case screen, computer, demo }
+    enum NoteInput: Hashable { case screen, computer, demo, midi(UInt8) }
     @Published private(set) var activeNotes: Set<Int> = []
     @Published private(set) var soundingVoices = 0
     @Published var holdKeys = false { didSet { if oldValue != holdKeys { stopInstrument() } } }
     @Published private var noteInputs: [Int: Set<NoteInput>] = [:]
+    private var midiHistory: [UInt8: Set<Int>] = [:]
+    let midi = MIDIInput()
+    @Published private(set) var midiSuspended = false
     private var computerKeys: [UInt16: Int] = [:]
     static let computerKeyboard: [UInt16: Int] = [0: 60, 13: 61, 1: 62, 14: 63, 2: 64, 3: 65, 17: 66, 5: 67, 16: 68, 4: 69, 32: 70, 38: 71, 40: 72]
     @Published var rootNote = 60 { didSet { stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
@@ -81,6 +84,8 @@ final class PlayerModel: ObservableObject {
     private var demoDirectory: URL?
 
     init() {
+        midi.onMessages = { [weak self] messages in self?.receiveMIDI(messages) }
+        midi.onReset = { [weak self] in self?.releaseMIDI(immediate: true) }
         timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.refreshPlaybackState() }
     }
 
@@ -157,6 +162,7 @@ final class PlayerModel: ObservableObject {
     }
 
     func startSession() async {
+        midi.start()
         if let path = UserDefaults.standard.string(forKey: Self.lastInstrumentKey) {
             if await loadInstrument(URL(fileURLWithPath: path)) { return }
             let message = error
@@ -324,17 +330,20 @@ final class PlayerModel: ObservableObject {
         } catch { self.error = error.localizedDescription }
     }
     func playNote(_ note: Int, input: NoteInput = .screen) {
-        guard !busy, instrumentSample != nil, (48...72).contains(note) else { return }
+        guard !busy, instrumentSample != nil, (0...127).contains(note), (0.25...4).contains(NotePitch.rate(note: note, root: rootNote)) else { return }
         if noteInputs[note]?.contains(input) == true { return }
         if noteInputs[note]?.isEmpty == false {
             noteInputs[note, default: []].insert(input)
+            if case let .midi(channel) = input { midiHistory[channel, default: []].insert(note) }
             return
         }
+        for channel in Array(midiHistory.keys) { midiHistory[channel]?.remove(note) }
         leaveSelectionPlayback()
         player?.stop(); player?.currentTime = 0; position = 0; playing = false
         do {
             try instrument.play(note: note, root: rootNote, envelope: envelope, loop: sampleLoop)
             noteInputs[note, default: []].insert(input)
+            if case let .midi(channel) = input { midiHistory[channel, default: []].insert(note) }
             synchronizeNotes()
             error = nil
         } catch { self.error = error.localizedDescription }
@@ -346,6 +355,39 @@ final class PlayerModel: ObservableObject {
         guard noteInputs[note]?.remove(input) != nil else { return }
         if noteInputs[note]?.isEmpty == true { noteInputs.removeValue(forKey: note); instrument.noteOff(note) }
         synchronizeNotes()
+    }
+    func receiveMIDI(_ messages: [MIDIMessage]) {
+        for message in messages {
+            switch message.kind {
+            case .on:
+                guard !midiSuspended else { continue }
+                if let application = NSApp, application.modalWindow != nil || application.keyWindow?.attachedSheet != nil { continue }
+                playNote(message.note, input: .midi(message.channel))
+            case .off: releaseNote(message.note, input: .midi(message.channel))
+            case .allOff: releaseMIDI(channel: message.channel, immediate: false)
+            case .silence: releaseMIDI(channel: message.channel, immediate: true)
+            }
+        }
+    }
+    private func releaseMIDI(channel: UInt8? = nil, immediate: Bool) {
+        let history = midiHistory.filter { channel == nil || $0.key == channel }.values.reduce(into: Set<Int>()) { $0.formUnion($1) }
+        for note in Set(noteInputs.keys).union(history) {
+            let inputs = noteInputs[note] ?? []
+            for input in inputs {
+                if case let .midi(inputChannel) = input, channel == nil || channel == inputChannel {
+                    releaseNote(note, input: input)
+                }
+            }
+            if immediate && noteInputs[note] == nil { instrument.stopNote(note) }
+        }
+        if immediate {
+            for key in Array(midiHistory.keys) where channel == nil || key == channel { midiHistory.removeValue(forKey: key) }
+        }
+        synchronizeNotes()
+    }
+    func suspendMIDI(_ suspended: Bool) {
+        if midiSuspended != suspended { midiSuspended = suspended }
+        if suspended { stopInstrument() }
     }
     func screenKeyDown(_ note: Int) {
         if holdKeys && noteInputs[note]?.contains(.screen) == true { releaseNote(note) }
@@ -371,6 +413,8 @@ final class PlayerModel: ObservableObject {
     }
     func stopInstrument() {
         instrument.stop()
+        midi.cancelTestState()
+        midiHistory.removeAll()
         noteInputs.removeAll(); computerKeys.removeAll()
         activeNotes = []; soundingVoices = 0
         levels = [-60, -60]
@@ -468,7 +512,7 @@ final class PlayerModel: ObservableObject {
     func refreshPlaybackState() {
         synchronizeNotes()
         if instrument.isSounding { levels = instrument.meter.read(); return }
-        guard let player = activePlayer else { return }
+        guard let player = activePlayer else { levels = [-60, -60]; return }
         if playing && !player.isPlaying {
             playing = false
             position = playbackEnd
@@ -478,9 +522,10 @@ final class PlayerModel: ObservableObject {
             player.updateMeters()
             // AVAudioPlayer metering describes source level; apply master attenuation.
             levels = (0..<2).map { max(-60, min(0, player.averagePower(forChannel: min($0, player.numberOfChannels - 1)) + Float(gainDB))) }
-        }
+        } else { levels = [-60, -60] }
     }
     func cleanup() {
+        midi.close()
         instrument.shutdown()
         if let instrumentDirectory { try? FileManager.default.removeItem(at: instrumentDirectory) }
         if let keyboardMonitor { NSEvent.removeMonitor(keyboardMonitor); self.keyboardMonitor = nil }

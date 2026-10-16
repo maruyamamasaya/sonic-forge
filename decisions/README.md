@@ -42,3 +42,5 @@ Status: proposed / accepted / superseded
 - [0009: ループクロスフェード](0009-loop-crossfade.md)
 
 - [0010: 8音ポリフォニー](0010-polyphony.md)
+
+- [0011: MIDI入力](0011-midi-input.md)
