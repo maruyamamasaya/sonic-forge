@@ -105,3 +105,11 @@ PerformanceTestsで内蔵プリセット変換、テンポ時刻・移調・強�
 未知版、不正値、非有限数、件数超過、音符重複、8音超過・ペダル未解除、範囲外を拒否し、不正保存/読込で既存データを保持することを検証。
 --playbackで編集→保存→再読込→仮想MIDI演奏を確認し、変更後のテンポ時点で移調した保持音、ペダル、自然終了を検証する。
 UIはEdit…で全体と個別音を変更→Save…→Done→Auto play、再起動後のOpen…と値復元、最小幅の本体と編集シートを確認する。
+
+## Instrument Library Verification
+LibraryTestsは一時領域・独立UserDefaultsでデモ2種生成、重複・既存ファイル上書き防止、名前検索、別インスタンスへの一覧復元、不正ファイル拒否、Missing、登録解除時の原本保持を確認する。
+--playbackでは専用エンジンの実メーター、停止・3秒自動終了・復号中閉じる場合の世代破棄、本体の未保存変更保持、一覧ファイルの読込と鍵盤演奏を確認。既存の仮想MIDI統合も継続する。
+実UIではLibrary…→Add Demos→検索→行選択→Preview→Load Instrument、未保存置換のCancel、再起動後の一覧復元、小型ウィンドウ表示を確認する。外部ボリューム・大量登録・低遅延性能は未評価。
+
+## App Icon
+FullのビルドでPNG原本から標準10画像のiconsetとICNSを生成する。生成後はInfo.plistのCFBundleIconFile、Resources/AppIcon.icnsの存在・iconutilでの展開、codesign --verify --strictで同梱と署名を確認する。原本が欠落したビルドは失敗すること。Finder・Dockのキャッシュ反映は実アプリで確認する。

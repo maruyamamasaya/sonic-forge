@@ -24,6 +24,7 @@
 | 選択・ズーム・表示範囲 | app/WaveformEditor.swift | select、setZoom、pan、fitSelection、AudioSelection | tests/AudioTests.swift |
 | 選択区間の音声 | app/SelectionAudio.swift | SelectionAudio.write、framePosition、frameCount | tests/AudioTests.swift |
 | WAV書き出し | app/WAVExport.swift、app/PlayerModel.swift | WAVExport.write、exportSelection、export、NSSavePanel | tests/AudioTests.swift |
+| 楽器ライブラリ | app/InstrumentLibrary.swift、app/LibraryView.swift | register、add、addDemos、filtered、preview、stopPreview | tests/LibraryTests.swift / --playback |
 | 楽器保存・復元 | app/InstrumentDocument.swift、app/PlayerModel.swift | InstrumentDocument.save/load、saveInstrument、loadInstrument、startSession、instrumentDirty | tests/AudioTests.swift / --playback |
 | サンプルループ | app/SampleInstrument.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | SampleLoop.crossfadeFrames、InstrumentVoice.render、loopFromSelection、LoopControls | tests/EnvelopeTests.swift、tests/AudioTests.swift |
 | ADSR | app/ADSREnvelope.swift、app/SampleInstrument.swift、app/InstrumentKeyboard.swift | ADSRParameters、ADSREnvelope.next、InstrumentVoice.render、EnvelopeControls、setEnvelope | tests/EnvelopeTests.swift、tests/AudioTests.swift --playback |
@@ -32,6 +33,7 @@
 | 和音楽器・音程 | app/SampleInstrument.swift、app/PlayerModel.swift | InstrumentSample.load、NotePitch.rate、SampleInstrument.Slot、heldNotes、playNote、releaseNote、synchronizeNotes、computerKeyboard | tests/AudioTests.swift / --playback |
 | 画面鍵盤・基準音 | app/InstrumentKeyboard.swift | InstrumentKeyboard、Root note、Use Selection | 実UI確認 |
 | UI・波形・メーター | app/StudioView.swift | StudioView、WaveCanvas、StudioButton、OutputMeterColumn、OutputMeterState | 実アプリ手動確認 |
+| アプリアイコン | app/Resources/AppIcon.png、scripts/build.sh | AppIcon、iconutil、CFBundleIconFile | Full + ICNS・署名確認 |
 | ビルド・テスト | scripts/build.sh、scripts/test.sh | swiftc、AudioTests、codesign | 標準Verify |
 
 app配下の追加ルールは [app/AGENTS.md](app/AGENTS.md)。API・DB・認証・外部サービスは未実装。

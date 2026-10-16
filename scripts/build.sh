@@ -1,10 +1,20 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
-mkdir -p build/SonicForge.app/Contents/MacOS build/module-cache
+mkdir -p build/SonicForge.app/Contents/MacOS build/SonicForge.app/Contents/Resources build/module-cache
+icon_source=app/Resources/AppIcon.png
+iconset=build/AppIcon.iconset
+test -f "$icon_source"
+mkdir -p "$iconset"
+for size in 16 32 128 256 512; do
+    sips -z "$size" "$size" "$icon_source" --out "$iconset/icon_${size}x${size}.png" >/dev/null
+    retina=$((size * 2))
+    sips -z "$retina" "$retina" "$icon_source" --out "$iconset/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns "$iconset" -o build/SonicForge.app/Contents/Resources/AppIcon.icns
 xcrun swiftc -swift-version 5 -O -module-cache-path build/module-cache \
     -target "$(uname -m)-apple-macosx14.0" \
-    app/AudioAsset.swift app/WaveformEditor.swift app/SelectionAudio.swift app/WAVExport.swift app/ADSREnvelope.swift app/SampleInstrument.swift app/InstrumentDocument.swift app/PerformanceDocument.swift app/MIDIInput.swift app/PlayerModel.swift app/PerformanceEditor.swift app/InstrumentKeyboard.swift app/StudioView.swift app/SonicForgeApp.swift \
+    app/AudioAsset.swift app/WaveformEditor.swift app/SelectionAudio.swift app/WAVExport.swift app/ADSREnvelope.swift app/SampleInstrument.swift app/InstrumentDocument.swift app/InstrumentLibrary.swift app/PerformanceDocument.swift app/MIDIInput.swift app/PlayerModel.swift app/PerformanceEditor.swift app/InstrumentKeyboard.swift app/LibraryView.swift app/StudioView.swift app/SonicForgeApp.swift \
     -o build/SonicForge.app/Contents/MacOS/SonicForge
 cat > build/SonicForge.app/Contents/Info.plist <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -13,6 +23,7 @@ cat > build/SonicForge.app/Contents/Info.plist <<'PLIST'
 <key>CFBundleExecutable</key><string>SonicForge</string>
 <key>CFBundleIdentifier</key><string>local.sonicforge.studio</string>
 <key>CFBundleName</key><string>SonicForge</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>

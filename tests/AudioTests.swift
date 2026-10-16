@@ -5,6 +5,7 @@ import AVFoundation
 struct AudioTests {
     @MainActor static func main() async throws {
         try PerformanceTests.run()
+        try await LibraryTests.run(playback: CommandLine.arguments.contains("--playback"))
         MIDITests.parser()
         EnvelopeTests.run()
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForgeTests-" + UUID().uuidString)

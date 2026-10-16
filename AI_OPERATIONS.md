@@ -30,6 +30,7 @@ UIの要素番号や画面座標は固定ではない。機器やウィンドウ
 | --- | --- | --- |
 | 素材を用意 | Load Demo / Open WAV… | PlayerModel.loadDemo / load |
 | 音色を作る | Use Selection、Root、ADSR、LOOP、CROSSFADE | prepareInstrument、rootNote、setEnvelope、setLoop |
+| 楽器を探す・試聴・読込 | Library…、Search instruments、Preview / Stop Preview、Load Instrument | InstrumentLibrary.filtered / preview / stopPreview、PlayerModel.loadInstrument |
 | 音色を保存・復元 | Save… / Open… | saveInstrumentPanel / openInstrumentPanel、InstrumentDocument |
 | MIDIを選ぶ | MIDI IN / None | MIDIInput.select / refresh |
 | 実機なしの手動確認 | Test input、VELOCITY、Test pedal、MIDI chord | createTestInput、testVelocity、sendTest、toggleTestChord |
@@ -75,3 +76,12 @@ AIがファイルを作成し、Edit… → Open…で読み込める。現時�
 ## 文書を更新するタイミング
 UIの操作名、モデルの入口、演奏データ形式、成功判定、停止動作、対応範囲が変わったら本書の該当箇所を更新する。
 構造はARCHITECTURE、詳細操作はOPERATIONS、検証はTESTINGに置き、同じ仕様を各文書へ複写しない。
+
+## 楽器ライブラリの操作
+1. Library…→必要ならAdd Files…、音源がなければAdd Demos。追加のbusyがfalseになるまで待つ。
+2. Search instrumentsでファイル名検索→対象行を選択。同名は親フォルダを確認。Missingは読み込み不可なので移動後の場所から再追加する。
+3. Preview→PREVIEW表示とpreviewingを確認。独立音声エンジンなので本体の鍵盤・出力メーターは試聴の状態を表さない。previewLevelsは専用エンジンの実測値。開始3秒で停止しpreviewing=nilに戻る。Stop Preview・選択変更・Done・非アクティブで即停止する。
+4. Load Instrument→未保存時は確認文を読み、保持するならCancelして先に保存する。置換承認時のみReplace Instrument。成功するとシートが閉じ、instrumentFileURL・Root・ADSR・ループが対象へ変わりinstrumentDirty=false。失敗は元の楽器を保持しエラー表示。
+5. 必要ならAuto play→All Notes Offで本体の演奏を確認する。
+
+一覧登録は原本への参照。Remove from Listは登録解除のみ。試聴は楽器の保存・起動時復元先を変更しない。Add Demosはアプリ用保存領域に生成楽器を作る。外部APIは未実装のため、AIは現在のUIを観測して操作する。追加・復号中に閉じても遅延発音しないことを検証する。

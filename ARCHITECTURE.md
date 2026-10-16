@@ -34,6 +34,7 @@ WAVExportは選択を32-bit Float WAVへ書き出す。保存先と同じディ�
 いずれも未導入。実行時ネットワーク通信なし。macOSの既定出力を使用する。
 
 ## Deployment
+app/Resources/AppIcon.pngをアイコンの原本とし、scripts/build.shが標準サイズのiconsetとICNSを生成してResourcesへ同梱する。Info.plistのCFBundleIconFileで参照する。
 scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署名を行う。配布・公証・CIは未整備。
 検証コマンドは [TESTING.md](TESTING.md)、起動は [OPERATIONS.md](OPERATIONS.md)。
 
@@ -113,3 +114,9 @@ PerformanceDocument.swiftが音符・ペダルを拍単位で保持し、tempo/t
 PerformanceEditorが独立したシートで編集し、MIDIInputが演奏ファイルとdirtyを管理する。音色ファイルと保存状態は分離する。
 開始時に検証済みイベントを固定し、既存の仮想CoreMIDI再生とキャンセル処理を再利用。JSON読込にコード実行は伴わない。
 [判断](decisions/0013-editable-performances.md)。
+
+## Instrument Library
+InstrumentLibraryは楽器ファイルの絶対パスをUserDefaultsのinstrumentLibraryPathsV1へ保存する参照型の一覧。成功した通常保存・読込で自動登録し、Add FilesはInstrumentDocumentの全検証後に登録する。既存の最後の楽器も起動時復元成功で登録される。検索はファイル名、同名は親フォルダ表示で区別する。
+LibraryViewは本体を維持する独立シート。未保存楽器の置換は確認後に既存のloadInstrumentへ渡す。一覧から除外しても原本は削除しない。移動・削除された原本はMissingとなり、新しい場所から再追加する。
+試聴は専用SampleInstrumentで基準音をvelocity100・−18 dBで演奏し、0.8秒後に離鍵、開始3秒後に強制停止する（長いAttack/Releaseの全体確認ではない）。PCM・ADSR・ループを使用し、本体の楽器・dirty・起動時復元先を変更しない。本体停止後に開始し、選択/検索変更・閉じる・アプリ非アクティブ・終了時に停止。バックグラウンド復号後も世代を検査し、閉じた後の遅延発音を防ぐ。試聴の一時音源は停止時に清掃。
+Add DemosはApplication Support/SonicForge/Library内に同一合成素材のMetal/Softを作成し登録する。既存同名ファイルは上書きしない。外部ファイルはコピー・再帰走査しない。クラウド同期・タグ・DB・外部APIは未実装。

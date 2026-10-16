@@ -9,6 +9,8 @@ sh scripts/build.sh
 open build/SonicForge.app
 ```
 
+アイコンの原本は`app/Resources/AppIcon.png`。ビルド時にmacOS用ICNSを生成・同梱する。変更後はアプリを終了して再ビルド・起動すると反映される。
+
 起動時は最後に保存または開いた楽器を復元し、履歴がなければデモを読み込む。自動再生はしない。PlayまたはSpaceで再生する。
 Open WAV…（⌘O）で自分の音源を開き、Load Demoでいつでもデモに戻れる。
 主波形のクリック、または位置スライダーでシーク。Stopは先頭へ戻り、Pauseは位置を保持する。
@@ -159,3 +161,8 @@ Doneで編集内容を保持して試聴画面へ戻り、Auto playで再生す�
 Reset factoryまたは内蔵プリセットの選択は現在の編集内容を置き換える。残す場合は先にSave…する。
 音源・ADSR・ループを含む楽器保存とは別ファイル。再起動後は演奏ファイルをOpen…で明示的に開く。
 詳しいデータ形式と制限は[演奏形式v1](PERFORMANCE_FORMAT.md)。
+
+## 楽器ライブラリ
+上部Library…から開く。保存・読込に成功した楽器は自動登録。以前のファイルはAdd Files…で複数追加できる。原本の場所への参照を保存するため、移動・削除後はMissingになる。新しい場所のファイルを追加し、古い項目をRemove from Listで除外する（原本は消さない）。
+Search instrumentsで名前を絞り、行を選んでPreview。0.8秒の基準音＋余韻を最長3秒試聴する。Stop PreviewまたはDoneで停止。試聴は現在の楽器・未保存設定を保持する。Load Instrumentで本体へ読み込み、未保存変更がある場合はReplace Instrumentの確認が出る。残す場合はCancel→Done→本体Save…の後に再度読み込む。
+音源なしの場合はAdd DemosでMetal/Softの2音色を作成。検索→試聴→読み込み→鍵盤またはAuto playで確認できる。デモは同じ素材でADSRが異なる。繰り返し追加しても既存デモを上書きしない。一覧は再起動後も復元される。ファイル全体の自動収集・タグ・試聴音量調整は未対応。

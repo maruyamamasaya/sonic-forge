@@ -48,3 +48,5 @@ Status: proposed / accepted / superseded
 - [0012: MIDI表現と自動演奏](0012-midi-expression-presets.md)
 
 - [0013: 編集可能な演奏ファイル](0013-editable-performances.md)
+
+- [0014: 楽器ライブラリ](0014-instrument-library.md)
