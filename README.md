@@ -4,7 +4,19 @@
 
 GitHub: [maruyamamasaya/sonic-forge](https://github.com/maruyamamasaya/sonic-forge)
 
-現在は開発準備段階です。アプリケーションはまだ実装されておらず、起動・ビルド手順は未整備です。
+macOS向けのSample Studio。WAVを読み込み、波形を見ながら再生・一時停止・停止・シーク・音量調整ができます。
+音源がなくても、起動時に読み込まれる合成デモを再生できます。
+
+## 起動
+macOS 14以上とXcodeの開発ツールが必要です。
+
+```sh
+sh scripts/build.sh
+open build/SonicForge.app
+```
+
+Play／Spaceで再生、Open WAV…／⌘Oで音源を読み込み、Load Demoでデモに戻ります。
+対応形式と詳しい操作は [運用ガイド](OPERATIONS.md)、検証は [TESTING.md](TESTING.md)。
 
 ## 開発ガイド
 - [現在地と次の作業](CURRENT.md)

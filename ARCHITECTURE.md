@@ -1,30 +1,33 @@
 # 現在のアーキテクチャ
 
 ## System Overview / Data Flow
-現在は文書とその検証スクリプトのリポジトリ。アプリの実行時データフローは存在しない。
-
 ```text
-README → CURRENT → 必要な設計・検索・検証・運用文書
-                      ├─ decisions（判断）
-                      └─ sessions（作業履歴）
+SwiftUI StudioView → MainActor PlayerModel → AVAudioPlayer → macOS system output
+                         │
+NSOpenPanel / DemoAudio → AudioAsset.load（background）→ peak配列 → Canvas波形
 ```
 
 ## Technology Stack / Important Dependencies
-アプリ用の言語、フレームワーク、パッケージ管理ツール、実行環境は未選定。
-文書検証にはPython標準ライブラリとGitを使用する。要件・コマンドは [TESTING.md](TESTING.md) を参照。
-依存マニフェストやロックファイルは存在しない。Gitは履歴管理に使用する。
+macOS 14以上、Swift 5言語モード、XcodeのSwiftコンパイラ。
+SwiftUI / AppKit / AVFoundation / CombineとPython標準ライブラリのみ。第三者パッケージなし。
+当初提案のC++ / JUCEから、最初のMac専用版はApple標準基盤へ変更。[判断理由](decisions/0002-native-playback.md)。
 
 ## Directory Structure / Main Components
-ルートに案内・状態・作業規則・構成・検索・検証・運用文書を置く。
-decisions/ は重要判断、sessions/ は作業記録。主要アプリコンポーネントは未実装。scripts/verify.py が文書検証の入口。
-詳しい対応は [CODEMAP.md](CODEMAP.md) を参照。
+- app/: UI、再生状態、WAV解析、デモ合成。領域ルールは [app/AGENTS.md](app/AGENTS.md)。
+- tests/: ファイル解析と再生状態のテスト。
+- scripts/: ローカル.app生成、テスト、標準Verify。
+- decisions/、sessions/: 判断と作業結果。
+主要シンボルは [CODEMAP.md](CODEMAP.md)。
 
-## API Structure / Database / Authentication
-いずれも未実装。APIルート、テーブル、認証方式は未定。
+## Audio / Storage
+AVAudioFileでFloat32へデコードし、最大1800バケット／チャンネルのピークを作る。
+解析は16384フレームずつバックグラウンドで読み、UIにはピークだけ渡す。
+AVAudioPlayerが再生を担当。30 HzのUIタイマーで位置・レベルを更新。メーターはソース平均レベルにゲインを加えた表示で、物理出力の計測ではない。
+デモは8秒・48 kHz・16-bit・ステレオの減衰音を一時ディレクトリに合成。通常終了時に削除。ユーザー音源は変更しない。
 
-## External Services
-GitHubはソース管理先。アプリから接続する外部サービスは未設定。
+## API / Database / Authentication / External Services
+いずれも未導入。実行時ネットワーク通信なし。macOSの既定出力を使用する。
 
 ## Deployment
-デプロイ先・ビルド方式・CI/CDは未設定。
-将来の構成は決定後に decisions/ に理由を残し、この文書には実装された構成を反映する。
+scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署名を行う。配布・公証・CIは未整備。
+検証コマンドは [TESTING.md](TESTING.md)、起動は [OPERATIONS.md](OPERATIONS.md)。

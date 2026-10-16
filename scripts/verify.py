@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify repository documentation without third-party dependencies."""
+"""Verify documentation and, on macOS, build and test the native application."""
 import argparse
 from pathlib import Path
 import re
@@ -70,7 +70,15 @@ def main():
     if errors:
         print('\n'.join(errors), file=sys.stderr)
         return 1
-    print('PASS: ' + ('Fast' if args.fast else 'Full') + ' documentation validation')
+    if not args.fast:
+        if sys.platform == 'darwin':
+            for command in (['sh', 'scripts/test.sh'], ['sh', 'scripts/build.sh']):
+                result = subprocess.run(command, cwd=ROOT)
+                if result.returncode:
+                    return result.returncode
+        else:
+            print('SKIP: native build/tests require macOS and Xcode')
+    print('PASS: ' + ('Fast' if args.fast else 'Full') + ' validation')
     return 0
 
 

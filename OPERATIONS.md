@@ -1,30 +1,34 @@
 # 開発・運用
 
 ## Local Development
-ソース取得先: https://github.com/maruyamamasaya/sonic-forge
+macOS 14以上とXcode（または対応するCommand Line Tools）が必要。インターネット・追加パッケージは不要。
+リポジトリルートで実行する。
 
 ```sh
-git clone https://github.com/maruyamamasaya/sonic-forge.git
-cd sonic-forge
+sh scripts/build.sh
+open build/SonicForge.app
 ```
 
-現在は文書と文書検証スクリプトのみ。依存インストール・アプリ起動コマンドはない。
-開発開始時は [AGENTS.md](AGENTS.md) → [CURRENT.md](CURRENT.md) を確認する。
-検証環境と標準コマンドは [TESTING.md](TESTING.md) を参照。
+起動時にデモが読み込まれる。自動再生はしない。PlayまたはSpaceで再生する。
+Open WAV…（⌘O）で自分の音源を開き、Load Demoでいつでもデモに戻れる。
+波形・概要のクリック／ドラッグ、または位置スライダーでシーク。Stopは先頭へ戻り、Pauseは位置を保持する。
+音量は初期値−12 dB。出力先はmacOSのサウンド設定に従う。
 
-## Environment Variables
-必須環境変数は未定義。.env と .env.* はGit除外、.env.example は追跡可能。
-導入時は変数名・用途・必須条件を記録し、例には秘密値を含めない。
+## Supported Files
+RIFF/WAVEのモノラル／ステレオ、256 MB以下。PCM16とFloat32は自動検証済み。
+他のデコード可能なWAV形式は実ファイルで確認が必要。RF64・圧縮WAV・マルチチャンネルは対象外。
+読み込み失敗やキャンセル時は現在の音源を保持する。
 
-## Database Setup / External Services
-DBは未導入。アプリ用外部サービスは未設定。
-GitHubへのpushには対象リポジトリの書き込み権限とGit認証が必要。
+## Environment / Database / External Services
+必須環境変数・DB・外部サービスなし。元ファイルをアップロード／変更しない。
+デモはOSの一時領域で合成し、通常終了時に削除。異常終了時の残存ファイルはOSの一時領域管理に任せる。
 
 ## Build / Deploy
-ビルドコマンド、デプロイ先、CI/CDは未設定。GitHubへのpushはアプリのデプロイではない。
-導入後、実際の設定ファイルと手順への参照をここへ追加する。
+.appはbuild/配下（Git除外）。ローカル開発用署名のみで、公開配布用の署名・公証は行わない。
+標準検証は [TESTING.md](TESTING.md)。開発ルールは [AGENTS.md](AGENTS.md)。
 
 ## Troubleshooting
-- 起動方法が見つからない: 現在はアプリ未実装。CURRENT.mdと実ファイルを確認する。
-- pushできない: git remote -v で接続先、git status で状態を確認し、認証・権限・リモートとの差分を調べる。履歴を強制上書きしない。
-- 環境ファイルが追跡されない: .gitignoreを確認する。秘密値を追跡するために除外を解除しない。
+- 音が出ない: Play状態、Master Gain、macOSの出力先・音量を確認する。
+- 開けないWAV: サイズ・チャンネル・形式を確認。エラーを閉じると元音源に戻れる。
+- ビルドできない: xcode-select -pでXcode環境を確認。build生成物は再ビルド可能。
+- デモだけ試す: 音源を用意せずアプリを起動し、Playを押す。

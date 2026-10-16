@@ -14,11 +14,18 @@
 | 作業履歴 | sessions/ | Request、Validation |
 
 ## アプリケーションコード
-Application Entry、UI、API、Database、Authentication、外部依存、Testsはすべて未実装。
-追加した際は「機能 → 実際の主要ファイル → 検索語」をここに追記する。将来の推奨パスを実在するパスとして書かない。
+| Feature | Primary paths | Search keywords / Key entry points | Related tests |
+| --- | --- | --- | --- |
+| アプリ入口・起動時デモ | app/SonicForgeApp.swift | SonicForgeApp、Window、loadDemo | 実アプリ手動確認 |
+| WAV・デモ・波形解析 | app/AudioAsset.swift | AudioAsset.load、DemoAudio.write、peaks | tests/AudioTests.swift |
+| 再生・ファイル選択・状態 | app/PlayerModel.swift | open、load、toggle、stop、seek、tick | tests/AudioTests.swift --playback |
+| UI・波形・メーター | app/StudioView.swift | StudioView、WaveCanvas、StudioButton | 実アプリ手動確認 |
+| ビルド・テスト | scripts/build.sh、scripts/test.sh | swiftc、AudioTests、codesign | 標準Verify |
+
+app配下の追加ルールは [app/AGENTS.md](app/AGENTS.md)。API・DB・認証・外部サービスは未実装。
 
 ## 検証基盤
-- Feature: ドキュメント自動検証
+- Feature: 文書・アプリ自動検証
 - Primary paths: `scripts/verify.py`
 - Search keywords: `check_documents`、`CORE`、`--fast`
 - Key entry points: `main` → `check_documents`
