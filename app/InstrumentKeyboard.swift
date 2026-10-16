@@ -23,6 +23,7 @@ struct InstrumentKeyboard: View {
                     .foregroundStyle(accent).font(.system(size: 12, weight: .medium, design: .monospaced)).frame(width: 90)
             }
             EnvelopeControls(model: model)
+            LoopControls(model: model)
             GeometryReader { geometry in
                 let width = geometry.size.width / CGFloat(whiteNotes.count)
                 ZStack(alignment: .topLeading) {
@@ -81,7 +82,7 @@ struct EnvelopeControls: View {
             parameter("ATTACK", keyPath: \.attack, seconds: true, help: "押鍵から最大音量になるまで。次の発音から反映。")
             parameter("DECAY", keyPath: \.decay, seconds: true, help: "最大音量からSustainまで下がる時間。")
             parameter("SUSTAIN", keyPath: \.sustain, seconds: false, help: "押している間の音量。元音源の自然な減衰は維持します。")
-            parameter("RELEASE", keyPath: \.release, seconds: true, help: "離鍵後に消えるまで。音源の末尾では先に停止します。")
+            parameter("RELEASE", keyPath: \.release, seconds: true, help: "離鍵後に消えるまで。ループOFF時は音源の末尾で先に停止します。")
         }.padding(.vertical, 4)
     }
     private func parameter(_ name: String, keyPath: WritableKeyPath<ADSRParameters, Double>, seconds: Bool, help: String) -> some View {
@@ -102,5 +103,42 @@ struct EnvelopeControls: View {
                 .accessibilityLabel(name)
                 .accessibilityValue(seconds ? String(format: "%.3f seconds", value) : String(format: "%.0f percent", value * 100))
         }.help(help)
+    }
+}
+
+struct LoopControls: View {
+    @ObservedObject var model: PlayerModel
+    var body: some View {
+        HStack(spacing: 12) {
+            Toggle("LOOP", isOn: Binding(get: { model.sampleLoop.enabled }, set: {
+                var loop = model.sampleLoop; loop.enabled = $0; model.setLoop(loop)
+            })).toggleStyle(.checkbox).font(.system(size: 10, weight: .medium))
+            boundary("START", start: true)
+            boundary("END", start: false)
+            Button("From Selection") { model.loopFromSelection() }
+                .controlSize(.small).disabled(!model.canSetLoopFromSelection)
+                .help("波形の選択範囲をループに設定。取り込み済みサンプルの範囲内で選択してください。")
+        }
+        .disabled(model.instrumentSample == nil)
+        .help("次の発音から反映。離鍵後はループしながらReleaseで減衰します。位置は楽器サンプル先頭からの秒数です。")
+    }
+    private func boundary(_ label: String, start: Bool) -> some View {
+        let sample = model.instrumentSample
+        let rate = sample?.buffer.format.sampleRate ?? 1
+        let count = Int64(sample?.buffer.frameLength ?? 2)
+        let loop = model.sampleLoop
+        return HStack(spacing: 6) {
+            Text(label).foregroundStyle(.secondary)
+            Slider(value: Binding(get: { Double(start ? loop.startFrame : loop.endFrame) }, set: { value in
+                var updated = model.sampleLoop
+                if start { updated.startFrame = min(Int64(value.rounded()), updated.endFrame - 2) }
+                else { updated.endFrame = max(Int64(value.rounded()), updated.startFrame + 2) }
+                model.setLoop(updated)
+            }), in: start ? 0...Double(max(1, count - 2)) : 2...Double(max(3, count)))
+                .controlSize(.small).tint(Color(red: 0.96, green: 0.72, blue: 0.33))
+                .accessibilityLabel("Loop " + label)
+            Text(String(format: "%.3f s", Double(start ? loop.startFrame : loop.endFrame) / rate))
+                .monospacedDigit().frame(width: 63, alignment: .trailing)
+        }.font(.system(size: 9))
     }
 }

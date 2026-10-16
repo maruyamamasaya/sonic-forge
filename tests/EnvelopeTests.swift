@@ -57,6 +57,32 @@ enum EnvelopeTests {
         voice.trigger(parameters, rate: 1)
         voice.stop()
         precondition(!voice.isActive)
+        // Exact wrap sequence across render blocks, stereo, and release beyond EOF.
+        for i in 0..<3000 { pcm.floatChannelData![0][i] = Float(i + 1); pcm.floatChannelData![1][i] = -Float(i + 1) }
+        let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4000)!
+        output.frameLength = 4000
+        voice.trigger(ADSRParameters(attack: 0, decay: 0, sustain: 1, release: 0.1), rate: 1,
+                      loop: SampleLoop(enabled: true, startFrame: 2, endFrame: 5))
+        for block in 0..<2 {
+            voice.render(frames: 4000, output: output.mutableAudioBufferList)
+            for i in 0..<4000 {
+                let cursor = block * 4000 + i
+                let expected = Float((cursor < 5 ? cursor : 2 + (cursor - 5) % 3) + 1)
+                precondition(output.floatChannelData![0][i] == expected)
+                precondition(output.floatChannelData![1][i] == -expected)
+            }
+            precondition(voice.isActive)
+        }
+        voice.release()
+        voice.render(frames: 4000, output: output.mutableAudioBufferList)
+        precondition(output.floatChannelData![0][0] > 0 && !voice.isActive)
+        precondition(output.floatChannelData![0][100] == 0)
+        voice.trigger(.legacy, rate: 1)
+        voice.render(frames: 4000, output: output.mutableAudioBufferList)
+        precondition(!voice.isActive && output.floatChannelData![0][3000] == 0)
+        precondition(!SampleLoop(enabled: true, startFrame: 4, endFrame: 4).isValid(frameCount: 3000))
+        precondition(!SampleLoop(enabled: true, startFrame: 0, endFrame: Int64.min).isValid(frameCount: 3000))
+        print("PASS: loop exact wrap across blocks, stereo, hold beyond EOF, release and disabled EOF")
         print("PASS: ADSR stages, mid-attack release, zero times, validation, stereo gain and pitch-independent timing in production render")
     }
 }

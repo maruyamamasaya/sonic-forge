@@ -19,6 +19,23 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var instrumentSample: InstrumentSample?
     @Published private(set) var activeNote: Int?
     @Published var rootNote = 60 { didSet { stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
+    @Published private(set) var sampleLoop = SampleLoop(endFrame: 2)
+    func setLoop(_ value: SampleLoop) {
+        guard !busy, let sample = instrumentSample,
+              value.isValid(frameCount: Int64(sample.buffer.frameLength)), value != sampleLoop else { return }
+        sampleLoop = value
+        instrumentDirty = true
+    }
+    func loopFromSelection() {
+        guard let sample = instrumentSample, let selection = editor.selection else { return }
+        let start = selection.startFrame - sample.selection.startFrame
+        let end = selection.endFrame - sample.selection.startFrame
+        setLoop(SampleLoop(enabled: true, startFrame: start, endFrame: end))
+    }
+    var canSetLoopFromSelection: Bool {
+        guard let sample = instrumentSample, let selection = editor.selection else { return false }
+        return selection.startFrame >= sample.selection.startFrame && selection.endFrame <= sample.selection.endFrame && selection.frameCount >= 2
+    }
     @Published private(set) var envelope = ADSRParameters.standard
     func setEnvelope(_ value: ADSRParameters) {
         guard value.isValid, value != envelope, !busy else { return }
@@ -125,26 +142,28 @@ final class PlayerModel: ObservableObject {
         guard !busy, let sample = instrumentSample else { return }
         let root = rootNote
         let adsr = envelope
+        let loop = sampleLoop
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.sonicForgeInstrument]
         panel.canCreateDirectories = true
         panel.nameFieldStringValue = instrumentFileURL?.lastPathComponent ?? URL(fileURLWithPath: sample.name).deletingPathExtension().lastPathComponent + ".sfinstrument"
         panel.title = "Save Instrument"
-        panel.message = "サンプル音源・基準音・ADSRをまとめて保存します。元のWAVがなくても開けます。"
+        panel.message = "サンプル音源・基準音・ADSR・ループをまとめて保存します。元のWAVがなくても開けます。"
         guard let window = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.title == "SonicForge" && $0.isVisible }) else { return }
         panel.beginSheetModal(for: window) { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
-            Task { @MainActor in await self?.saveInstrument(sample: sample, root: root, envelope: adsr, to: url) }
+            Task { @MainActor in await self?.saveInstrument(sample: sample, root: root, envelope: adsr, loop: loop, to: url) }
         }
     }
 
-    func saveInstrument(sample: InstrumentSample, root: Int, envelope parameters: ADSRParameters? = nil, to url: URL, remember: Bool = true) async {
+    func saveInstrument(sample: InstrumentSample, root: Int, envelope parameters: ADSRParameters? = nil, loop: SampleLoop? = nil, to url: URL, remember: Bool = true) async {
         guard !busy else { return }
         let adsr = parameters ?? envelope
+        let loop = loop ?? sampleLoop
         exporting = true
         defer { exporting = false }
         do {
-            try await Task.detached(priority: .userInitiated) { try InstrumentDocument.save(sample: sample, rootNote: root, envelope: adsr, to: url) }.value
+            try await Task.detached(priority: .userInitiated) { try InstrumentDocument.save(sample: sample, rootNote: root, envelope: adsr, loop: loop, to: url) }.value
             instrumentFileURL = url
             instrumentDirty = false
             exportMessage = "Instrument saved · " + url.lastPathComponent
@@ -188,6 +207,7 @@ final class PlayerModel: ObservableObject {
             instrumentSample = restored.sample
             rootNote = restored.rootNote
             envelope = restored.envelope
+            sampleLoop = restored.loop
             instrumentFileURL = url
             instrumentDirty = false
             exportMessage = "Instrument opened · " + url.lastPathComponent
@@ -270,6 +290,7 @@ final class PlayerModel: ObservableObject {
             instrument.install(sample)
             instrument.gain = Float(pow(10, gainDB / 20))
             instrumentSample = sample
+            sampleLoop = SampleLoop(endFrame: Int64(sample.buffer.frameLength))
             instrumentDirty = true
             error = nil
         } catch { self.error = error.localizedDescription }
@@ -277,7 +298,7 @@ final class PlayerModel: ObservableObject {
     func playNote(_ note: Int) {
         guard !busy else { return }
         stop()
-        do { try instrument.play(note: note, root: rootNote, envelope: envelope); activeNote = note }
+        do { try instrument.play(note: note, root: rootNote, envelope: envelope, loop: sampleLoop); activeNote = note }
         catch { self.error = error.localizedDescription; activeNote = nil }
     }
     func releaseNote(_ note: Int? = nil) {

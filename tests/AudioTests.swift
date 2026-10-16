@@ -138,11 +138,13 @@ struct AudioTests {
         try FileManager.default.copyItem(at: demo, to: originalCopy)
         let savedEnvelope = ADSRParameters(attack: 0.12, decay: 0.34, sustain: 0.56, release: 0.78)
         let documentSample = try InstrumentSample.load(url: originalCopy, selection: selected)
+        let savedLoop = SampleLoop(enabled: true, startFrame: 100, endFrame: 200)
         let documentURL = root.appendingPathComponent("My Instrument.sfinstrument")
-        try InstrumentDocument.save(sample: documentSample, rootNote: 64, envelope: savedEnvelope, to: documentURL)
+        try InstrumentDocument.save(sample: documentSample, rootNote: 64, envelope: savedEnvelope, loop: savedLoop, to: documentURL)
         try FileManager.default.removeItem(at: originalCopy)
         let restored = try InstrumentDocument.load(documentURL)
         defer { try? FileManager.default.removeItem(at: restored.directory) }
+        precondition(restored.loop == savedLoop)
         precondition(restored.rootNote == 64 && restored.sample.name == documentSample.name && restored.envelope == savedEnvelope)
         precondition(restored.sample.buffer.frameLength == documentSample.buffer.frameLength)
         precondition(restored.sample.buffer.format.sampleRate == documentSample.buffer.format.sampleRate)
@@ -174,7 +176,21 @@ struct AudioTests {
             try JSONSerialization.data(withJSONObject: invalid).write(to: invalidDocument)
             do { _ = try InstrumentDocument.load(invalidDocument); fatalError("Invalid ADSR accepted") } catch {}
         }
-        print("PASS: ADSR v2 persistence, legacy v1 sound compatibility, invalid envelope rejection")
+        precondition(!legacy.loop.enabled)
+        var v2 = json
+        v2["version"] = 2
+        v2.removeValue(forKey: "loop")
+        try JSONSerialization.data(withJSONObject: v2).write(to: legacyURL)
+        let older = try InstrumentDocument.load(legacyURL)
+        defer { try? FileManager.default.removeItem(at: older.directory) }
+        precondition(!older.loop.enabled && older.envelope == savedEnvelope)
+        for range in [[-1, 200], [200, 100], [0, 9999999], [100, 101]] {
+            var invalid = json
+            invalid["loop"] = ["enabled": true, "startFrame": range[0], "endFrame": range[1]]
+            try JSONSerialization.data(withJSONObject: invalid).write(to: invalidDocument)
+            do { _ = try InstrumentDocument.load(invalidDocument); fatalError("Invalid loop accepted") } catch {}
+        }
+        print("PASS: v3 loop persistence, v1/v2 loop-off compatibility, invalid loop/envelope rejection")
         let monoDocument = root.appendingPathComponent("Mono.sfinstrument")
         try InstrumentDocument.save(sample: InstrumentSample.load(url: mono), rootNote: 60, to: monoDocument)
         let restoredMono = try InstrumentDocument.load(monoDocument)
@@ -282,7 +298,19 @@ struct AudioTests {
             model.refreshPlaybackState()
             precondition(model.activeNote == nil)
             model.rootNote = 64
+            // A short demo loop must outlast its original 0.2-second sample.
+            model.select(from: 0.005, to: 0.02)
+            precondition(model.canSetLoopFromSelection)
+            model.loopFromSelection()
+            precondition(model.sampleLoop.enabled)
+            model.playNote(64)
+            try await Task.sleep(nanoseconds: 450_000_000)
+            model.refreshPlaybackState()
+            precondition(model.activeNote == 64 && model.levels[0] > -60)
+            model.releaseNote()
+            model.stopInstrument()
             model.setEnvelope(savedEnvelope)
+            model.setLoop(savedLoop)
             let modelDocument = root.appendingPathComponent("model.sfinstrument")
             await model.saveInstrument(sample: model.instrumentSample!, root: model.rootNote, to: modelDocument, remember: false)
             precondition(!model.instrumentDirty && model.instrumentFileURL == modelDocument)
@@ -291,7 +319,7 @@ struct AudioTests {
             let reopened = PlayerModel()
             defer { reopened.cleanup() }
             let opened = await reopened.loadInstrument(modelDocument, remember: false)
-            precondition(opened && reopened.rootNote == 64 && !reopened.instrumentDirty && reopened.envelope == savedEnvelope)
+            precondition(opened && reopened.rootNote == 64 && !reopened.instrumentDirty && reopened.envelope == savedEnvelope && reopened.sampleLoop == savedLoop)
             precondition(abs(reopened.instrumentSample!.duration - 0.2) < 0.00001)
             reopened.playNote(64)
             precondition(reopened.activeNote == 64)

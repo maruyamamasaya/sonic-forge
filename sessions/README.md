@@ -36,3 +36,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: 楽器の保存と復元](2026-10-16-instrument-persistence.md)
 
 - [2026-10-16: ADSRと設定保存](2026-10-16-adsr.md)
+
+- [2026-10-16: サンプルループ](2026-10-16-sample-loop.md)

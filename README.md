@@ -33,3 +33,5 @@ Export WAV…で選択範囲を32-bit Float WAVとして保存できます。
 - [AIエージェントの作業ルール](AGENTS.md)
 - [設計判断](decisions/README.md)
 - [作業履歴](sessions/README.md)
+
+サンプルは範囲指定ループに対応。操作は[運用ガイド](OPERATIONS.md#サンプルループ)を参照。
