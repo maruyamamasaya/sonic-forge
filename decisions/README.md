@@ -26,3 +26,5 @@ Status: proposed / accepted / superseded
 - [0001: AI開発用情報の配置](0001-ai-development-docs.md)
 
 - [0002: 最初のmacOS再生基盤](0002-native-playback.md)
+
+- [0003: 選択再生のフレーム境界](0003-selection-preview.md)

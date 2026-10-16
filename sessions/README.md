@@ -26,3 +26,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: 検索と自動検証の強化](2026-10-16-search-verify.md)
 
 - [2026-10-16: WAV Sample Studio](2026-10-16-wav-studio.md)
+
+- [2026-10-16: 波形ズームと範囲試聴](2026-10-16-waveform-selection.md)

@@ -28,7 +28,7 @@ struct AudioAsset {
         guard file.length > 0, format.sampleRate > 0, (1...2).contains(channels) else {
             throw AudioError.invalid("空の音源や3チャンネル以上の音源にはまだ対応していません。")
         }
-        let count = min(1800, Int(file.length))
+        let count = min(115200, Int(file.length))
         var peaks = Array(repeating: Array(repeating: Float(0), count: count), count: channels)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16384) else {
             throw AudioError.invalid("波形の読み込みに必要なメモリを確保できませんでした。")

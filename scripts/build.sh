@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 mkdir -p build/SonicForge.app/Contents/MacOS build/module-cache
 xcrun swiftc -swift-version 5 -O -module-cache-path build/module-cache \
     -target "$(uname -m)-apple-macosx14.0" \
-    app/AudioAsset.swift app/PlayerModel.swift app/StudioView.swift app/SonicForgeApp.swift \
+    app/AudioAsset.swift app/WaveformEditor.swift app/SelectionAudio.swift app/PlayerModel.swift app/StudioView.swift app/SonicForgeApp.swift \
     -o build/SonicForge.app/Contents/MacOS/SonicForge
 cat > build/SonicForge.app/Contents/Info.plist <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

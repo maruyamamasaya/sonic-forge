@@ -10,14 +10,44 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var loading = false
     @Published private(set) var position = 0.0
     @Published private(set) var levels: [Float] = [-60, -60]
+    @Published private(set) var editor = WaveformEditor(frameCount: 1, sampleRate: 1)
+    @Published private(set) var playingSelection = false
     @Published var error: String?
-    @Published var gainDB = -12.0 { didSet { player?.volume = Float(pow(10, gainDB / 20)) } }
+    @Published var gainDB = -12.0 { didSet {
+        let gain = Float(pow(10, gainDB / 20))
+        player?.volume = gain
+        selectionPlayer?.volume = gain
+    } }
     private var player: AVAudioPlayer?
+    private var selectionPlayer: AVAudioPlayer?
+    private var previewSelection: AudioSelection?
+    private var activePlayer: AVAudioPlayer? { selectionPlayer ?? player }
+    private var previewOffset: Double { Double(previewSelection?.startFrame ?? 0) / editor.sampleRate }
+    private var playbackEnd: Double { previewSelection.map { Double($0.endFrame) / editor.sampleRate } ?? (asset?.duration ?? 0) }
+    private var keyboardMonitor: Any?
     private var timer: AnyCancellable?
     private var demoDirectory: URL?
 
     init() {
-        timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.tick() }
+        timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.refreshPlaybackState() }
+    }
+
+    // Route transport keys before focused buttons consume Space. File dialogs and
+    // text editors keep their normal keyboard behavior.
+    func installTransportShortcuts() {
+        guard keyboardMonitor == nil else { return }
+        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, let window = NSApp.keyWindow, window.title == "SonicForge",
+                  window.attachedSheet == nil, NSApp.modalWindow == nil,
+                  !(window.firstResponder is NSTextView) else { return event }
+            let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+            guard event.keyCode == 49, modifiers.isEmpty || modifiers == [.shift] else { return event }
+            if !event.isARepeat {
+                if modifiers == [.shift] { Task { await self.playSelection() } }
+                else { self.toggle() }
+            }
+            return nil
+        }
     }
 
     func open() {
@@ -61,9 +91,14 @@ final class PlayerModel: ObservableObject {
             replacement.isMeteringEnabled = true
             replacement.volume = Float(pow(10, gainDB / 20))
             guard replacement.prepareToPlay() else { throw AudioError.invalid("再生デバイスの準備ができませんでした。出力設定を確認してください。") }
+            selectionPlayer?.stop()
+            selectionPlayer = nil
+            previewSelection = nil
+            playingSelection = false
             player?.stop()
             player = replacement
             asset = loaded
+            editor = WaveformEditor(frameCount: Int64((loaded.duration * loaded.sampleRate).rounded()), sampleRate: loaded.sampleRate)
             playing = false
             position = 0
             levels = [-60, -60]
@@ -72,34 +107,106 @@ final class PlayerModel: ObservableObject {
     }
 
     func toggle() {
-        guard !loading, let player, let asset else { return }
+        guard !loading, let player = activePlayer, asset != nil else { return }
         if player.isPlaying { player.pause(); playing = false; levels = [-60, -60] }
         else {
-            if position >= asset.duration - 0.01 { player.currentTime = 0 }
+            if position >= playbackEnd - 0.000001 { player.currentTime = 0; position = previewOffset }
             if player.play() { playing = true } else { error = "再生できませんでした。macOSの出力デバイスを確認してください。" }
         }
     }
 
-    func stop() { player?.stop(); player?.currentTime = 0; position = 0; playing = false; levels = [-60, -60] }
+    func playSelection() async {
+        guard !loading, let asset, let selected = editor.selection else { return }
+        loading = true
+        defer { loading = false }
+        leaveSelectionPlayback()
+        player?.pause()
+        selectionPlayer?.stop()
+        selectionPlayer = nil
+        previewSelection = nil
+        playing = false
+        playingSelection = false
+        levels = [-60, -60]
+        do {
+            if demoDirectory == nil {
+                let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-" + UUID().uuidString)
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                demoDirectory = directory
+            }
+            let url = demoDirectory!.appendingPathComponent("selection.caf")
+            try await Task.detached(priority: .userInitiated) {
+                try SelectionAudio.write(source: asset.url, selection: selected, to: url)
+            }.value
+            let preview = try AVAudioPlayer(contentsOf: url)
+            preview.isMeteringEnabled = true
+            preview.volume = Float(pow(10, gainDB / 20))
+            guard preview.prepareToPlay(), preview.play() else {
+                throw AudioError.invalid("選択範囲を再生できませんでした。出力設定を確認してください。")
+            }
+            selectionPlayer = preview
+            previewSelection = selected
+            playingSelection = true
+            playing = true
+            position = Double(selected.startFrame) / editor.sampleRate
+            error = nil
+        } catch { self.error = error.localizedDescription }
+    }
+
+    private func leaveSelectionPlayback() {
+        guard selectionPlayer != nil else { return }
+        selectionPlayer?.stop()
+        selectionPlayer = nil
+        previewSelection = nil
+        playingSelection = false
+        playing = false
+        levels = [-60, -60]
+        player?.currentTime = position
+    }
+    func select(from a: Double, to b: Double) {
+        guard !loading, asset != nil else { return }
+        leaveSelectionPlayback()
+        editor.select(from: a, to: b)
+    }
+    func clearSelection() {
+        guard !loading else { return }
+        leaveSelectionPlayback()
+        editor.clearSelection()
+    }
+    func zoom(by multiplier: Double) {
+        guard !loading, let asset else { return }
+        let center = editor.selectionRange.map { ($0.lowerBound + $0.upperBound) / 2 } ?? (position / asset.duration)
+        editor.setZoom(editor.zoom * multiplier, around: center)
+    }
+    func fitAll() { editor.setZoom(1, around: 0.5) }
+    func fitSelection() { editor.fitSelection() }
+    func pan(to center: Double) { editor.pan(to: center) }
+
+    func stop() {
+        leaveSelectionPlayback()
+        player?.stop(); player?.currentTime = 0; position = 0; playing = false; levels = [-60, -60]
+    }
     func seek(_ fraction: Double) {
         guard !loading, let asset else { return }
+        leaveSelectionPlayback()
         position = max(0, min(1, fraction)) * asset.duration
         player?.currentTime = position
     }
-    private func tick() {
-        guard let player else { return }
+    func refreshPlaybackState() {
+        guard let player = activePlayer else { return }
         if playing && !player.isPlaying {
             playing = false
-            position = asset?.duration ?? 0
+            position = playbackEnd
             levels = [-60, -60]
         } else if player.isPlaying {
-            position = player.currentTime
+            position = previewOffset + player.currentTime
             player.updateMeters()
             // AVAudioPlayer metering describes source level; apply master attenuation.
             levels = (0..<2).map { max(-60, min(0, player.averagePower(forChannel: min($0, player.numberOfChannels - 1)) + Float(gainDB))) }
         }
     }
     func cleanup() {
+        if let keyboardMonitor { NSEvent.removeMonitor(keyboardMonitor); self.keyboardMonitor = nil }
+        selectionPlayer?.stop()
         player?.stop()
         if let demoDirectory { try? FileManager.default.removeItem(at: demoDirectory) }
     }

@@ -37,10 +37,12 @@ struct StudioView: View {
                 VStack(spacing: 12) {
                     if let asset {
                         waveform(asset: asset)
-                        WaveCanvas(peaks: asset.peaks, fraction: fraction, overview: true, seek: model.seek)
+                        WaveCanvas(peaks: asset.peaks, fraction: fraction, overview: true,
+                                   selection: model.editor.selectionRange, window: model.editor.visibleRange,
+                                   seek: model.pan)
                             .frame(height: 62).background(panel).overlay { Rectangle().stroke(line) }
                             .contentShape(Rectangle())
-                            .accessibilityLabel("Full file overview. Click to seek.")
+                            .accessibilityLabel("Full file overview. Click or drag to move the zoomed view.")
                     } else {
                         VStack(spacing: 18) {
                             Image(systemName: "waveform").font(.system(size: 40, weight: .ultraLight)).foregroundStyle(amber)
@@ -50,7 +52,7 @@ struct StudioView: View {
                             Button("Load Demo") { Task { await model.loadDemo() } }.buttonStyle(StudioButton(primary: true)).disabled(model.loading)
                         }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity)
+                }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity).disabled(model.loading)
                 Rectangle().fill(line).frame(width: 1)
                 inspector.frame(width: 268).background(panel)
             }
@@ -68,6 +70,7 @@ struct StudioView: View {
         }
         .background(base).foregroundStyle(Color(red: 0.86, green: 0.89, blue: 0.91))
         .preferredColorScheme(.dark)
+        .onExitCommand { model.clearSelection() }
         .alert("SonicForge", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK") { model.error = nil }
         } message: { Text(model.error ?? "") }
@@ -145,19 +148,44 @@ struct StudioView: View {
     }
     private func waveform(asset: AudioAsset) -> some View {
         VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text("WAVEFORM").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(muted)
+                Spacer()
+                Button { model.zoom(by: 0.5) } label: { Image(systemName: "minus.magnifyingglass") }
+                    .buttonStyle(StudioButton()).disabled(model.editor.zoom <= 1.001).accessibilityLabel("Zoom out")
+                Text(model.editor.zoom.formatted(.number.precision(.fractionLength(0...1))) + "×").font(.system(size: 11, design: .monospaced)).frame(width: 38)
+                Button { model.zoom(by: 2) } label: { Image(systemName: "plus.magnifyingglass") }
+                    .buttonStyle(StudioButton()).disabled(model.editor.zoom >= 31.999).accessibilityLabel("Zoom in")
+                Button("Fit All") { model.fitAll() }.buttonStyle(StudioButton())
+                Button("Fit Selection") { model.fitSelection() }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
+            }.padding(.bottom, 10)
             HStack(spacing: 0) {
                 ForEach(0..<9) { index in
-                    Text(String(format: "%.1fs", asset.duration * Double(index) / 8))
-                        .font(.system(size: 10, design: .monospaced)).foregroundStyle(muted)
+                    Text(String(format: "%.3fs", asset.duration * (model.editor.visibleRange.lowerBound + model.editor.visibleRange.count * Double(index) / 8)))
+                        .font(.system(size: 9, design: .monospaced)).foregroundStyle(muted)
                     if index < 8 { Spacer(minLength: 0) }
                 }
             }.frame(height: 25)
-            WaveCanvas(peaks: asset.peaks, fraction: fraction, overview: false, seek: model.seek)
+            WaveCanvas(peaks: asset.peaks, fraction: fraction, overview: false,
+                       viewport: model.editor.visibleRange, selection: model.editor.selectionRange,
+                       seek: model.seek, select: model.select)
                 .background(base).overlay { Rectangle().stroke(line) }
-                .contentShape(Rectangle())
-                .accessibilityLabel("Audio waveform. Click to change playback position.")
+                .accessibilityLabel("Audio waveform. Click to seek, drag to select a range. Drag selection edges to adjust.")
+            HStack(spacing: 12) {
+                if model.editor.selection != nil {
+                    Text("IN  " + timeLabel(model.editor.selectionStart))
+                    Text("OUT  " + timeLabel(model.editor.selectionEnd))
+                    Text("LENGTH  " + timeLabel(model.editor.selectionEnd - model.editor.selectionStart)).foregroundStyle(amber)
+                    Spacer(minLength: 0)
+                    Button("Clear") { model.clearSelection() }.buttonStyle(.plain).foregroundStyle(muted)
+                        .accessibilityLabel("Clear selection")
+                } else {
+                    Text("Drag to select · Click to seek").foregroundStyle(muted)
+                    Spacer()
+                }
+            }.font(.system(size: 10, design: .monospaced)).lineLimit(1).frame(height: 32)
             Slider(value: Binding(get: { model.position }, set: { model.seek($0 / asset.duration) }), in: 0...asset.duration)
-                .tint(amber).accessibilityLabel("Playback position").padding(.top, 8)
+                .tint(amber).accessibilityLabel("Playback position")
         }
     }
     private var transport: some View {
@@ -168,17 +196,22 @@ struct StudioView: View {
             Button { model.stop() } label: { Image(systemName: "stop.fill").frame(width: 42, height: 34) }
                 .buttonStyle(StudioButton()).help("Stop and return to start").accessibilityLabel("Stop")
             Button { model.toggle() } label: { Image(systemName: model.playing ? "pause.fill" : "play.fill").frame(width: 42, height: 34) }
-                .buttonStyle(StudioButton(primary: true)).keyboardShortcut(.space, modifiers: []).help("Play / Pause · Space").accessibilityLabel(model.playing ? "Pause" : "Play")
+                .buttonStyle(StudioButton(primary: true)).help("Play / Pause · Space").accessibilityLabel(model.playing ? "Pause" : "Play")
+            Button { Task { await model.playSelection() } } label: {
+                Label("Play Selection", systemImage: "play.rectangle")
+            }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
+                .help("Play selected range · Shift-Space").padding(.leading, 12)
             Text("\(timeLabel(model.position)) / \(timeLabel(asset?.duration ?? 0))")
-                .font(.system(size: 19, weight: .medium, design: .monospaced)).padding(.horizontal, 22).padding(.vertical, 13)
+                .font(.system(size: 16, weight: .medium, design: .monospaced)).padding(.horizontal, 22).padding(.vertical, 13)
                 .background(Color.black.opacity(0.18)).clipShape(RoundedRectangle(cornerRadius: 4)).padding(.leading, 24)
-            Text("Space  Play / Pause").font(.system(size: 10)).foregroundStyle(muted).padding(.leading, 24)
+            Text(model.playingSelection ? "SELECTION" : "Space  Play / Pause").font(.system(size: 10)).foregroundStyle(muted).padding(.leading, 24)
             Spacer()
         }.padding(.vertical, 20).background(panel).disabled(asset == nil || model.loading)
     }
 }
 
 struct StudioButton: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
     var primary = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.font(.system(size: 12, weight: .medium))
@@ -187,6 +220,7 @@ struct StudioButton: ButtonStyle {
             .background(primary ? amber.opacity(configuration.isPressed ? 0.75 : 1) : Color.white.opacity(configuration.isPressed ? 0.14 : 0.065))
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .overlay { RoundedRectangle(cornerRadius: 4).stroke(Color.white.opacity(0.07)) }
+            .opacity(isEnabled ? 1 : 0.35)
     }
 }
 
@@ -194,40 +228,99 @@ struct WaveCanvas: View {
     let peaks: [[Float]]
     let fraction: Double
     let overview: Bool
-    var seek: ((Double) -> Void)? = nil
+    var viewport: Range<Double> = 0..<1
+    var selection: Range<Double>?
+    var window: Range<Double>?
+    var seek: ((Double) -> Void)?
+    var select: ((Double, Double) -> Void)?
+    @State private var dragAnchor: Double?
+
+    private func location(_ x: CGFloat, width: CGFloat) -> Double {
+        max(0, min(1, viewport.lowerBound + Double(x / max(1, width)) * viewport.count))
+    }
     var body: some View {
         GeometryReader { geometry in
             Canvas { context, size in
+                func x(_ value: Double) -> CGFloat { CGFloat((value - viewport.lowerBound) / viewport.count) * size.width }
+                if let selection {
+                    let start = max(0, x(selection.lowerBound)), end = min(size.width, x(selection.upperBound))
+                    if end > start {
+                        context.fill(Path(CGRect(x: start, y: 0, width: end - start, height: size.height)), with: .color(amber.opacity(overview ? 0.10 : 0.14)))
+                    }
+                }
                 let lane = size.height / CGFloat(max(1, peaks.count))
                 for (channel, values) in peaks.enumerated() {
                     let middle = lane * (CGFloat(channel) + 0.5)
                     var grid = Path()
                     for index in 0...8 {
-                        let x = size.width * CGFloat(index) / 8
-                        grid.move(to: CGPoint(x: x, y: CGFloat(channel) * lane))
-                        grid.addLine(to: CGPoint(x: x, y: CGFloat(channel + 1) * lane))
+                        let gx = size.width * CGFloat(index) / 8
+                        grid.move(to: CGPoint(x: gx, y: CGFloat(channel) * lane))
+                        grid.addLine(to: CGPoint(x: gx, y: CGFloat(channel + 1) * lane))
                     }
                     grid.move(to: CGPoint(x: 0, y: middle)); grid.addLine(to: CGPoint(x: size.width, y: middle))
                     context.stroke(grid, with: .color(.white.opacity(0.07)), lineWidth: 1)
                     var wave = Path()
-                    for index in values.indices {
-                        let x = CGFloat(index) / CGFloat(max(1, values.count - 1)) * size.width
-                        let height = CGFloat(min(1, values[index])) * lane * 0.44
-                        wave.move(to: CGPoint(x: x, y: middle - max(0.35, height)))
-                        wave.addLine(to: CGPoint(x: x, y: middle + max(0.35, height)))
+                    let columns = max(1, Int(size.width * 1.5))
+                    for column in 0..<columns {
+                        let low = viewport.lowerBound + viewport.count * Double(column) / Double(columns)
+                        let high = viewport.lowerBound + viewport.count * Double(column + 1) / Double(columns)
+                        let first = max(0, min(values.count - 1, Int(low * Double(values.count))))
+                        let last = max(first + 1, min(values.count, Int(ceil(high * Double(values.count)))))
+                        let peak = values[first..<last].max() ?? 0
+                        let wx = CGFloat(column) / CGFloat(columns) * size.width
+                        let height = CGFloat(min(1, peak)) * lane * 0.44
+                        wave.move(to: CGPoint(x: wx, y: middle - max(0.35, height)))
+                        wave.addLine(to: CGPoint(x: wx, y: middle + max(0.35, height)))
                     }
-                    context.stroke(wave, with: .color(overview ? muted.opacity(0.65) : amber), lineWidth: max(0.65, size.width / CGFloat(max(1, values.count))))
+                    context.stroke(wave, with: .color(overview ? muted.opacity(0.65) : amber), lineWidth: 0.8)
                     if !overview {
-                        context.draw(Text(channel == 0 ? (peaks.count == 1 ? "MONO" : "L") : "R").font(.system(size: 10)).foregroundColor(muted), at: CGPoint(x: 18, y: CGFloat(channel) * lane + 16))
+                        context.draw(Text(channel == 0 ? (peaks.count == 1 ? "MONO" : "L") : "R").font(.system(size: 10)).foregroundColor(muted), at: CGPoint(x: 22, y: CGFloat(channel) * lane + 16))
                     }
                 }
-                var playhead = Path()
-                let x = max(0, min(size.width - 1, size.width * fraction))
-                playhead.move(to: CGPoint(x: x, y: 0)); playhead.addLine(to: CGPoint(x: x, y: size.height))
-                context.stroke(playhead, with: .color(amber), lineWidth: 1)
+                if let selection, !overview {
+                    for boundary in [selection.lowerBound, selection.upperBound] {
+                        let sx = x(boundary)
+                        if sx >= 0 && sx <= size.width {
+                            var edge = Path()
+                            edge.move(to: CGPoint(x: sx, y: 0)); edge.addLine(to: CGPoint(x: sx, y: size.height))
+                            context.stroke(edge, with: .color(amber.opacity(0.9)), lineWidth: 1)
+                            context.fill(Path(CGRect(x: sx - 3, y: 0, width: 6, height: 12)), with: .color(amber))
+                        }
+                    }
+                }
+                if let window, window.count < 0.9999 {
+                    let rect = CGRect(x: x(window.lowerBound), y: 1, width: CGFloat(window.count) * size.width, height: size.height - 2)
+                    context.fill(Path(rect), with: .color(.white.opacity(0.06)))
+                    context.stroke(Path(rect), with: .color(.white.opacity(0.6)), lineWidth: 1)
+                }
+                if fraction >= viewport.lowerBound && fraction <= viewport.upperBound {
+                    var playhead = Path()
+                    let px = max(0, min(size.width - 1, x(fraction)))
+                    playhead.move(to: CGPoint(x: px, y: 0)); playhead.addLine(to: CGPoint(x: px, y: size.height))
+                    context.stroke(playhead, with: .color(amber), lineWidth: 1)
+                }
             }
             .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 0).onChanged { event in seek?(Double(event.location.x / max(1, geometry.size.width))) })
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { event in
+                    let current = location(event.location.x, width: geometry.size.width)
+                    guard let select else { seek?(current); return }
+                    guard abs(event.translation.width) >= 3 || dragAnchor != nil else { return }
+                    if dragAnchor == nil {
+                        let start = location(event.startLocation.x, width: geometry.size.width)
+                        let tolerance = 8 / Double(max(1, geometry.size.width)) * viewport.count
+                        if let selection, abs(start - selection.lowerBound) < tolerance {
+                            dragAnchor = selection.upperBound
+                        } else if let selection, abs(start - selection.upperBound) < tolerance {
+                            dragAnchor = selection.lowerBound
+                        } else { dragAnchor = start }
+                    }
+                    select(dragAnchor ?? current, current)
+                }
+                .onEnded { event in
+                    if dragAnchor == nil { seek?(location(event.location.x, width: geometry.size.width)) }
+                    dragAnchor = nil
+                })
         }
     }
 }

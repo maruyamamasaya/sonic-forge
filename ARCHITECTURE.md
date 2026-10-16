@@ -20,9 +20,13 @@ SwiftUI / AppKit / AVFoundation / CombineとPython標準ライブラリのみ。
 主要シンボルは [CODEMAP.md](CODEMAP.md)。
 
 ## Audio / Storage
-AVAudioFileでFloat32へデコードし、最大1800バケット／チャンネルのピークを作る。
+AVAudioFileでFloat32へデコードし、最大115200バケット／チャンネルのピークを作る。
 解析は16384フレームずつバックグラウンドで読み、UIにはピークだけ渡す。
 AVAudioPlayerが再生を担当。30 HzのUIタイマーで位置・レベルを更新。メーターはソース平均レベルにゲインを加えた表示で、物理出力の計測ではない。
+WaveformEditorがソースフレーム単位の選択と、正規化した表示範囲（1〜32倍ズーム）を管理。
+Canvasは表示範囲内のピークを画面幅に再集約し、選択を半透明アンバーで描く。概要波形は常に全体を表示する。
+選択再生はSelectionAudioが指定フレームだけを一時Float32 CAFへコピーし、別のAVAudioPlayerで再生する。
+再生位置表示には選択開始時刻を加算し、音声の終端はファイル長で制限する。根拠は [選択再生の判断](decisions/0003-selection-preview.md)。
 デモは8秒・48 kHz・16-bit・ステレオの減衰音を一時ディレクトリに合成。通常終了時に削除。ユーザー音源は変更しない。
 
 ## API / Database / Authentication / External Services
