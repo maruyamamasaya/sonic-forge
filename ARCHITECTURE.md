@@ -120,3 +120,8 @@ InstrumentLibraryは楽器ファイルの絶対パスをUserDefaultsのinstrumen
 LibraryViewは本体を維持する独立シート。未保存楽器の置換は確認後に既存のloadInstrumentへ渡す。一覧から除外しても原本は削除しない。移動・削除された原本はMissingとなり、新しい場所から再追加する。
 試聴は専用SampleInstrumentで基準音をvelocity100・−18 dBで演奏し、0.8秒後に離鍵、開始3秒後に強制停止する（長いAttack/Releaseの全体確認ではない）。PCM・ADSR・ループを使用し、本体の楽器・dirty・起動時復元先を変更しない。本体停止後に開始し、選択/検索変更・閉じる・アプリ非アクティブ・終了時に停止。バックグラウンド復号後も世代を検査し、閉じた後の遅延発音を防ぐ。試聴の一時音源は停止時に清掃。
 Add DemosはApplication Support/SonicForge/Library内に同一合成素材のMetal/Softを作成し登録する。既存同名ファイルは上書きしない。外部ファイルはコピー・再帰走査しない。クラウド同期・タグ・DB・外部APIは未実装。
+
+## Performance Generation
+StudioViewのCompose… → PerformanceComposer（候補・取消世代） → PerformanceBrief / PerformanceGeneration（指示・共通schema・検証） → CodexPerformanceClient / OpenAIPerformanceClient。Codexはインストール済みネイティブ実行ファイルをProcess引数配列＋stdinで起動。空の一時作業領域・read-only・ignore-user-config・ephemeral、shell/unified_exec/apps/hooks無効、web_search無効。標準出力・標準エラーは保存せず最終JSONファイルだけを検証。120秒で停止、終了時に一時領域を清掃する。Nodeラッパーは既知の同梱バイナリへ解決してNodeのPATHに依存しない。
+OpenAIはFoundation URLSessionのResponses API＋strict JSON Schema。接続先固定、リダイレクト禁止、キャッシュなし、store=false、6000出力トークン・90秒リクエスト/100秒リソース・応答1 MB上限。キーはメモリのみ。未完了・refusal・HTTPエラー・形式不正を拒否し生応答やキーをログへ出さない。音源・原本パスは添付せず、音楽の指示と基準音だけを送る。TypeScriptアプリではないためAI SDKは追加しない。
+Other AIは共通の指示とschemaをコピーしJSONを貼り付ける手動接続。Demoは2種類の決定的パターンでAI呼び出しと区別。いずれもPerformanceDocument.events(root:)に加え4小節・64音符制限を適用。候補は既存演奏を変えず、Use & Playで未保存演奏の置換確認後にMIDIInput.applyGeneratedPerformanceへ渡す。ファイル保存先を解除しdirtyにする。本体楽器は保持。シート閉鎖完了後に既存の仮想CoreMIDI経路で再生する。閉じる・取消・指示変更・方式変更で旧結果は採用されない。操作・対応範囲は[AI_GENERATION.md](AI_GENERATION.md)。

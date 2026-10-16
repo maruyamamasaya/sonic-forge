@@ -88,6 +88,15 @@ final class MIDIInput: ObservableObject {
         performanceFileURL = nil; performanceDirty = false; customPerformance = false
     }
     @discardableResult
+    func applyGeneratedPerformance(_ document: PerformanceDocument, root: Int) -> Bool {
+        guard !performing else { return false }
+        do {
+            let validated = try PerformanceGeneration.validate(document, root: root)
+            performance = validated; performanceFileURL = nil
+            error = nil; return true
+        } catch { self.error = error.localizedDescription; return false }
+    }
+    @discardableResult
     func loadPerformance(_ url: URL) -> Bool {
         guard !performing else { return false }
         do {

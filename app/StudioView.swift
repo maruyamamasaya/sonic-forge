@@ -9,6 +9,8 @@ private let line = Color.white.opacity(0.10)
 struct StudioView: View {
     @ObservedObject var model: PlayerModel
     @State private var showingLibrary = false
+    @State private var composing = false
+    @State private var playComposed = false
     private var asset: AudioAsset? { model.asset }
     var body: some View {
         VStack(spacing: 0) {
@@ -73,6 +75,9 @@ struct StudioView: View {
         .background(base).foregroundStyle(Color(red: 0.86, green: 0.89, blue: 0.91))
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingLibrary) { LibraryView(model: model, library: model.library) }
+        .sheet(isPresented: $composing, onDismiss: {
+            if playComposed { playComposed = false; model.suspendMIDI(false); model.midi.playPerformance() }
+        }) { PerformanceComposerView(model: model, midi: model.midi, composer: model.composer, onUse: { playComposed = true }) }
         .onExitCommand { model.clearSelection() }
         .alert("SonicForge", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK") { model.error = nil }
@@ -85,6 +90,8 @@ struct StudioView: View {
             Rectangle().fill(line).frame(width: 1, height: 20)
             Text("Sample Studio").font(.system(size: 12)).foregroundStyle(muted)
             Spacer()
+            Button("Compose…") { model.stop(); composing = true }.buttonStyle(StudioButton())
+                .disabled(model.instrumentSample == nil)
             Button("Library…") { model.stop(); showingLibrary = true }.buttonStyle(StudioButton())
             Button { model.exportSelection() } label: {
                 Label("Export WAV…", systemImage: "square.and.arrow.up")

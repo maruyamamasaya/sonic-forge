@@ -5,6 +5,8 @@ import AVFoundation
 struct AudioTests {
     @MainActor static func main() async throws {
         try PerformanceTests.run()
+        try await GenerationTests.run()
+        if CommandLine.arguments.contains("--ai-live") { try await GenerationTests.live() }
         try await LibraryTests.run(playback: CommandLine.arguments.contains("--playback"))
         MIDITests.parser()
         EnvelopeTests.run()
@@ -440,6 +442,7 @@ struct AudioTests {
             try await MIDITests.integration()
             try await MIDITests.expression()
             try await PerformanceTests.integration()
+            try await GenerationTests.integration()
 
             // Render the production voice graph offline to verify audible pitch,
             // rather than testing only the semitone formula.

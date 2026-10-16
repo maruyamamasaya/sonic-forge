@@ -35,6 +35,7 @@ final class PlayerModel: ObservableObject {
     private var midiHistory: [UInt8: Set<Int>] = [:]
     let midi = MIDIInput()
     let library = InstrumentLibrary()
+    let composer = PerformanceComposer()
     @Published private(set) var midiSuspended = false
     private var computerKeys: [UInt16: Int] = [:]
     static let computerKeyboard: [UInt16: Int] = [0: 60, 13: 61, 1: 62, 14: 63, 2: 64, 3: 65, 17: 66, 5: 67, 16: 68, 4: 69, 32: 70, 38: 71, 40: 72]
@@ -558,6 +559,7 @@ final class PlayerModel: ObservableObject {
     }
     func cleanup() {
         library.stopPreview()
+        composer.cancel()
         midi.close()
         instrument.shutdown()
         if let instrumentDirectory { try? FileManager.default.removeItem(at: instrumentDirectory) }

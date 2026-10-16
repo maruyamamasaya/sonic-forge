@@ -1,6 +1,6 @@
 # AI向け操作・演奏ガイド
 
-最終確認: 2026-10-16
+最終確認: 2026-10-17
 
 ## この文書の役割
 AIがアプリを操作・拡張するときに、操作の入口、観測する状態、停止方法を短時間で把握するためのガイド。
@@ -11,7 +11,7 @@ AIがアプリを操作・拡張するときに、操作の入口、観測する
 - WAVを読み込み、範囲を切り出してサンプラー楽器へ取り込み、基準音・ADSR・ループ・クロスフェードを設定できる。
 - 最大8音を画面・PC・MIDIから演奏でき、MIDIの強弱とサステインペダルに対応する。
 - 内蔵3種類を元にテンポ・移調・強弱・個別音符・ペダルを編集・保存し、Auto playで自動演奏できる。実機や演奏スキルは不要。
-- 演奏データの外部ファイル読込・保存は対応済み。AIによるフレーズ生成、録音・曲の書き出しは未実装。
+- 演奏データの外部ファイル読込・保存、Compose…によるAIフレーズ生成は対応済み。録音・曲の書き出しは未実装。
 - 外部AI向けの操作API・CLI・MCPは未実装。下記Swiftメソッドはアプリ内・テスト内の入口であり、外部から直接呼べるAPIではない。現時点の外部操作は実画面を通して行う。
 
 ## 最初に試す手順
@@ -35,6 +35,7 @@ UIの要素番号や画面座標は固定ではない。機器やウィンドウ
 | MIDIを選ぶ | MIDI IN / None | MIDIInput.select / refresh |
 | 実機なしの手動確認 | Test input、VELOCITY、Test pedal、MIDI chord | createTestInput、testVelocity、sendTest、toggleTestChord |
 | 自動演奏 | プリセット、Auto play / Stop auto | performancePreset、playPerformance / stopPerformance |
+| AI演奏候補 | Compose…、Generate、Cancel Generation、Use & Play | PerformanceComposer.generate/cancel、candidate/candidateRoot/source、MIDIInput.applyGeneratedPerformance |
 | 演奏編集・保存 | Edit…、TEMPO、TRANSPOSE、VELOCITY、Notes、Pedal、Open… / Save… | PerformanceEditor、MIDIInput.performance、loadPerformance / savePerformance |
 | 全音停止 | All Notes Off | PlayerModel.stopInstrument |
 
@@ -59,7 +60,7 @@ MainActorでUI・モデルを操作する。外部MIDIの受信処理や音声�
 
 ## 演奏データとAI生成の入口
 外部データは.sfperformanceのJSON。仕様・制限・例は[演奏形式v1](PERFORMANCE_FORMAT.md)を正本とする。
-AIがファイルを作成し、Edit… → Open…で読み込める。現時点ではアプリ自身のAI生成や外部操作APIは未実装。
+AIがファイルを作成し、Edit… → Open…で読み込める。Compose…でアプリ内生成も可能。外部操作APIは未実装。
 コードを実行せず、音符・ペダルの構造化データをPerformanceDocument.load/eventsで検証してから再生する。
 現在の楽器での再生可能範囲は開始前に検証される。拒否された場合はエラーを読み、移調・音符・基準音を見直す。
 
@@ -84,4 +85,9 @@ UIの操作名、モデルの入口、演奏データ形式、成功判定、停
 4. Load Instrument→未保存時は確認文を読み、保持するならCancelして先に保存する。置換承認時のみReplace Instrument。成功するとシートが閉じ、instrumentFileURL・Root・ADSR・ループが対象へ変わりinstrumentDirty=false。失敗は元の楽器を保持しエラー表示。
 5. 必要ならAuto play→All Notes Offで本体の演奏を確認する。
 
-一覧登録は原本への参照。Remove from Listは登録解除のみ。試聴は楽器の保存・起動時復元先を変更しない。Add Demosはアプリ用保存領域に生成楽器を作る。外部APIは未実装のため、AIは現在のUIを観測して操作する。追加・復号中に閉じても遅延発音しないことを検証する。
+一覧登録は原本への参照。Remove from Listは登録解除のみ。試聴は楽器の保存・起動時復元先を変更しない。Add Demosはアプリ用保存領域に生成楽器を作る。外部からアプリを操作するAPIは未実装のため、AIは現在のUIを観測して操作する。追加・復号中に閉じても遅延発音しないことを検証する。
+
+## 言葉からの演奏生成
+接続・方式ごとの操作は[AI_GENERATION.md](AI_GENERATION.md)を正本とする。Compose…で方式を確認し、生成指示と基準音を観測してGenerate。生成中はgenerating=true、完了はcandidate!=nilかつerror=nil。候補の方式・名前・音符数・BPMとピアノロールを確認してUse & Play。未保存演奏があればReplace & Playは明示的な置換操作となる。保持するならCancelして先にEdit…→Save…する。
+採用はcandidateRootと現在のrootNoteが一致し、再検証を通る場合のみ。シートが閉じてから自動演奏が始まるため、候補完成と発音を区別する。既存のperforming・activeNotes・soundingVoices・levelsで演奏を確認。停止はStop auto / All Notes Off。生成の取消はCancel GenerationまたはDone。取消後に遅れて返った結果は採用されず、既存演奏も変更しない。
+APIキーやCLI認証情報をチャット・文書・ログへ転記しない。生成結果からコードを実行しない。Codex CLIは別プロセスとして利用し、SonicForgeの作業ディレクトリを渡さない。Other AIのCopy Briefは操作したときだけクリップボードへ指示とschemaを入れる。DemoはAI応答ではない。

@@ -5,6 +5,7 @@
 | --- | --- | --- |
 | コンセプト・人間向け案内 | README.md | SonicForge、音 |
 | 現在地・次の作業 | CURRENT.md | 未実装、次に行うこと |
+| AI演奏生成 | AI_GENERATION.md | Compose、Codex CLI、OpenAI API、Demo |
 | 演奏ファイル仕様 | PERFORMANCE_FORMAT.md | version、tempo、transpose、notes、pedals |
 | AIによる操作・演奏 | AI_OPERATIONS.md | 操作とアプリ内の入口、成功判定、演奏データ |
 | AI作業規則 | AGENTS.md | 開始時、終了時 |
@@ -28,6 +29,7 @@
 | 楽器保存・復元 | app/InstrumentDocument.swift、app/PlayerModel.swift | InstrumentDocument.save/load、saveInstrument、loadInstrument、startSession、instrumentDirty | tests/AudioTests.swift / --playback |
 | サンプルループ | app/SampleInstrument.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | SampleLoop.crossfadeFrames、InstrumentVoice.render、loopFromSelection、LoopControls | tests/EnvelopeTests.swift、tests/AudioTests.swift |
 | ADSR | app/ADSREnvelope.swift、app/SampleInstrument.swift、app/InstrumentKeyboard.swift | ADSRParameters、ADSREnvelope.next、InstrumentVoice.render、EnvelopeControls、setEnvelope | tests/EnvelopeTests.swift、tests/AudioTests.swift --playback |
+| 言葉から演奏生成 | app/PerformanceGeneration.swift、app/CodexPerformanceClient.swift、app/PerformanceComposer.swift、app/PerformanceComposerView.swift | PerformanceBrief、schema、decodeResponse、generate、cancel、applyGeneratedPerformance | tests/GenerationTests.swift / --playback / --ai-live |
 | 演奏編集・保存 | app/PerformanceDocument.swift、app/PerformanceEditor.swift、app/MIDIInput.swift | PerformanceDocument.load/save/events、loadPerformance、performanceDirty | tests/PerformanceTests.swift / --playback |
 | 外部MIDI | app/MIDIInput.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | MIDIInput.select/refresh、MIDIByteParser、MIDIReceiver、receiveMIDI、setMIDISustain、MIDIPerformancePreset、playPerformance、MIDIControls | tests/MIDITests.swift / --playback |
 | 和音楽器・音程 | app/SampleInstrument.swift、app/PlayerModel.swift | InstrumentSample.load、NotePitch.rate、SampleInstrument.Slot、heldNotes、playNote、releaseNote、synchronizeNotes、computerKeyboard | tests/AudioTests.swift / --playback |
@@ -36,7 +38,7 @@
 | アプリアイコン | app/Resources/AppIcon.png、scripts/build.sh | AppIcon、iconutil、CFBundleIconFile | Full + ICNS・署名確認 |
 | ビルド・テスト | scripts/build.sh、scripts/test.sh | swiftc、AudioTests、codesign | 標準Verify |
 
-app配下の追加ルールは [app/AGENTS.md](app/AGENTS.md)。API・DB・認証・外部サービスは未実装。
+app配下の追加ルールは [app/AGENTS.md](app/AGENTS.md)。外部操作API・DB・認証は未実装。AI生成接続は[AI_GENERATION.md](AI_GENERATION.md)。
 
 ## 検証基盤
 - Feature: 文書・アプリ自動検証

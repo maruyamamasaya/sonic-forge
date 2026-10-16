@@ -1,0 +1,28 @@
+# 言葉から演奏を作る
+
+## 入口と流れ
+本体に楽器がある状態でCompose…を開き、「落ち着いた和音」「少し跳ねたフレーズ」などを入力する。4/4の4小節・最大64音符の候補を作る。音声を生成する機能ではなく、現在のサンプラー楽器で鳴らす音符・強弱・ペダルの生成。
+Generate後はピアノロール、名前、BPM、音符数、方式を確認。Use & Playで現在の演奏へ採用して自動演奏する。未保存演奏がある場合は置換確認が出る。残したい場合はCancel→Done→Edit…→Save…してから進める。
+採用後はEdit…でテンポ・移調・強弱・各音符を調整し、.sfperformanceへ保存できる。楽器の音源・Root・ADSR・ループは変わらない。停止はStop autoまたはAll Notes Off。生成候補・接続設定は再起動で復元しない。
+
+## 接続方式
+| 方式 | 準備 | 動作 |
+| --- | --- | --- |
+| Codex CLI | ローカルの対応版codexをインストールし、ターミナルでcodex loginを完了 | ログイン済みCLIに指示と基準音を渡し、最終演奏JSONを検証 |
+| OpenAI API | 個人のAPIキーをアプリのSecureFieldへ入力。必要ならモデル名を変更 | Responses APIからstrict JSON Schemaの演奏を取得。API使用料は別途発生 |
+| Other AI | 別のAIを利用できる環境 | Copy Briefで共通指示・schemaをコピーし、AIのJSONだけを貼り付けてValidate JSON |
+| Demo | 不要 | 日本語の「跳」またはbounce/swingを含む指示はBouncy、それ以外はCalm。2種類のプログラムによる例でAI生成ではない |
+
+Codex CLIはPATH・標準インストール先・NVMのインストール済みパスを探索。見つからない場合はChoose…で選択する。npm版のcodex.jsは既知の同梱ネイティブバイナリへ解決する。Nodeや追加パッケージをアプリがインストールすることはない。
+CLIは `--ignore-user-config` / `--ephemeral` / `--output-schema` / `--output-last-message` に対応する版が必要。個人設定のカスタムモデル・プロバイダーを引き継がず、CLI既定モデルを使用する。失敗時はログイン状態とCLIの対応版を確認。ChatGPTの利用枠・契約の適用可否は各利用環境で確認する。
+OpenAIの初期モデル名はgpt-4.1-mini（変更可）。APIキーは終了までメモリ内だけに保持し、ファイル・UserDefaultsへ保存しない。キーをリポジトリやチャットへ貼らない。
+
+## 送信するもの・検証
+音楽の指示とMIDI基準音・生成制限だけを送信する。音源の添付・音響解析・ファイル名や原本パスの添付は行わないため、音色の分析結果に基づく生成ではない。Other AIへの送信は利用者が手動で行う。
+OpenAI接続先はhttps://api.openai.com/v1/responsesに固定、store=false。リダイレクトを追従せず、自動再試行もしない。API利用に関する保持・料金条件はプロバイダー側の条件も確認する。
+CLIは空の一時作業領域でread-only・個人設定不使用・一時セッションとして起動し、shell/unified_exec/apps/hooksを無効、web検索も無効にする。作業リポジトリを渡さない。これはCLI自体の認証やOSのアクセス制御を置き換えるものではない。生成JSONからコードや任意コマンドを実行しない。
+全方式で[演奏形式v1](PERFORMANCE_FORMAT.md)に加え16拍・64音符・現在のRoot±24半音を検証する。音符重複・8音超過・解除されないペダル等は拒否する。拒否・通信失敗・生成取消では現在の演奏を変更しない。取消・閉じる・指示/方式変更後の遅い応答を破棄する。
+
+## デモ確認
+Load Demo→Compose…→Demo→「落ち着いた和音」→Generate Demo→Use & Play。次に「少し跳ねたフレーズ」でリズムと強弱の違いを確認。置換確認が出たら、必要に応じて先に演奏を保存する。
+実AIはCodex CLIまたはOpenAI APIを選んで生成し、候補の方式表示で区別する。接続していない方式を成功扱いしない。検証結果は[sessions](sessions/README.md)と[TESTING.md](TESTING.md)を参照。

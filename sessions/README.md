@@ -52,3 +52,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: 演奏の編集と保存](2026-10-16-editable-performances.md)
 
 - [2026-10-16: 楽器ライブラリ](2026-10-16-instrument-library.md)
+
+- [2026-10-17: AI演奏生成](2026-10-17-ai-performance-generation.md)

@@ -113,3 +113,9 @@ LibraryTestsは一時領域・独立UserDefaultsでデモ2種生成、重複・�
 
 ## App Icon
 FullのビルドでPNG原本から標準10画像のiconsetとICNSを生成する。生成後はInfo.plistのCFBundleIconFile、Resources/AppIcon.icnsの存在・iconutilでの展開、codesign --verify --strictで同梱と署名を確認する。原本が欠落したビルドは失敗すること。Finder・Dockのキャッシュ反映は実アプリで確認する。
+
+## AI Performance Generation Verification
+GenerationTestsは無料の模擬HTTP応答とローカルCLI fixtureを使用し、strict schema/リクエスト、HTTPエラー、refusal、未完了、壊れたJSON・音域・重複・範囲上限、CLI引数/入出力/時間切れ、取消後の応答破棄、候補採用のdirty/保存先解除/保存往復を検証。通常Fullで外部AIを呼び出さない。
+--playbackはCalm/Bouncyデモ生成→候補採用→仮想CoreMIDI→デモ楽器の発音と停止を確認する。
+実接続は明示的な `sh scripts/test.sh --ai-live`（Codex CLIログイン・ネットワーク・実出力が必要、使用量を消費）。build/ai-live.sfperformanceへ保存・再読込し、実生成データの発音を確認。OpenAI API実接続の成否とは区別する。
+実UIは方式切替、指示、Generate/Cancel、候補ピアノロール、Use & Play、未保存置換Cancel、Edit保存、最小幅の本体と生成シートを確認。Demoを実AI応答として報告しない。音楽性は自動検証では保証しない。

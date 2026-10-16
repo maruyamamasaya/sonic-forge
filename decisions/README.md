@@ -50,3 +50,5 @@ Status: proposed / accepted / superseded
 - [0013: 編集可能な演奏ファイル](0013-editable-performances.md)
 
 - [0014: 楽器ライブラリ](0014-instrument-library.md)
+
+- [0015: AI演奏生成](0015-ai-performance-generation.md)

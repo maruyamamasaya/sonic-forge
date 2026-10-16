@@ -147,7 +147,7 @@ Test input選択時のVELOCITYで次のMIDI chordの強さを変更できる。T
 - Pedal phrase: 弱・中・強の3音を鳴らし、離鍵後の保持とペダル解除を確認する。
 Stop autoで途中停止。All Notes Off・入力切り替え・フォーカス喪失でも停止し、遅れて届く音を破棄する。自然終了ではADSRのReleaseが残る。
 MIDI chordやTest pedalの手動操作は自動演奏を停止してから反映する。プリセット選択は再生停止中のみ変更できる。
-現在は固定プリセットのプログラム演奏。プリセットの編集・保存・テンポ変更に対応。AIによる演奏データ生成は未実装。時刻はUIスケジューラーで制御し、DAWのサンプル精度は保証しない。
+内蔵プリセットはプログラム演奏。プリセットの編集・保存・テンポ変更に対応。AIによる演奏生成はCompose…から利用する（[AI生成ガイド](AI_GENERATION.md)）。時刻はUIスケジューラーで制御し、DAWのサンプル精度は保証しない。
 
 AIが操作・プリセット拡張を行うときの入口と状態判定は[AI操作ガイド](AI_OPERATIONS.md)を参照。
 
@@ -166,3 +166,6 @@ Reset factoryまたは内蔵プリセットの選択は現在の編集内容を�
 上部Library…から開く。保存・読込に成功した楽器は自動登録。以前のファイルはAdd Files…で複数追加できる。原本の場所への参照を保存するため、移動・削除後はMissingになる。新しい場所のファイルを追加し、古い項目をRemove from Listで除外する（原本は消さない）。
 Search instrumentsで名前を絞り、行を選んでPreview。0.8秒の基準音＋余韻を最長3秒試聴する。Stop PreviewまたはDoneで停止。試聴は現在の楽器・未保存設定を保持する。Load Instrumentで本体へ読み込み、未保存変更がある場合はReplace Instrumentの確認が出る。残す場合はCancel→Done→本体Save…の後に再度読み込む。
 音源なしの場合はAdd DemosでMetal/Softの2音色を作成。検索→試聴→読み込み→鍵盤またはAuto playで確認できる。デモは同じ素材でADSRが異なる。繰り返し追加しても既存デモを上書きしない。一覧は再起動後も復元される。ファイル全体の自動収集・タグ・試聴音量調整は未対応。
+
+## AIで演奏を作る
+上部Compose…で指示を入力し、Generate→候補確認→Use & Play。接続方式の設定と詳しい手順は[AI生成ガイド](AI_GENERATION.md)。音源がなければ本体Load Demo→Compose…→Demo→Generate Demoで確認できる。生成候補の採用後はEdit…から調整・Save…できる。

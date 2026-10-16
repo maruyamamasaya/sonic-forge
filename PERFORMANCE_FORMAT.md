@@ -1,7 +1,7 @@
 # 演奏データ形式 v1
 
 正本: [PerformanceDocument.swift](app/PerformanceDocument.swift)。AIが生成する場合も、コードではなくこの形式のデータを渡す。
-操作は[AI操作ガイド](AI_OPERATIONS.md)、人向け手順は[OPERATIONS.md](OPERATIONS.md)。AIによる生成自体は未実装。
+操作は[AI操作ガイド](AI_OPERATIONS.md)、人向け手順は[OPERATIONS.md](OPERATIONS.md)。アプリ内生成は[AI生成](AI_GENERATION.md)を参照。
 
 ## ファイルと例
 UTF-8 JSON、拡張子.sfperformance、最大1 MB。音源は含まない。現在の楽器で再生する。
@@ -60,7 +60,6 @@ UTF-8 JSON、拡張子.sfperformance、最大1 MB。音源は含まない。現�
 再生データは開始時にスナップショット化し、仮想CoreMIDI経由で既存の和音・ADSR・ループへ渡す。再生中はUI編集を無効化する。
 
 ## AIとの接続点
-現在はAIがファイルを用意した後、Edit… → Open…から読み込める。読み込むまでは音を鳴らさない。
-外部操作API・MCP・JSON Schemaによる別検証器・自動AI生成サービスは未実装。アプリ内のPerformanceDocument.load/eventsが検証の正本。
-将来の生成機能はこのJSONを検証してから読み込む。Swiftのコード生成・実行や、任意の生MIDIバイト列の実行を要求しない。
-既存音色の.sfinstrument v4とは別ファイル。音色・演奏を自動でひも付けたり、最後の演奏を起動時に復元したりはしない。
+Compose…のCodex CLI / OpenAI API / Other AIはこの形式を生成・検証する。生成候補は通常の形式制限に加え4小節（16拍）・64音符まで。strict JSON SchemaはPerformanceGeneration.schemaから作るが、重複・音域・同時保持数の正本は引き続きPerformanceDocument.events。
+外部AIはEdit… → Open…で既存ファイルを読み込むことも可能。この通常読み込みは既存形式の最大256拍・256音符を維持する。外部操作API・MCPは未実装。Swiftのコード生成・実行や任意生MIDIの実行は要求しない。
+既存音色の.sfinstrument v4とは別ファイル。音色・演奏の自動ひも付けや最後の演奏の起動時復元は行わない。接続と候補採用手順は[AI_GENERATION.md](AI_GENERATION.md)。
