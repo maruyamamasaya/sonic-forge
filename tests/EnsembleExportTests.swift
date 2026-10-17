@@ -31,6 +31,15 @@ enum EnsembleExportTests {
         precondition(energy(data, 0.3, 0.45) > 1e-8)
         precondition(energy(data, 0.52, 0.7) > 1e-8) // Pedal off at .5, then Release.
         precondition(energy(data, asset.duration - 0.03, asset.duration) < 1e-9)
+        model.parts[0].repeatCount = 3
+        let repeatedURL = dir.appendingPathComponent("repeated.wav")
+        try await EnsembleExport.write(try model.snapshot(), to: repeatedURL)
+        let repeatedAsset = try AudioAsset.load(repeatedURL)
+        let repeatedAudio = try InstrumentSample.load(url: repeatedURL).buffer
+        precondition(abs(repeatedAsset.duration - 1.55) < 0.001)
+        precondition(energy(repeatedAudio, 0.8, 0.95) > 1e-8)
+        precondition(energy(repeatedAudio, 1.02, 1.2) > 1e-8)
+        model.parts[0].repeatCount = 1
         model.parts[0].gainDB = -6; model.masterDB -= 6
         let quiet = dir.appendingPathComponent("quiet.wav")
         try await EnsembleExport.write(try model.snapshot(), to: quiet)

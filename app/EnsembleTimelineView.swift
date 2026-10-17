@@ -6,7 +6,7 @@ struct EnsembleTimelineView: View {
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private var extent: Double {
         let last = ensemble.parts.map { part in
-            (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) + (EnsembleTimeline.length(part.performance) ?? 0)
+            (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) + (EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount) ?? 0)
         }.max() ?? 0
         return max(32, ceil(last / 16) * 16 + 8)
     }
@@ -73,7 +73,7 @@ private struct TimelineClipRow: View {
             EnsembleTimeline.movedStart(original: part.startBeat, translation: translation, pixelsPerBeat: scale)
     }
     var body: some View {
-        let length = EnsembleTimeline.length(part.performance)
+        let length = EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount)
         ZStack(alignment: .leading) {
             Rectangle().fill(Color.white.opacity(0.025))
             ForEach(0...Int(extent / 4), id: \.self) { index in
@@ -83,7 +83,15 @@ private struct TimelineClipRow: View {
                 RoundedRectangle(cornerRadius: 3).fill(accent.opacity(part.muted ? 0.12 : 0.24))
                     .overlay { RoundedRectangle(cornerRadius: 3).stroke(accent.opacity(part.muted ? 0.25 : 0.65)) }
                     .overlay(alignment: .leading) {
-                        Text(String(format: "%.2f → %.2f · %.2f beats", start, start + length, length))
+                        if let single = EnsembleTimeline.length(part.performance), part.repeatCount > 1 {
+                            ForEach(1..<part.repeatCount, id: \.self) { index in
+                                Rectangle().fill(accent.opacity(0.6)).frame(width: 1, height: 20)
+                                    .offset(x: Double(index) * ceil(single) * scale)
+                            }
+                        }
+                    }
+                    .overlay(alignment: .leading) {
+                        Text(String(format: "%.2f → %.2f · ×%d", start, start + length, part.repeatCount))
                             .font(.system(size: 9, design: .monospaced)).foregroundStyle(accent)
                             .padding(.horizontal, 7).lineLimit(1)
                     }
@@ -99,7 +107,7 @@ private struct TimelineClipRow: View {
                         })
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Timeline clip for \(part.name)")
-                    .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats", part.startBeat, length, part.startBeat + length))
+                    .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d", part.startBeat, length, part.startBeat + length, part.repeatCount))
                     .accessibilityAdjustableAction { direction in
                         guard ensemble.canEdit else { return }
                         ensemble.movePart(part.id, to: min(256, max(0, part.startBeat + (direction == .increment ? 0.25 : -0.25))))

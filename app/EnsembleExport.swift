@@ -20,9 +20,9 @@ enum EnsembleExport {
         try protect()
         var events: [(frame: Int64, part: Int, bytes: [UInt8])] = []
         for (index, part) in snapshot.parts.enumerated() {
-            var performance = part.performance; performance.tempo = snapshot.tempo
-            events += try performance.events(root: part.instrument.root).map {
-                (Int64((($0.time + part.startBeat * 60 / snapshot.tempo) * sampleRate).rounded(.up)), index, $0.bytes)
+            events += try EnsembleTimeline.events(part.performance, root: part.instrument.root, tempo: snapshot.tempo,
+                startBeat: part.startBeat, count: part.repeatCount).map {
+                (Int64(($0.time * sampleRate).rounded(.up)), index, $0.bytes)
             }
         }
         events = events.enumerated().sorted {

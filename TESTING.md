@@ -141,3 +141,6 @@ EnsembleExportTestsでデモ素材を実グラフoffline renderし、先頭待�
 
 ## Ensemble Timeline
 EnsembleTestsで最後のペダルまでの長さ、テンポに依存しない拍表示、不正演奏、ドラッグの¼拍丸め/境界、movePartの不正値拒否・他パート/演奏不変を確認する。実UIはデモで表示・横スクロール・ドラッグとSTART連動・再生位置線・再生中移動不可・保存/復元、4パート表示と760高シートの描画を確認。既存--playbackとFullも実行する。
+
+## Ensemble Repeats
+通常テスト: イベント数・各回の音符/ペダル全bytesと間隔、最終長、1回互換、不正回数、回数のdirty/保存復元、v1/v2の1回移行、v3欠落/null/小数/範囲外拒否を確認。実WAVで2/3回目の非ゼロ音声と延長された長さを検証。実UIはDemo Repeatの×2/×3、区切り表示、回数操作、再生中変更不可、次の回の発音、保存/再起動、全回のWAV出力を確認。Fullと--playbackを実行する。

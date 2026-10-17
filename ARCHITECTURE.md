@@ -134,8 +134,8 @@ EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パ
 パートMixerの音量・ミュートは30 Hzで更新。共通出力は最大4パート分の固定1/4ヘッドルームと専用Masterを使用。各サンプラーの1/8ヘッドルームは維持する。パートと共通出力それぞれの実RMSを表示し、本体のメーターとは区別。割り当てはシートを閉じても保持し、保存した構成は起動時に復元する。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 ## Ensemble Persistence
-EnsembleDocumentが.sfensemble v2を管理（v1は開始位置0で読込）。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
-保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
+EnsembleDocumentが.sfensemble v3を管理（v1/v2はrepeatCount=1、v1は開始位置0で読込）。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
+保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/繰り返し回数/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
 EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsのlastEnsemblePathV1へ保持。PlayerModel.startSessionから一度だけ復元し、本体の楽器復元とは独立。無音・停止状態で復元し、自動再生しない。欠落/破損時は構成エラーを表示して手動Openへ導く。復元前の構成や正常な保存先を失敗で更新しない。
 
 ## Ensemble WAV Export
@@ -144,3 +144,6 @@ MainActor上で非実時間レンダーを行い、32ブロックごとにyield/
 
 ## Ensemble Timeline
 EnsembleTimeline.lengthはPerformanceDocument.eventsを60 BPMへ換算し、最後のイベント拍を返す（休符/ペダルを含み、Releaseは除く）。EnsembleTimelineViewは24 px/拍、4拍目盛・水平スクロールで全パートを表示。クリップのGestureStateでドラッグ中の位置をプレビューし、終了時のみmovePartへ渡す。¼拍丸め/0〜256制限とcanEditを適用し、既存startBeatのdirty/保存/演奏/出力へ接続。別の配置データは持たない。
+
+## Ensemble Repeats
+EnsemblePart/SnapshotにrepeatCount（整数1〜16）を保持。EnsembleTimeline.eventsが元演奏を拍へ換算し、ceil(最終イベント拍)間隔で全MIDIイベントを展開、STARTと共通tempoを適用。ライブtimelineとWAV出力が同じ関数を使う。前回の終端イベントは同時刻の次回開始より先に置き、ペダル/離鍵の所有状態を正しく解除する。元演奏を改変しない。repeatedLengthが同じ規則でタイムラインの幅と区切りを生成する。保存v3で回数だけを同梱する。

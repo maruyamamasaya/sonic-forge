@@ -64,3 +64,5 @@ Date: YYYY-MM-DD
 - [2026-10-17: 複数パート全体のWAV書き出し](2026-10-17-ensemble-wav-export.md)
 
 - [2026-10-17: パート構成タイムライン](2026-10-17-ensemble-timeline.md)
+
+- [2026-10-17: パート演奏の繰り返し](2026-10-17-ensemble-repeats.md)

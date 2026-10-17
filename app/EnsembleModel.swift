@@ -26,6 +26,7 @@ final class EnsemblePart: ObservableObject, Identifiable {
     @Published var gainDB = 0.0
     @Published var muted = false
     @Published var startBeat = 0.0
+    @Published var repeatCount = 1
     @Published fileprivate(set) var voices = 0
     @Published fileprivate(set) var level: Float = -60
     init(name: String, instrument: EnsembleInstrument? = nil, performance: PerformanceDocument = .preset(.softChords)) {
@@ -131,13 +132,14 @@ final class EnsembleModel: ObservableObject {
                               part.$gainDB.dropFirst().removeDuplicates().map { _ in () },
                               part.$muted.dropFirst().removeDuplicates().map { _ in () })
                 .sink { [weak self] in self?.markDirty() }.store(in: &partChanges)
+            part.$repeatCount.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
             part.$startBeat.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
         }
     }
     func snapshot() throws -> EnsembleSnapshot {
         let values = try parts.map { part -> EnsemblePartSnapshot in
             guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }
-            return EnsemblePartSnapshot(name: part.name, instrument: instrument, performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat)
+            return EnsemblePartSnapshot(name: part.name, instrument: instrument, performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat, repeatCount: part.repeatCount)
         }
         let result = EnsembleSnapshot(tempo: tempo, masterDB: masterDB, parts: values)
         try EnsembleDocument.validate(result)
@@ -163,7 +165,7 @@ final class EnsembleModel: ObservableObject {
             let loaded = try await Task.detached(priority: .userInitiated) { try EnsembleDocument.load(url) }.value
             let replacements = loaded.parts.map { item -> EnsemblePart in
                 let part = EnsemblePart(name: item.name, instrument: item.instrument, performance: item.performance)
-                part.gainDB = item.gainDB; part.muted = item.muted; part.startBeat = item.startBeat
+                part.gainDB = item.gainDB; part.muted = item.muted; part.startBeat = item.startBeat; part.repeatCount = item.repeatCount
                 return part
             }
             stop(); durationBeats = 0
@@ -261,7 +263,7 @@ final class EnsembleModel: ObservableObject {
         do { setPerformance(try PerformanceDocument.load(url), part: id) }
         catch { self.error = "パートの演奏を読み込めませんでした。\n" + error.localizedDescription }
     }
-    func addDemos(staggered: Bool = false) async {
+    func addDemos(staggered: Bool = false, repeating: Bool = false) async {
         guard canEdit else { return }
         guard parts.count <= Self.maximumParts - 2 else { error = "デモ2パートを追加するには空きを2つ用意してください。"; return }
         busy = true; defer { busy = false }
@@ -283,6 +285,7 @@ final class EnsembleModel: ObservableObject {
             let chord = EnsemblePart(name: "Soft Chords", instrument: soft, performance: try PerformanceGeneration.demo(PerformanceBrief(prompt: "落ち着いた和音", root: 57)))
             let phrase = EnsemblePart(name: "Bouncy Phrase", instrument: pluck, performance: try PerformanceGeneration.demo(PerformanceBrief(prompt: "跳ねたフレーズ", root: 57)))
             phrase.startBeat = staggered ? 4 : 0
+            if repeating { chord.repeatCount = 2; phrase.repeatCount = 3 }
             parts.append(contentsOf: [chord, phrase]); error = nil
         } catch { self.error = "デモパートを追加できませんでした。\n" + error.localizedDescription }
     }
@@ -302,10 +305,9 @@ final class EnsembleModel: ObservableObject {
                   instrument.loop.isValid(frameCount: Int64(instrument.sample.buffer.frameLength), sampleRate: instrument.sample.buffer.format.sampleRate) else {
                 throw AudioError.invalid("\(part.name): 楽器設定・音量が無効です。")
             }
-            var document = part.performance; document.tempo = tempo
             do {
-                _ = try part.performance.events(root: instrument.root)
-                events += try document.events(root: instrument.root).map { Event(time: $0.time + part.startBeat * 60 / tempo, part: part.id, bytes: $0.bytes) } }
+                events += try EnsembleTimeline.events(part.performance, root: instrument.root, tempo: tempo,
+                    startBeat: part.startBeat, count: part.repeatCount).map { Event(time: $0.time, part: part.id, bytes: $0.bytes) } }
             catch { throw AudioError.invalid(part.name + ": " + error.localizedDescription) }
         }
         return events.enumerated().sorted { $0.element.time == $1.element.time ? $0.offset < $1.offset : $0.element.time < $1.element.time }.map(\.element)

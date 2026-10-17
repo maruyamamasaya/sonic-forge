@@ -62,3 +62,5 @@ Status: proposed / accepted / superseded
 - [0019: 構成全体のWAVレンダー](0019-ensemble-wav-export.md)
 
 - [0020: パート構成タイムライン](0020-ensemble-timeline.md)
+
+- [0021: パート単位の繰り返し](0021-ensemble-repeats.md)

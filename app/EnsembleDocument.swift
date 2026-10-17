@@ -12,6 +12,7 @@ struct EnsemblePartSnapshot {
     let gainDB: Double
     let muted: Bool
     var startBeat: Double = 0
+    var repeatCount: Int = 1
 }
 struct EnsembleSnapshot {
     let tempo: Double
@@ -26,6 +27,7 @@ private struct EnsemblePartArchive: Codable {
     let gainDB: Double
     let muted: Bool
     let startBeat: Double?
+    let repeatCount: Int?
 }
 private struct EnsembleArchive: Codable {
     let version: Int
@@ -43,7 +45,7 @@ enum EnsembleDocument {
             throw AudioError.invalid("構成のテンポ・Master音量・パート数が無効です。")
         }
         for part in snapshot.parts {
-            guard part.startBeat.isFinite, (0...256).contains(part.startBeat), !part.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, part.name.count <= 80,
+            guard (1...16).contains(part.repeatCount), part.startBeat.isFinite, (0...256).contains(part.startBeat), !part.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, part.name.count <= 80,
                   part.instrument.name.count <= 255, part.gainDB.isFinite, (-36...0).contains(part.gainDB),
                   (48...72).contains(part.instrument.root), part.instrument.envelope.isValid,
                   part.instrument.loop.isValid(frameCount: Int64(part.instrument.sample.buffer.frameLength), sampleRate: part.instrument.sample.buffer.format.sampleRate) else {
@@ -59,9 +61,9 @@ enum EnsembleDocument {
             EnsemblePartArchive(name: part.name, instrumentName: part.instrument.name,
                 instrument: try InstrumentDocument.makeArchive(sample: part.instrument.sample, rootNote: part.instrument.root,
                     envelope: part.instrument.envelope, loop: part.instrument.loop),
-                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat)
+                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat, repeatCount: part.repeatCount)
         }
-        let archive = EnsembleArchive(version: 2, tempo: snapshot.tempo, masterDB: snapshot.masterDB, parts: parts)
+        let archive = EnsembleArchive(version: 3, tempo: snapshot.tempo, masterDB: snapshot.masterDB, parts: parts)
         let data = try JSONEncoder().encode(archive)
         guard data.count <= maximumBytes else { throw AudioError.invalid("構成ファイルは384 MB以下にしてください。") }
         try data.write(to: url, options: .atomic)
@@ -70,12 +72,12 @@ enum EnsembleDocument {
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size > 0, size <= maximumBytes else { throw AudioError.invalid("構成ファイルは384 MB以下にしてください。") }
         let archive = try JSONDecoder().decode(EnsembleArchive.self, from: Data(contentsOf: url))
-        guard (1...2).contains(archive.version) else { throw AudioError.invalid("このバージョンの構成ファイルには対応していません。") }
+        guard (1...3).contains(archive.version) else { throw AudioError.invalid("このバージョンの構成ファイルには対応していません。") }
         guard (1...4).contains(archive.parts.count), archive.tempo.isFinite, (40...240).contains(archive.tempo),
               archive.masterDB.isFinite, (-60...0).contains(archive.masterDB) else { throw AudioError.invalid("構成の設定が無効です。") }
         // Validate cheap metadata and performance before decoding any embedded audio.
         for part in archive.parts {
-            guard (archive.version == 1 || part.startBeat != nil), (part.startBeat ?? 0).isFinite, (0...256).contains(part.startBeat ?? 0), !part.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, part.name.count <= 80,
+            guard (archive.version < 3 || part.repeatCount != nil), (1...16).contains(part.repeatCount ?? 1), (archive.version == 1 || part.startBeat != nil), (part.startBeat ?? 0).isFinite, (0...256).contains(part.startBeat ?? 0), !part.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, part.name.count <= 80,
                   part.instrumentName.count <= 255, part.gainDB.isFinite, (-36...0).contains(part.gainDB) else {
                 throw AudioError.invalid("構成のパート名・楽器名・音量が無効です。")
             }
@@ -87,7 +89,7 @@ enum EnsembleDocument {
             return EnsemblePartSnapshot(name: part.name,
                 instrument: EnsembleInstrument(sample: restored.sample, root: restored.rootNote,
                     envelope: restored.envelope, loop: restored.loop, name: part.instrumentName),
-                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: archive.version == 1 ? 0 : part.startBeat!)
+                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: archive.version == 1 ? 0 : part.startBeat!, repeatCount: archive.version < 3 ? 1 : part.repeatCount!)
         }
         let snapshot = EnsembleSnapshot(tempo: archive.tempo, masterDB: archive.masterDB, parts: parts)
         try validate(snapshot)

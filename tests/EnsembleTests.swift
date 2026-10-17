@@ -19,6 +19,23 @@ enum EnsembleTests {
         precondition(EnsembleTimeline.movedStart(original: 4.5, translation: -240, pixelsPerBeat: 24) == 0)
         precondition(EnsembleTimeline.movedStart(original: 255.5, translation: 240, pixelsPerBeat: 24) == 256)
         precondition(EnsembleTimeline.movedStart(original: 4.5, translation: 7, pixelsPerBeat: 24) == 4.75)
+        let repeated = try EnsembleTimeline.events(first.performance, root: 57, tempo: 120, startBeat: 2.5, count: 3)
+        let base = try EnsembleTimeline.events(first.performance, root: 57, tempo: 120, startBeat: 2.5, count: 1)
+        precondition(repeated.count == base.count * 3)
+        for pass in 0..<3 {
+            for index in base.indices {
+                precondition(repeated[pass * base.count + index].bytes == base[index].bytes)
+                precondition(abs(repeated[pass * base.count + index].time - base[index].time - Double(pass) * 8) < 0.000001)
+            }
+        }
+        precondition(abs(EnsembleTimeline.repeatedLength(first.performance, count: 3)! - 47.4) < 0.000001)
+        for count in [0, 17] {
+            do { _ = try EnsembleTimeline.events(first.performance, root: 57, tempo: 120, startBeat: 0, count: count); fatalError("Invalid repeat accepted") } catch {}
+        }
+        first.repeatCount = 3
+        let expanded = try ensemble.timeline()
+        precondition(expanded.filter { $0.part == first.id }.count == base.count * 3)
+        first.repeatCount = 1
         let beforeMove = first.performance
         ensemble.movePart(first.id, to: 3.25)
         precondition(first.startBeat == 3.25 && second.startBeat == 0 && first.performance == beforeMove && ensemble.dirty)

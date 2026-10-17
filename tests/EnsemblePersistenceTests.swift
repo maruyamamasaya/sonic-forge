@@ -9,6 +9,7 @@ enum EnsemblePersistenceTests {
         defer { defaults.removePersistentDomain(forName: suite); try? FileManager.default.removeItem(at: directory) }
         let model = EnsembleModel(defaults: defaults)
         await model.addDemos(); await model.addDemos()
+        model.parts[0].repeatCount = 3; model.parts[3].repeatCount = 16
         model.parts[1].startBeat = 4.5; model.parts[3].startBeat = 256
         model.tempo = 137.5; model.masterDB = -8.5
         model.parts[0].name = "Warm Pad"; model.parts[0].gainDB = -4.5; model.parts[3].muted = true
@@ -32,7 +33,7 @@ enum EnsemblePersistenceTests {
         precondition(restored.parts.count == 4 && restored.fileURL == file && !restored.dirty && !restored.playing)
         precondition(restored.tempo == expected.tempo && restored.masterDB == expected.masterDB)
         for (original, part) in zip(expected.parts, restored.parts) {
-            precondition(part.startBeat == original.startBeat)
+            precondition(part.startBeat == original.startBeat && part.repeatCount == original.repeatCount)
             precondition(part.name == original.name && part.gainDB == original.gainDB && part.muted == original.muted)
             precondition(part.performance == original.performance && part.instrumentURL == nil)
             let actual = part.instrument!, before = original.instrument
@@ -47,7 +48,7 @@ enum EnsemblePersistenceTests {
         // Every persistent control marks dirty; transient transport/meter state does not.
         let changes: [(EnsembleModel) -> Void] = [
             { $0.parts[0].name = "Renamed" }, { $0.parts[0].gainDB = -7 }, { $0.parts[0].muted.toggle() },
-            { $0.parts[0].startBeat = 3.25 }, { $0.tempo = 99 }, { $0.masterDB = -11 },
+            { $0.parts[0].repeatCount = 2 }, { $0.parts[0].startBeat = 3.25 }, { $0.tempo = 99 }, { $0.masterDB = -11 },
             { $0.setPerformance(.preset(.arpeggio), part: $0.parts[0].id) }, { $0.remove($0.parts.last!.id) }
         ]
         for change in changes {
@@ -66,12 +67,27 @@ enum EnsemblePersistenceTests {
         }
         var legacy = object; legacy["version"] = 1
         var legacyParts = legacy["parts"] as! [[String: Any]]
-        for index in legacyParts.indices { legacyParts[index].removeValue(forKey: "startBeat") }
+        for index in legacyParts.indices { legacyParts[index].removeValue(forKey: "startBeat"); legacyParts[index].removeValue(forKey: "repeatCount") }
         legacy["parts"] = legacyParts
         let legacyFile = directory.appendingPathComponent("legacy.sfensemble")
         try JSONSerialization.data(withJSONObject: legacy).write(to: legacyFile)
         let legacySnapshot = try EnsembleDocument.load(legacyFile)
-        precondition(legacySnapshot.parts.allSatisfy { $0.startBeat == 0 })
+        precondition(legacySnapshot.parts.allSatisfy { $0.startBeat == 0 && $0.repeatCount == 1 })
+        var v2 = object; v2["version"] = 2
+        var v2Parts = object["parts"] as! [[String: Any]]
+        for index in v2Parts.indices { v2Parts[index].removeValue(forKey: "repeatCount") }
+        v2["parts"] = v2Parts
+        try JSONSerialization.data(withJSONObject: v2).write(to: legacyFile)
+        let old = try EnsembleDocument.load(legacyFile)
+        precondition(old.parts[1].startBeat == 4.5 && old.parts.allSatisfy { $0.repeatCount == 1 })
+        for badCount: Any in [0, 17, 1.5, "two", NSNull()] {
+            var bad = object; var badParts = object["parts"] as! [[String: Any]]
+            badParts[0]["repeatCount"] = badCount; bad["parts"] = badParts
+            try await invalidRead(bad)
+        }
+        var missingRepeat = object; var repeatParts = object["parts"] as! [[String: Any]]
+        repeatParts[0].removeValue(forKey: "repeatCount"); missingRepeat["parts"] = repeatParts
+        try await invalidRead(missingRepeat)
         for badStart: Any in [-1.0, 257.0, "four", NSNull()] {
             var bad = object; var badParts = object["parts"] as! [[String: Any]]
             badParts[0]["startBeat"] = badStart; bad["parts"] = badParts

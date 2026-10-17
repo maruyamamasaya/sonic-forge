@@ -33,6 +33,7 @@ struct EnsembleView: View {
                     }
                 }.disabled(model.instrumentSample == nil || model.busy)
                 Spacer()
+                Button("Demo Repeat") { Task { await ensemble.addDemos(staggered: true, repeating: true) } }.disabled(ensemble.parts.count > 2)
                 Button("Demo Entry +4") { Task { await ensemble.addDemos(staggered: true) } }.disabled(ensemble.parts.count > 2)
                 Button("Add Demo Duo") { Task { await ensemble.addDemos() } }.disabled(ensemble.parts.count > 2)
             }.buttonStyle(StudioButton()).disabled(!ensemble.canEdit || ensemble.parts.count >= 4)
@@ -171,6 +172,10 @@ private struct EnsemblePartRow: View {
                     .accessibilityLabel("Start beat for \(part.name)").disabled(!ensemble.canEdit)
                 Stepper("", value: $part.startBeat, in: 0...256, step: 1).labelsHidden().disabled(!ensemble.canEdit)
                 Text("beats").foregroundStyle(.secondary)
+                Text("REPEAT").foregroundStyle(.secondary)
+                Stepper(value: $part.repeatCount, in: 1...16) {
+                    Text("×\(part.repeatCount)").monospacedDigit().frame(width: 28)
+                }.frame(width: 70).accessibilityLabel("Repeat count for \(part.name)").disabled(!ensemble.canEdit)
                 Toggle("Mute", isOn: $part.muted).toggleStyle(.checkbox)
                 Slider(value: $part.gainDB, in: -36...0).frame(width: 145).tint(accent).accessibilityLabel("\(part.name) volume")
                 Text(String(format: "%.0f dB", part.gainDB)).monospacedDigit().frame(width: 40)
@@ -184,6 +189,7 @@ private struct EnsemblePartRow: View {
     private var validation: String? {
         guard let instrument = part.instrument else { return "Assign an instrument" }
         guard part.startBeat.isFinite, (0...256).contains(part.startBeat) else { return "Start: 0–256 beats" }
+        guard (1...16).contains(part.repeatCount) else { return "Repeat: 1–16" }
         do { _ = try part.performance.events(root: instrument.root); return nil }
         catch { return error.localizedDescription }
     }

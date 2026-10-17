@@ -181,3 +181,5 @@ Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保
 全体WAV: Ensemble…→停止→Export WAV…→Exported→Done→本体Open WAV…で再読込。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
 
 構成の可視化: Ensemble…のARRANGEMENTで各クリップを左右ドラッグ（¼拍）。開始位置の保存はSave…。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
+
+演奏繰り返し: Ensemble…各行REPEAT（合計1〜16回）。Demo Repeatで×2/×3のデモを追加。操作は[ENSEMBLE.md](ENSEMBLE.md)。
