@@ -183,3 +183,7 @@ Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32
 ## 選択音符の長さ一括調整
 音符を選択→Selected notes length modeでSet beats/Scale %を選ぶ→Selected notes length valueへ正の数値→Apply length to selected notes。Set beatsは四分音符=1拍の押鍵長へ統一。Scale %は元の長さへ同じ倍率を掛け、50で半分、200で2倍。開始位置・音程・強弱・チャンネル・ペダル・非選択音は変更しない。操作バーが狭い場合は横スクロールする。
 モデルはeditNoteGroup(...action:.duration(beats)/.durationScale(factor))→editClipNotes。UIは%を100で割ってfactorへ渡す。成功はClip note Nのlength、下段の幅、タイムライン全長で確認し、選択は維持する。一括Undo/Redoは1回。無変更はdirty/履歴/Redoを保持。0/負数/非有限/重複/セクション超過などはensemble.errorで通知し、部分適用せず保持する。再生/出力中は無効、Stop all workspace audioで停止後に操作。構成保存/WAVには適用後の押鍵長を反映し、ペダルとReleaseの余韻は既存処理を維持する。
+
+## クリップ間の音符コピー・貼り付け
+音符を選択→Copy selected clip notes→Copied note countを確認→別のTimeline clipを選択→Note paste beatへ貼り付け先クリップ内の拍数→Paste copied clip notes。コピー群の最初の開始を指定位置へ置き、音符間の相対リズム/長さ/チャンネルと演奏時のMIDI音程/強弱を保持する。コピー元と貼り付け先の既存音符・ペダル・設定は保持する。Paste後は新しい音符群を選択する。操作バーが狭い場合は横スクロールする。
+モデルはcopiedNotes、copyClipNotes(part:clip:indices:)、pasteClipNotes(part:clip:at:)→editClipNotes。コピーはdirty/履歴を変えない。Pasteは一括1操作のUndo/Redo対象。対象の移調と強弱%を逆算し、元のMIDI強弱が対象%で再現不能なら失敗して100%へ調整する案内を出す。無断で設定を変えない。同音重複/音域外/音数/配置の失敗はensemble.errorとnilで判定し、元データとクリップボードを保持する。再生/出力中は不可、Stop all workspace audio後に操作する。クリップボードはアプリ内セッションのみで構成読込では残り、再起動で空になる。OSのクリップボードやペダルはコピーしない。保存/WAVは貼り付け済みデータを使用する。

@@ -97,3 +97,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 選択音符の強弱: ClipNoteEditorのSelected notes velocity mode/value / Apply velocity to selected notes → EnsembleModel.editNoteGroup(.velocity/.velocityOffset)。tests/WorkspaceTests.swift。
 
 選択音符の長さ: ClipNoteEditorのSelected notes length mode/value / Apply length to selected notes → EnsembleModel.editNoteGroup(.duration/.durationScale)。tests/WorkspaceTests.swift。
+
+音符クリップボード: EnsembleModel.copiedNotes / copyClipNotes / pasteClipNotes → editClipNotes。UIはClipNoteEditorのCopy selected clip notes / Note paste beat / Paste copied clip notes、検証はWorkspaceTests.swift。

@@ -7,6 +7,7 @@ struct SelectedClipNotes: View {
     @ObservedObject var part: EnsemblePart
     let clipID: UUID
     @State private var selection: Set<Int> = []
+    @State private var pasteBeat = "0"
     @State private var multiSelect = false
     @State private var scaleLengths = false
     @State private var groupLength = "1"
@@ -102,6 +103,19 @@ struct SelectedClipNotes: View {
                         Button("All") { selection = Set(clip.performance.notes.indices) }.accessibilityLabel("Select all clip notes")
                         Button("Clear") { selection = [] }.accessibilityLabel("Clear note selection")
                         Text("\(selection.count) selected").foregroundStyle(.secondary).accessibilityLabel("Selected note count").accessibilityValue("\(selection.count)")
+                        Button("Copy") { _ = ensemble.copyClipNotes(part: part.id, clip: clipID, indices: selection) }
+                            .accessibilityLabel("Copy selected clip notes").disabled(selection.isEmpty)
+                        field("Paste @", value: $pasteBeat, label: "Note paste beat")
+                        Button("Paste") {
+                            guard let at = Double(pasteBeat) else { ensemble.error = "貼り付け位置を拍数で入力してください。"; return }
+                            if let result = ensemble.pasteClipNotes(part: part.id, clip: clipID, at: at) {
+                                selection = result
+                                if let only = selected { select(only) }
+                            }
+                        }.accessibilityLabel("Paste copied clip notes").disabled(ensemble.copiedNotes.isEmpty)
+                        Text("\(ensemble.copiedNotes.count) copied").foregroundStyle(.secondary)
+                            .accessibilityLabel("Copied note count").accessibilityValue("\(ensemble.copiedNotes.count)")
+                        Divider().frame(height: 16)
                         field("Δ beats", value: $moveBeats, label: "Selected notes beat offset")
                         field("Δ pitch", value: $movePitch, label: "Selected notes pitch offset")
                         Button("Move") { offsetAction(duplicate: false) }.accessibilityLabel("Move selected clip notes").disabled(selection.isEmpty)

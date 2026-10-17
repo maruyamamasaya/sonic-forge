@@ -207,3 +207,5 @@ NOTE EDITORの戻る/進む矢印で音符編集を取り消し/やり直しで�
 下段VelocityのSet/OffsetとApply velocityで選択音符の強弱を一括調整できる。詳細は[ベロシティの一括調整](ENSEMBLE.md#ベロシティの一括調整)。
 
 下段LengthのSet beats/Scale %とApply lengthで選択音符の押鍵長をまとめて調整できる。詳細は[長さの一括調整](ENSEMBLE.md#長さの一括調整)。
+
+選択音符をCopyし、別クリップのPaste @へ位置を指定してPasteできる。詳細は[別クリップへの音符貼り付け](ENSEMBLE.md#別クリップへの音符貼り付け)。

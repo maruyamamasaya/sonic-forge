@@ -184,3 +184,5 @@ WoodSurfaceは面のサイズへ明示的にクリップする。ヘッダーは
 選択音符の強弱はNoteGroupAction.velocity/velocityOffsetで生ベロシティを変更する。Offsetは入力範囲を確認後に1〜127へ制限し、既存editClipNotesの検証/履歴/保存/出力を共有する。モードと入力値はClipNoteEditor内の表示状態。
 
 長さ一括調整はNoteGroupAction.duration/durationScaleで押鍵長のみ変更する。Setは拍数、Scaleは倍率。比率を保持して丸めず、既存の全配置検証/履歴/保存/出力を共有する。ClipNoteEditorは表示%を倍率へ変換し、入力モードはView内状態。
+
+クリップ間音符コピーはEnsembleModel.copiedNotesをセッション内値配列として保持。copyClipNotesで相対開始拍と実MIDI音程/強弱へ変換し、pasteClipNotesで対象の移調/強弱%を逆算してeditClipNotesへ一括委譲する。既存保存形式と履歴経路を維持。OSクリップボード/ペダルは扱わない。

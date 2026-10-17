@@ -362,6 +362,49 @@ final class EnsembleModel: ObservableObject {
         do { _ = try performance.events(root: part.instrument?.root); editClip(part: id, clip: clipID) { $0.performance = performance }; error = nil }
         catch { self.error = error.localizedDescription }
     }
+    /// Session-local musical clipboard: relative beats, sounding MIDI pitch/velocity.
+    @Published private(set) var copiedNotes: [PerformanceNote] = []
+    @discardableResult
+    func copyClipNotes(part id: UUID, clip clipID: UUID, indices: Set<Int>) -> Bool {
+        guard canEdit, let part = parts.first(where: { $0.id == id }),
+              let clip = part.allClips.first(where: { $0.id == clipID }),
+              !indices.isEmpty, indices.allSatisfy({ clip.performance.notes.indices.contains($0) }) else { return false }
+        do {
+            _ = try clip.performance.events(root: part.instrument?.root)
+            let origin = indices.map { clip.performance.notes[$0].beat }.min()!
+            copiedNotes = indices.sorted().map { index in
+                var note = clip.performance.notes[index]
+                note.beat -= origin; note.pitch += clip.performance.transpose
+                note.velocity = min(127, max(1, Int((Double(note.velocity) * clip.performance.velocityPercent / 100).rounded())))
+                return note
+            }
+            error = nil; return true
+        } catch { self.error = "音符をコピーできませんでした。\n" + error.localizedDescription; return false }
+    }
+    func pasteClipNotes(part id: UUID, clip clipID: UUID, at beat: Double) -> Set<Int>? {
+        guard canEdit, let part = parts.first(where: { $0.id == id }),
+              let clip = part.allClips.first(where: { $0.id == clipID }), !copiedNotes.isEmpty else { return nil }
+        guard beat.isFinite, (0...256).contains(beat) else {
+            error = "貼り付け位置は0〜256拍で指定してください。"; return nil
+        }
+        do { _ = try clip.performance.events(root: part.instrument?.root) }
+        catch { self.error = "貼り付け先の演奏データを確認してください。\n" + error.localizedDescription; return nil }
+        var pasted: [PerformanceNote] = []
+        for source in copiedNotes {
+            guard let velocity = (1...127).first(where: {
+                min(127, max(1, Int((Double($0) * clip.performance.velocityPercent / 100).rounded()))) == source.velocity
+            }) else {
+                error = "貼り付け先のVelocity %では元の強弱を再現できません。クリップのVelocityを100%にしてから貼り付けてください。"; return nil
+            }
+            var note = source
+            note.beat += beat; note.pitch -= clip.performance.transpose; note.velocity = velocity
+            pasted.append(note)
+        }
+        let start = clip.performance.notes.count
+        return editClipNotes(part: id, clip: clipID, change: { $0.append(contentsOf: pasted) })
+            ? Set(start..<(start + pasted.count)) : nil
+    }
+
     enum NoteGroupAction { case move(Double, Int), duplicate(Double, Int), delete, quantize(NoteQuantizeGrid), velocity(Int), velocityOffset(Int), duration(Double), durationScale(Double) }
     /// Apply a selection as one validated edit and one undo step.
     func editNoteGroup(part id: UUID, clip clipID: UUID, indices: Set<Int>, action: NoteGroupAction) -> Set<Int>? {

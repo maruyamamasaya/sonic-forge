@@ -42,6 +42,7 @@ enum WorkspaceTests {
         try await quantizeNotes()
         try await groupVelocity()
         try await groupLengths()
+        try await noteClipboard()
         // The visual note model must agree with production events at every repeat.
         var performance = PerformanceDocument.preset(.pedalStudy)
         performance.transpose = 2; performance.velocityPercent = 75
@@ -119,6 +120,8 @@ enum WorkspaceTests {
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .quantize(.quarter)) == nil)
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .velocity(100)) == nil)
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .duration(1)) == nil)
+            precondition(!model.copyClipNotes(part: part.id, clip: id, indices: [0]))
+            precondition(model.pasteClipNotes(part: part.id, clip: id, at: 0) == nil)
             precondition(part.performance == original); model.stop()
         }
         print("PASS: atomic note add/edit/delete, invalid edit preservation, sibling isolation, events, v5 restore, WAV reload and playback lock")
@@ -391,6 +394,69 @@ enum WorkspaceTests {
         precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .duration(1)) == nil && part.performance == collision)
         precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .durationScale(2)) == nil && part.performance == collision)
         print("PASS: selected duration set/proportional scale, fixed starts/attributes, subset isolation, one-step history, bounds/nonfinite/overlap rejection, no-op redo, save/restore and MIDI note-offs")
+    }
+
+    @MainActor private static func noteClipboard() async throws {
+        let model = EnsembleModel(); await model.addSharedSongDemo(); model.tempo = 240
+        let source = model.parts[0], target = model.parts[1]
+        var performance = source.performance
+        performance.transpose = 2; performance.velocityPercent = 80
+        performance.notes = [PerformanceNote(beat: 0.25, duration: 0.3, pitch: 57, velocity: 100, channel: 2),
+                             PerformanceNote(beat: 1.25, duration: 0.5, pitch: 61, velocity: 75, channel: 3)]
+        model.setClipPerformance(performance, part: source.id, clip: source.primaryClipID)
+        var destination = target.performance
+        destination.transpose = -1; destination.velocityPercent = 100
+        destination.notes = [PerformanceNote(beat: 0, duration: 0.5, pitch: 49, velocity: 50)]
+        destination.pedals = []
+        model.setClipPerformance(destination, part: target.id, clip: target.primaryClipID)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Clipboard-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("clipboard.sfensemble")
+        let saved = await model.save(to: file, remember: false); precondition(saved && !model.dirty)
+        precondition(model.copyClipNotes(part: source.id, clip: source.primaryClipID, indices: [0, 1]))
+        precondition(!model.dirty && !model.canUndoNotes(part: source.id, clip: source.primaryClipID))
+        let clipboard = model.copiedNotes
+        precondition(clipboard.map(\.beat) == [0, 1] && clipboard.map(\.pitch) == [59, 63] && clipboard.map(\.velocity) == [80, 60])
+        precondition(model.pasteClipNotes(part: target.id, clip: target.primaryClipID, at: 2) == [1, 2])
+        let result = target.performance
+        precondition(source.performance == performance && result.notes[0] == destination.notes[0] && result.pedals == destination.pedals)
+        for index in 0..<2 {
+            let note = result.notes[index + 1], copied = clipboard[index]
+            precondition(note.beat == copied.beat + 2 && note.duration == copied.duration && note.channel == copied.channel)
+            precondition(note.pitch + result.transpose == copied.pitch && note.velocity == copied.velocity)
+        }
+        precondition(model.restoreNoteEdit(part: target.id, clip: target.primaryClipID) && target.performance == destination)
+        precondition(model.restoreNoteEdit(part: target.id, clip: target.primaryClipID, redo: true) && target.performance == result)
+        precondition(model.pasteClipNotes(part: target.id, clip: target.primaryClipID, at: 2) == nil && target.performance == result)
+        for beat in [-1, Double.nan, Double.infinity, 256] {
+            precondition(model.pasteClipNotes(part: target.id, clip: target.primaryClipID, at: beat) == nil && target.performance == result)
+        }
+        precondition(!model.copyClipNotes(part: source.id, clip: source.primaryClipID, indices: [999]) && model.copiedNotes == clipboard)
+        var impossible = destination; impossible.velocityPercent = 25
+        model.setClipPerformance(impossible, part: target.id, clip: target.primaryClipID)
+        precondition(model.pasteClipNotes(part: target.id, clip: target.primaryClipID, at: 2) == nil && target.performance == impossible)
+        var adjusted = destination; adjusted.velocityPercent = 125
+        model.setClipPerformance(adjusted, part: target.id, clip: target.primaryClipID)
+        precondition(model.pasteClipNotes(part: target.id, clip: target.primaryClipID, at: 2) == [1, 2])
+        precondition(target.performance.notes.suffix(2).map(\.velocity) == [64, 48])
+        precondition(model.restoreNoteEdit(part: target.id, clip: target.primaryClipID) && target.performance == adjusted)
+        model.editClip(part: target.id, clip: target.primaryClipID) { $0.performance.velocityPercent = .nan }
+        precondition(model.pasteClipNotes(part: target.id, clip: target.primaryClipID, at: 2) == nil)
+        model.setClipPerformance(destination, part: target.id, clip: target.primaryClipID)
+        let extra = source.additionalClips[0]
+        // Additional clips preserve sounding pitch/velocity too, without changing their source.
+        precondition(model.pasteClipNotes(part: source.id, clip: extra.id, at: 12) != nil)
+        precondition(source.performance == performance)
+        precondition(model.restoreNoteEdit(part: source.id, clip: extra.id) && source.additionalClips[0] == extra)
+        precondition(model.pasteClipNotes(part: target.id, clip: target.primaryClipID, at: 2) != nil)
+        let savedAgain = await model.save(to: file, remember: false); precondition(savedAgain)
+        let loaded = EnsembleModel(); let opened = await loaded.load(file, remember: false)
+        precondition(opened && loaded.parts[1].performance == result && loaded.copiedNotes.isEmpty)
+        let wav = dir.appendingPathComponent("paste.wav")
+        try await EnsembleExport.write(model.snapshot(), to: wav)
+        let audio = try AudioAsset.load(wav); precondition(audio.duration > 0)
+        print("PASS: cross-clip note clipboard preserves sounding pitch/velocity/rhythm/channels, copy stays clean, one-step history, atomic failures, additional clips, save/restore and WAV")
     }
 
 }
