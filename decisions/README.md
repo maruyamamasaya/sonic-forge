@@ -92,3 +92,5 @@ Status: proposed / accepted / superseded
 - [0034: クリップ間の音符コピーと貼り付け](0034-note-clipboard.md)
 
 - [0035: AI編曲提案と採用](0035-ai-arrangement-proposals.md)
+
+- [0036: 人が操作できる日本語の制作画面と説明](0036-human-operated-japanese-ui.md)

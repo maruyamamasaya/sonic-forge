@@ -4,6 +4,7 @@
 | 目的 | 主なファイル | 検索キーワード |
 | --- | --- | --- |
 | コンセプト・人間向け案内 | README.md | SonicForge、音 |
+| 開発の経緯・人向けの入門 | DEVELOPMENT_JOURNEY.md、USER_GUIDE.md | 音素材、楽器、演奏、構成、用語 |
 | 現在地・次の作業 | CURRENT.md | 未実装、次に行うこと |
 | 構成ファイル形式 | ENSEMBLE_FORMAT.md | sfensemble、version、instrument、masterDB |
 | 複数楽器の演奏 | ENSEMBLE.md | Ensemble、Play All、パート |
