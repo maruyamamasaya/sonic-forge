@@ -79,6 +79,11 @@ struct OpenAIPerformanceClient {
     var transport: Transport = Self.send
     static func request(brief: PerformanceBrief, key: String, model: String) throws -> URLRequest {
         try brief.validate()
+        return try jsonRequest(instructions: brief.instructions, schema: PerformanceGeneration.schema,
+            name: "sonicforge_performance", key: key, model: model, maxTokens: 6000)
+    }
+    static func jsonRequest(instructions: String, schema: [String: Any], name: String, key: String,
+                            model: String, maxTokens: Int) throws -> URLRequest {
         guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !key.contains("\n"), !key.contains("\r"), !model.isEmpty, model.count <= 100 else {
             throw AudioError.invalid("OpenAI APIキーとモデル名を入力してください。")
@@ -88,14 +93,17 @@ struct OpenAIPerformanceClient {
         request.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "model": model, "store": false, "max_output_tokens": 6000,
-            "input": [["role": "system", "content": brief.instructions], ["role": "user", "content": "Return the performance JSON."]],
-            "text": ["format": ["type": "json_schema", "name": "sonicforge_performance", "strict": true, "schema": PerformanceGeneration.schema]]
+            "model": model, "store": false, "max_output_tokens": maxTokens,
+            "input": [["role": "system", "content": instructions], ["role": "user", "content": "Return only the requested JSON."]],
+            "text": ["format": ["type": "json_schema", "name": name, "strict": true, "schema": schema]]
         ])
         return request
     }
     func generate(brief: PerformanceBrief, key: String, model: String) async throws -> PerformanceDocument {
         let request = try Self.request(brief: brief, key: key, model: model)
+        return try PerformanceGeneration.decode(await generateJSON(request), root: brief.root)
+    }
+    func generateJSON(_ request: URLRequest) async throws -> Data {
         do {
             let (data, response) = try await transport(request)
             try Task.checkCancellation()
@@ -106,12 +114,15 @@ struct OpenAIPerformanceClient {
                 default: throw AudioError.invalid("OpenAIへの接続に失敗しました（HTTP \(response.statusCode)）。モデル名・接続を確認してください。")
                 }
             }
-            return try Self.decodeResponse(data, root: brief.root)
+            return try Self.responseJSON(data)
         } catch is CancellationError { throw CancellationError() }
         catch let error as AudioError { throw error }
         catch { throw AudioError.invalid("OpenAIとの通信が完了しませんでした。接続を確認して再試行してください。") }
     }
     static func decodeResponse(_ data: Data, root: Int) throws -> PerformanceDocument {
+        return try PerformanceGeneration.decode(responseJSON(data), root: root)
+    }
+    static func responseJSON(_ data: Data) throws -> Data {
         guard data.count <= PerformanceGeneration.byteLimit,
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               object["status"] as? String == "completed", let output = object["output"] as? [[String: Any]] else {
@@ -124,7 +135,7 @@ struct OpenAIPerformanceClient {
         }
         let texts = content.filter { $0["type"] as? String == "output_text" }.compactMap { $0["text"] as? String }
         guard texts.count == 1 else { throw AudioError.invalid("AIから演奏JSONを取得できませんでした。") }
-        return try PerformanceGeneration.decode(Data(texts[0].utf8), root: root)
+        return Data(texts[0].utf8)
     }
     private static func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let configuration = URLSessionConfiguration.ephemeral

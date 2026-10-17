@@ -90,3 +90,5 @@ Status: proposed / accepted / superseded
 - [0033: 選択音符の長さ一括調整](0033-group-note-duration.md)
 
 - [0034: クリップ間の音符コピーと貼り付け](0034-note-clipboard.md)
+
+- [0035: AI編曲提案と採用](0035-ai-arrangement-proposals.md)

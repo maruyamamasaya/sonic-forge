@@ -152,6 +152,31 @@ final class EnsembleModel: ObservableObject {
             part.$startBeat.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
         }
     }
+    var arrangementRevision: UUID { revision }
+    func arrangementBrief(prompt: String) throws -> ArrangementBrief {
+        guard canEdit else { throw AudioError.invalid("Stop All後、保存や書き出しの完了を待ってから編曲してください。") }
+        let brief = ArrangementBrief(prompt: prompt, revision: revision, partIDs: parts.map(\.id), snapshot: try snapshot())
+        try brief.validate(); return brief
+    }
+    @discardableResult func applyArrangement(_ proposal: ArrangementProposal, brief: ArrangementBrief) -> Bool {
+        guard canEdit else { error = "Stop All後、保存や書き出しの完了を待ってから採用してください。"; return false }
+        do {
+            guard revision == brief.revision, parts.map(\.id) == brief.partIDs else {
+                throw AudioError.invalid("生成後に構成が変更されました。現在の構成から再生成してください。")
+            }
+            let result = try ArrangementGeneration.materialize(proposal, brief: brief)
+            applyingSnapshot = true
+            sections = result.sections; tempo = result.tempo
+            for (part, value) in zip(parts, result.parts) {
+                part.performance = value.performance; part.startBeat = value.startBeat
+                part.repeatCount = value.repeatCount; part.sectionID = value.sectionID
+                part.additionalClips = value.additionalClips; part.gainDB = value.gainDB; part.muted = value.muted
+            }
+            applyingSnapshot = false; noteHistories.removeAll(); durationBeats = 0; positionBeats = 0
+            markDirty(); error = nil
+            return true
+        } catch { self.error = "編曲案を採用できませんでした。\n" + error.localizedDescription; return false }
+    }
     func snapshot() throws -> EnsembleSnapshot {
         let values = try parts.map { part -> EnsemblePartSnapshot in
             guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }

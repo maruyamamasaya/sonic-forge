@@ -7,6 +7,7 @@
 | 現在地・次の作業 | CURRENT.md | 未実装、次に行うこと |
 | 構成ファイル形式 | ENSEMBLE_FORMAT.md | sfensemble、version、instrument、masterDB |
 | 複数楽器の演奏 | ENSEMBLE.md | Ensemble、Play All、パート |
+| AI編曲提案 | AI_ARRANGEMENT.md | Arrange、ArrangementProposal、Use Arrangement |
 | AI演奏生成 | AI_GENERATION.md | Compose、Codex CLI、OpenAI API、Demo |
 | 演奏ファイル仕様 | PERFORMANCE_FORMAT.md | version、tempo、transpose、notes、pedals |
 | AIによる操作・演奏 | AI_OPERATIONS.md | 操作とアプリ内の入口、成功判定、演奏データ |
@@ -99,3 +100,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 選択音符の長さ: ClipNoteEditorのSelected notes length mode/value / Apply length to selected notes → EnsembleModel.editNoteGroup(.duration/.durationScale)。tests/WorkspaceTests.swift。
 
 音符クリップボード: EnsembleModel.copiedNotes / copyClipNotes / pasteClipNotes → editClipNotes。UIはClipNoteEditorのCopy selected clip notes / Note paste beat / Paste copied clip notes、検証はWorkspaceTests.swift。
+
+編曲提案: app/ArrangementGeneration.swift / ArrangementComposer.swift / ArrangementComposerView.swift → EnsembleModel.arrangementBrief / applyArrangement。検証はtests/ArrangementGenerationTests.swift。共有通信はCodexPerformanceClient.generateJSON / OpenAIPerformanceClient.jsonRequest / generateJSON。

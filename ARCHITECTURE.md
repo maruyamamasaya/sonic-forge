@@ -32,7 +32,7 @@ WAVExportは選択を32-bit Float WAVへ書き出す。保存先と同じディ�
 デモは8秒・48 kHz・16-bit・ステレオの減衰音を一時ディレクトリに合成。通常終了時に削除。ユーザー音源は変更しない。
 
 ## API / Database / Authentication / External Services
-いずれも未導入。実行時ネットワーク通信なし。macOSの既定出力を使用する。
+DB・アプリ利用者認証は未導入。AI生成は任意のCodex CLI / OpenAI API / 手動JSON接続。詳細は下記Performance GenerationとArrangement Proposals。macOSの既定出力を使用する。
 
 ## Deployment
 app/Resources/AppIcon.pngをアイコンの原本とし、scripts/build.shが標準サイズのiconsetとICNSを生成してResourcesへ同梱する。Info.plistのCFBundleIconFileで参照する。
@@ -186,3 +186,7 @@ WoodSurfaceは面のサイズへ明示的にクリップする。ヘッダーは
 長さ一括調整はNoteGroupAction.duration/durationScaleで押鍵長のみ変更する。Setは拍数、Scaleは倍率。比率を保持して丸めず、既存の全配置検証/履歴/保存/出力を共有する。ClipNoteEditorは表示%を倍率へ変換し、入力モードはView内状態。
 
 クリップ間音符コピーはEnsembleModel.copiedNotesをセッション内値配列として保持。copyClipNotesで相対開始拍と実MIDI音程/強弱へ変換し、pasteClipNotesで対象の移調/強弱%を逆算してeditClipNotesへ一括委譲する。既存保存形式と履歴経路を維持。OSクリップボード/ペダルは扱わない。
+
+## Arrangement Proposals
+WorkspaceViewのArrange…がArrangementComposerViewを開き、既存PerformanceComposerの接続設定を共有する。ArrangementComposerは候補/音声込みのローカルpreview/brief/revisionを保持し、取消世代で遅い応答を捨てる。ArrangementBriefが現在の音楽データだけをJSON化して送信する。API/CLIのJSON境界は既存クライアントで共通化し、短い演奏と編曲でschema/出力枠/業務検証だけを変える。
+ArrangementGeneration.materializeが既存partIDと新sectionIndexを解決し、値上のEnsembleSnapshotを全検証する。applyArrangementはrevision照合と再検証の後に既存パートへ一括反映し、楽器/パートID/名前/Master/保存先を保持、配置/tempo/mixを変更してdirty化する。音符履歴はクリア。生成候補は保存せず、採用結果は既存v5/タイムライン/ライブ/WAV経路へ流れる。上限・送信内容・操作仕様は[AI_ARRANGEMENT.md](AI_ARRANGEMENT.md)。

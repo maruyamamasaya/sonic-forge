@@ -14,6 +14,8 @@ struct WorkspaceView: View {
     @State private var librarySelection: String?
     @State private var confirmOpen = false
     @State private var allParts = false
+    @State private var arranging = false
+    @StateObject private var arranger = ArrangementComposer()
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private var part: EnsemblePart? { ensemble.parts.first { $0.id == selectedPart } ?? ensemble.parts.first }
     private var activeClip: UUID? {
@@ -42,6 +44,9 @@ struct WorkspaceView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in ensemble.stop(); library.stopPreview() }
         .onChange(of: library.query) { _, _ in librarySelection = nil; library.stopPreview() }
         .onDisappear { ensemble.stop(); library.stopPreview(); model.stop() }
+        .sheet(isPresented: $arranging) {
+            ArrangementComposerView(ensemble: ensemble, connection: model.composer, composer: arranger, wood: wood)
+        }
         .sheet(isPresented: $allParts) { EnsembleView(model: model, ensemble: ensemble, library: library) }
         .confirmationDialog("Replace unsaved ensemble changes?", isPresented: $confirmOpen) {
             Button("Choose Ensemble…", role: .destructive) { ensemble.openPanel() }
@@ -162,6 +167,9 @@ struct WorkspaceView: View {
             Text("SONG").font(.system(size: 10)).tracking(1.2).foregroundStyle(.secondary)
             Text("Select a section band to edit").font(.system(size: 10)).foregroundStyle(.secondary)
             Spacer()
+            Button("Arrange…") { library.stopPreview(); model.stop(); arranging = true }
+                .disabled(!ensemble.canEdit || ensemble.parts.isEmpty)
+                .accessibilityLabel("Arrange ensemble with AI")
             Button("Add Section") {
                 ensemble.addSection()
                 selectedSection = ensemble.sections.last?.id

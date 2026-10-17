@@ -38,6 +38,11 @@ struct CodexPerformanceClient {
     }
     func generate(brief: PerformanceBrief, executable: String, timeout: Double = 120) async throws -> PerformanceDocument {
         try brief.validate()
+        return try PerformanceGeneration.decode(await generateJSON(instructions: brief.instructions,
+            schema: PerformanceGeneration.schema, executable: executable, timeout: timeout), root: brief.root)
+    }
+    func generateJSON(instructions: String, schema jsonSchema: [String: Any], executable: String,
+                      timeout: Double = 120) async throws -> Data {
         guard let binary = Self.nativeExecutable(URL(fileURLWithPath: executable)), !executable.isEmpty else {
             throw AudioError.invalid("Codex CLIが見つかりません。インストール済みのcodexを選択してください。")
         }
@@ -46,8 +51,8 @@ struct CodexPerformanceClient {
         defer { try? FileManager.default.removeItem(at: directory) }
         let schema = directory.appendingPathComponent("schema.json"), output = directory.appendingPathComponent("performance.json")
         let input = directory.appendingPathComponent("brief.txt")
-        try JSONSerialization.data(withJSONObject: PerformanceGeneration.schema).write(to: schema)
-        try Data(brief.instructions.utf8).write(to: input)
+        try JSONSerialization.data(withJSONObject: jsonSchema).write(to: schema)
+        try Data(instructions.utf8).write(to: input)
         let handle = try FileHandle(forReadingFrom: input)
         defer { try? handle.close() }
         let process = Process()
@@ -79,6 +84,6 @@ struct CodexPerformanceClient {
         }
         let size = try output.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size <= PerformanceGeneration.byteLimit else { throw AudioError.invalid("生成結果が1 MBを超えました。") }
-        return try PerformanceGeneration.decode(Data(contentsOf: output), root: brief.root)
+        return try Data(contentsOf: output)
     }
 }

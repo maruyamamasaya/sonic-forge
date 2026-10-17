@@ -209,3 +209,6 @@ NOTE EDITORの戻る/進む矢印で音符編集を取り消し/やり直しで�
 下段LengthのSet beats/Scale %とApply lengthで選択音符の押鍵長をまとめて調整できる。詳細は[長さの一括調整](ENSEMBLE.md#長さの一括調整)。
 
 選択音符をCopyし、別クリップのPaste @へ位置を指定してPasteできる。詳細は[別クリップへの音符貼り付け](ENSEMBLE.md#別クリップへの音符貼り付け)。
+
+## AI編曲の利用
+EnsembleのArrange…から構成案を生成・確認しUse Arrangementで採用する。接続設定はSample StudioのCompose…と共有。元構成を残すなら先にSave Current…で保存。デモ・送信内容・上限は[AI_ARRANGEMENT.md](AI_ARRANGEMENT.md)。

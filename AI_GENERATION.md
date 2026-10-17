@@ -26,3 +26,6 @@ CLIは空の一時作業領域でread-only・個人設定不使用・一時セ�
 ## デモ確認
 Load Demo→Compose…→Demo→「落ち着いた和音」→Generate Demo→Use & Play。次に「少し跳ねたフレーズ」でリズムと強弱の違いを確認。置換確認が出たら、必要に応じて先に演奏を保存する。
 実AIはCodex CLIまたはOpenAI APIを選んで生成し、候補の方式表示で区別する。接続していない方式を成功扱いしない。検証結果は[sessions](sessions/README.md)と[TESTING.md](TESTING.md)を参照。
+
+## 曲全体の編曲
+EnsembleのArrange…では同じ接続設定で複数パート・セクションの構成案を確認・採用できる。単一フレーズとは送信するコンテキストと出力形式が異なる。[AI_ARRANGEMENT.md](AI_ARRANGEMENT.md)を参照。

@@ -187,3 +187,6 @@ Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32
 ## クリップ間の音符コピー・貼り付け
 音符を選択→Copy selected clip notes→Copied note countを確認→別のTimeline clipを選択→Note paste beatへ貼り付け先クリップ内の拍数→Paste copied clip notes。コピー群の最初の開始を指定位置へ置き、音符間の相対リズム/長さ/チャンネルと演奏時のMIDI音程/強弱を保持する。コピー元と貼り付け先の既存音符・ペダル・設定は保持する。Paste後は新しい音符群を選択する。操作バーが狭い場合は横スクロールする。
 モデルはcopiedNotes、copyClipNotes(part:clip:indices:)、pasteClipNotes(part:clip:at:)→editClipNotes。コピーはdirty/履歴を変えない。Pasteは一括1操作のUndo/Redo対象。対象の移調と強弱%を逆算し、元のMIDI強弱が対象%で再現不能なら失敗して100%へ調整する案内を出す。無断で設定を変えない。同音重複/音域外/音数/配置の失敗はensemble.errorとnilで判定し、元データとクリップボードを保持する。再生/出力中は不可、Stop all workspace audio後に操作する。クリップボードはアプリ内セッションのみで構成読込では残り、再起動で空になる。OSのクリップボードやペダルはコピーしない。保存/WAVは貼り付け済みデータを使用する。
+
+## 複数パート・セクションのAI編曲
+正本は[AI_ARRANGEMENT.md](AI_ARRANGEMENT.md)。停止したEnsembleのArrange…（Arrange ensemble with AI）から方式・指示を選びGenerate。generating=false・candidate/previewあり・error=nilで案の方式/全セクション/クリップ/音符/tempo/音量/Muteを確認し、Use Arrangementで採用する。元を保持するなら先にSave Current…。未保存時はReplace with Arrangementの確認がある。採用で全配置/tempo/パートmixが置換され、音符Undoは消える。楽器/Masterは保持し自動再生はしない。Play All/Stop All・Save/Exportは既存操作。Cancel Generation/Doneで候補を破棄し、元構成を保持する。生成後の編集はrevision照合で採用を拒否し、再生成する。DemoはAIではない。

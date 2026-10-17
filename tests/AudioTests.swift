@@ -13,6 +13,7 @@ struct AudioTests {
         try await WorkspaceTests.run()
         try await EnsembleClipTests.run()
         try await GenerationTests.run()
+        try await ArrangementGenerationTests.run()
         if CommandLine.arguments.contains("--ai-live") { try await GenerationTests.live() }
         try await LibraryTests.run(playback: CommandLine.arguments.contains("--playback"))
         MIDITests.parser()
