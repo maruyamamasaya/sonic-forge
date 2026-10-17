@@ -179,3 +179,7 @@ Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32
 ## 選択音符のベロシティ一括調整
 音符を選択→Selected notes velocity modeでSetまたはOffsetを選択→Selected notes velocity valueへ整数→Apply velocity to selected notes。Setは1〜127へ統一、Offsetは−126〜126を加算して結果を1〜127へ制限する。モード切替時の入力初期値はSet=90、Offset=0。操作バーが収まらない場合は横スクロールする。
 モデルはeditNoteGroup(...action:.velocity(value)/.velocityOffset(offset))→editClipNotes。成功はClip note Nのvelocityと音符の明るさ、Selected note countで確認。クリップのvelocityPercent適用前の値であり、実際のMIDI出力は既存の%調整も受ける。非選択音・開始拍・音程・長さ・チャンネル・ペダルを保持し、Undo/Redoは一括1操作。無変更は履歴/dirty/Redoを保持する。無効値はensemble.error、適用失敗時は元データを保持。再生/出力中は無効でStop all workspace audio後に操作する。保存/WAVは適用結果を使い、モード/入力値は保存しない。
+
+## 選択音符の長さ一括調整
+音符を選択→Selected notes length modeでSet beats/Scale %を選ぶ→Selected notes length valueへ正の数値→Apply length to selected notes。Set beatsは四分音符=1拍の押鍵長へ統一。Scale %は元の長さへ同じ倍率を掛け、50で半分、200で2倍。開始位置・音程・強弱・チャンネル・ペダル・非選択音は変更しない。操作バーが狭い場合は横スクロールする。
+モデルはeditNoteGroup(...action:.duration(beats)/.durationScale(factor))→editClipNotes。UIは%を100で割ってfactorへ渡す。成功はClip note Nのlength、下段の幅、タイムライン全長で確認し、選択は維持する。一括Undo/Redoは1回。無変更はdirty/履歴/Redoを保持。0/負数/非有限/重複/セクション超過などはensemble.errorで通知し、部分適用せず保持する。再生/出力中は無効、Stop all workspace audioで停止後に操作。構成保存/WAVには適用後の押鍵長を反映し、ペダルとReleaseの余韻は既存処理を維持する。

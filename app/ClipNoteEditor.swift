@@ -8,6 +8,8 @@ struct SelectedClipNotes: View {
     let clipID: UUID
     @State private var selection: Set<Int> = []
     @State private var multiSelect = false
+    @State private var scaleLengths = false
+    @State private var groupLength = "1"
     @State private var relativeVelocity = false
     @State private var groupVelocity = "90"
     @State private var quantizeGrid: NoteQuantizeGrid = .sixteenth
@@ -126,6 +128,21 @@ struct SelectedClipNotes: View {
                             group(relativeVelocity ? .velocityOffset(value) : .velocity(value))
                         }.accessibilityLabel("Apply velocity to selected notes").disabled(selection.isEmpty)
                             .help("Set: 1–127. Offset: −126…126, limited to 1–127. Before clip velocity %. Only selected notes change.")
+                        Divider().frame(height: 16)
+                        Picker("Length", selection: $scaleLengths) {
+                            Text("Set beats").tag(false)
+                            Text("Scale %").tag(true)
+                        }.frame(width: 150).accessibilityLabel("Selected notes length mode")
+                            .onChange(of: scaleLengths) { _, scale in groupLength = scale ? "100" : "1" }
+                        TextField(scaleLengths ? "%" : "Beats", text: $groupLength).textFieldStyle(.roundedBorder).frame(width: 48)
+                            .accessibilityLabel("Selected notes length value")
+                        Button("Apply length") {
+                            guard let value = Double(groupLength) else {
+                                ensemble.error = "長さは数値で入力してください。"; return
+                            }
+                            group(scaleLengths ? .durationScale(value / 100) : .duration(value))
+                        }.accessibilityLabel("Apply length to selected notes").disabled(selection.isEmpty)
+                            .help("Set beats: positive quarter-note beats. Scale %: 50 halves lengths, 200 doubles them. Starts stay fixed; overlaps are rejected.")
                     }.font(.system(size: 10)).padding(.horizontal, 10).padding(.vertical, 4)
                 }.fixedSize(horizontal: false, vertical: true)
                 Divider()

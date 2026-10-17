@@ -41,6 +41,7 @@ enum WorkspaceTests {
         try await multipleNotes()
         try await quantizeNotes()
         try await groupVelocity()
+        try await groupLengths()
         // The visual note model must agree with production events at every repeat.
         var performance = PerformanceDocument.preset(.pedalStudy)
         performance.transpose = 2; performance.velocityPercent = 75
@@ -117,6 +118,7 @@ enum WorkspaceTests {
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .move(1, 0)) == nil)
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .quantize(.quarter)) == nil)
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .velocity(100)) == nil)
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .duration(1)) == nil)
             precondition(part.performance == original); model.stop()
         }
         print("PASS: atomic note add/edit/delete, invalid edit preservation, sibling isolation, events, v5 restore, WAV reload and playback lock")
@@ -286,6 +288,7 @@ enum WorkspaceTests {
         model.setClipPerformance(boundary, part: part.id, clip: id)
         precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .quantize(.quarter)) == nil)
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .velocity(100)) == nil)
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .duration(1)) == nil)
         precondition(part.performance == boundary)
         print("PASS: six quantize grids, ties/triplets, selected starts only, one-step undo/redo, no-op clean state, save/restore/events and atomic overlap/boundary rejection")
     }
@@ -334,6 +337,60 @@ enum WorkspaceTests {
         precondition(part.performance == changed)
         precondition(model.restoreNoteEdit(part: part.id, clip: extra.id) && part.additionalClips == siblings)
         print("PASS: selected velocity set/offset, clipping bounds, attribute/sibling preservation, one-step history, invalid integer protection, no-op clean, save/restore and MIDI dynamics")
+    }
+
+    @MainActor private static func groupLengths() async throws {
+        let model = EnsembleModel(); await model.addSharedSongDemo()
+        let part = model.parts[0], id = part.primaryClipID
+        part.repeatCount = 1
+        var source = part.performance
+        source.notes[0].duration = 0.5; source.notes[1].duration = 1; source.notes[2].duration = 2
+        model.setClipPerformance(source, part: part.id, clip: id)
+        let siblings = part.additionalClips, other = model.parts[1].allClips
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 2], action: .duration(0.75)) == [0, 2])
+        for index in source.notes.indices {
+            var expected = source.notes[index]; if index != 1 { expected.duration = 0.75 }
+            precondition(part.performance.notes[index] == expected)
+        }
+        let uniform = part.performance
+        precondition(part.performance.pedals == source.pedals && part.additionalClips == siblings && model.parts[1].allClips == other)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == source)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id, redo: true) && part.performance == uniform)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id))
+        for factor in [0.5, 2.0] {
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 2], action: .durationScale(factor)) == [0, 2])
+            precondition(part.performance.notes[0].duration == 0.5 * factor && part.performance.notes[2].duration == 2 * factor)
+            precondition(part.performance.notes[2].duration / part.performance.notes[0].duration == 4)
+            precondition(part.performance.notes[1] == source.notes[1])
+            precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == source)
+        }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Lengths-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("lengths.sfensemble")
+        let saved = await model.save(to: url, remember: false); precondition(saved && !model.dirty)
+        for action: EnsembleModel.NoteGroupAction in [.duration(0), .duration(-1), .duration(.nan), .duration(.infinity), .duration(9),
+            .durationScale(0), .durationScale(-1), .durationScale(.nan), .durationScale(.infinity), .durationScale(Double.greatestFiniteMagnitude)] {
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 2], action: action) == nil)
+            precondition(part.performance == source && !model.dirty)
+        }
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 2], action: .durationScale(1)) == [0, 2])
+        precondition(!model.dirty && model.canRedoNotes(part: part.id, clip: id))
+        precondition(model.restoreNoteEdit(part: part.id, clip: id, redo: true))
+        let result = part.performance
+        let savedAgain = await model.save(to: url, remember: false); precondition(savedAgain)
+        let loaded = EnsembleModel(); let opened = await loaded.load(url, remember: false)
+        precondition(opened && loaded.parts[0].performance == result)
+        let events = try result.events(root: part.instrument!.root)
+        for note in result.notes {
+            precondition(events.contains { $0.bytes[0] & 0xf0 == 0x80 && Int($0.bytes[1]) == note.pitch && abs($0.time - (note.beat + note.duration) * 60 / result.tempo) < 1e-9 })
+        }
+        var collision = source
+        collision.notes = [PerformanceNote(beat: 0, duration: 0.5, pitch: 57, velocity: 60), PerformanceNote(beat: 0.75, duration: 0.5, pitch: 57, velocity: 80)]
+        model.setClipPerformance(collision, part: part.id, clip: id)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .duration(1)) == nil && part.performance == collision)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .durationScale(2)) == nil && part.performance == collision)
+        print("PASS: selected duration set/proportional scale, fixed starts/attributes, subset isolation, one-step history, bounds/nonfinite/overlap rejection, no-op redo, save/restore and MIDI note-offs")
     }
 
 }

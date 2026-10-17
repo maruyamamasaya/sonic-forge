@@ -86,3 +86,5 @@ Status: proposed / accepted / superseded
 - [0031: 選択音符の開始位置クオンタイズ](0031-note-quantization.md)
 
 - [0032: 選択音符のベロシティ一括調整](0032-group-note-velocity.md)
+
+- [0033: 選択音符の長さ一括調整](0033-group-note-duration.md)

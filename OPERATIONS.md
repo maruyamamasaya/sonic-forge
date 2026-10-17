@@ -205,3 +205,5 @@ NOTE EDITORの戻る/進む矢印で音符編集を取り消し/やり直しで�
 下段Grid→Quantizeで選択音符の開始拍を揃えられる。細かさと制約は[クオンタイズ](ENSEMBLE.md#クオンタイズ)を参照。
 
 下段VelocityのSet/OffsetとApply velocityで選択音符の強弱を一括調整できる。詳細は[ベロシティの一括調整](ENSEMBLE.md#ベロシティの一括調整)。
+
+下段LengthのSet beats/Scale %とApply lengthで選択音符の押鍵長をまとめて調整できる。詳細は[長さの一括調整](ENSEMBLE.md#長さの一括調整)。
