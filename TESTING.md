@@ -152,3 +152,5 @@ EnsembleSectionTestsで並べ替え/長さの累積位置、割り当て・ド�
 EnsembleClipTestsで同じPCMを持つ1パートのIntro/Chorusの異なる演奏、イベント位置/音程、順序変更、個別移動/dirty/削除、v5保存/ID復元とv4移行、追加情報欠落・重複ID・未知参照・同一パート内重複と失敗時保持を確認。実WAVの両区間の非ゼロ出力/間の無音を測定し、--playbackで後半クリップの発音/停止を確認。実UIはDemo Song、同一行の複数クリップ、追加編集と他クリップ不変、保存/再起動/Exportを確認。Fullと--playbackを実行する。
 
 クリップ複製: tests/EnsembleClipTests.swiftで最初/追加クリップの複製、元の保持、独立した移調/強弱、重複/不明ID拒否時のdirty保持、v5復元、繰り返した各セクションのWAV非ゼロ出力と再読み込みを検証。実UIはDuplicate To…から別セクション→Pitch/Velocity→タイムライン→保存/再起動を確認。
+
+セクション複製: tests/SectionDuplicationTests.swiftで複数パートの最初/追加演奏の一括複製、元の保持、独立編集、後続移動、固定Songとの重複/一部パート上限時の全体保持、空セクション/名前長/8セクション制限、v5復元、各区間のWAV非ゼロ出力と再読み込みを確認。--playbackでコピーの移調発音、再生中の複製拒否、全音停止を確認。実UIはデモサビ複製→コピー編集→タイムライン→保存/再起動→WAV出力/再読み込み。

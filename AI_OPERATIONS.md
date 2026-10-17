@@ -139,3 +139,8 @@ Demo Songは2楽器/各2クリップ。Save…後のv5にはadditionalClipsが�
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中にDuplicate clip for パート名 UUIDメニュー→別セクション。UUIDは現在のタイムライン/追加エディターから取得する。最初の演奏にもSECTION CLIPS行に同じメニューがある。複製後のClip transpose/Clip velocity for パート名 新UUIDを操作し、元の演奏・START・REPEATが変わらないことを確認する。
 モデル入口はEnsembleModel.duplicateClip(part:clip:to:)。成功時は新UUID、失敗時はnilとerror。成功時のみ追加/dirtyとなる。演奏・相対START・REPEATを保ち、楽器/mixを共有する。対象セクションの長さ不足や区間重複は自動修正せず拒否。canEdit=falseでは変更しない。最大8クリップでメニュー無効。
 成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v5を継続。Play AllとExport WAVは既存の全クリップ経路を使う。停止はStop All→playing=false/全voices=0/ペダル解除を確認する。
+
+## セクション全体を複製する
+正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中、Duplicate section 名前 UUIDボタンを操作する。モデル入口はEnsembleModel.duplicateSection(UUID)、成功は新セクションUUID、失敗はnil（canEdit=falseでは変更なし、それ以外はerror）。元の直後へ同じ長さのCopyを挿入し、sectionIDが元IDに一致する全パートの全クリップを複製する。Song基準は対象外。
+成功判定: sections数+1/元の次のIDが返却ID、各パートの対象クリップ数だけ追加、新しいclip UUIDとコピー先sectionID、演奏/START/REPEATの一致。コピー側のClip transpose/velocity for パート名 UUIDで展開を変え、元の値が変わらないことを確認。パート/音源は増えない。後続セクションは移動、Songは固定。
+全候補を先に検証し、どこかが上限/重複/不正なら既存sections/全クリップ/dirtyを保持する。失敗時に個別複製で途中まで補わない。保存は既存v5、再起動はsection順/ID/長さと追加clip ID/設定を照合。Play AllとWAVは延長された全構成を使う。停止はStop All→playing=false・全voices=0・ペダル解除を確認する。

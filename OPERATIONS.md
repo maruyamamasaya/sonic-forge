@@ -189,3 +189,5 @@ Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保
 同じ音色の再利用: 各パートAdd Section Clip→セクションを選択→追加演奏をPreset/Open/Use Currentで設定。Demo Songは2楽器の複数クリップを生成する。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
 
 Ensembleで停止中、Duplicate To…→別セクションを選ぶ。追加クリップのPitch/Velocityで展開を調整する。詳細は[ENSEMBLE.md](ENSEMBLE.md)を参照。
+
+セクション全体の複製はカード右上のDuplicate sectionボタン。元の直後へ所属クリップごと追加する。制限とデモ手順は[ENSEMBLE.md](ENSEMBLE.md)を参照。

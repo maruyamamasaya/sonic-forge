@@ -245,6 +245,35 @@ final class EnsembleModel: ObservableObject {
         guard canEdit, sections.count < 8 else { return }
         sections.append(EnsembleSection(name: "Section \(sections.count + 1)", beats: 16))
     }
+    @discardableResult func duplicateSection(_ id: UUID) -> UUID? {
+        guard canEdit else { return nil }
+        do {
+            guard let index = sections.firstIndex(where: { $0.id == id }) else {
+                throw AudioError.invalid("複製元のセクションが見つかりません。")
+            }
+            guard sections.count < 8 else { throw AudioError.invalid("セクションは最大8個です。") }
+            var copy = sections[index]
+            copy.id = UUID(); copy.name = String(copy.name.prefix(33)) + " · Copy"
+            var candidateSections = sections
+            candidateSections.insert(copy, at: index + 1)
+            try EnsembleSections.validate(candidateSections)
+            let additions = parts.map { part in
+                part.allClips.filter { $0.sectionID == id }.map { source -> EnsembleClip in
+                    var clip = source; clip.id = UUID(); clip.sectionID = copy.id; return clip
+                }
+            }
+            // Insertion also shifts later sections: validate every part, including Song clips.
+            for (part, clips) in zip(parts, additions) {
+                guard let instrument = part.instrument else { throw AudioError.invalid("先に各パートへ楽器を割り当ててください。") }
+                try EnsembleClips.validate(part.allClips + clips, root: instrument.root, sections: candidateSections)
+            }
+            applyingSnapshot = true
+            sections = candidateSections
+            for (part, clips) in zip(parts, additions) where !clips.isEmpty { part.additionalClips.append(contentsOf: clips) }
+            applyingSnapshot = false; markDirty(); error = nil
+            return copy.id
+        } catch { self.error = "セクションを複製できませんでした。\n" + error.localizedDescription; return nil }
+    }
     func reorderSection(_ id: UUID, by delta: Int) {
         guard canEdit, let index = sections.firstIndex(where: { $0.id == id }), sections.indices.contains(index + delta) else { return }
         sections.swapAt(index, index + delta)

@@ -18,8 +18,14 @@ struct EnsembleSectionsView: View {
                     HStack(spacing: 8) {
                         ForEach($ensemble.sections) { $section in
                             VStack(alignment: .leading, spacing: 5) {
-                                TextField("Section name", text: $section.name).font(.system(size: 11, weight: .medium))
-                                    .accessibilityLabel("Section name \(section.id)")
+                                HStack {
+                                    TextField("Section name", text: $section.name).font(.system(size: 11, weight: .medium))
+                                        .accessibilityLabel("Section name \(section.id)")
+                                    Button { ensemble.duplicateSection(section.id) } label: { Image(systemName: "plus.square.on.square") }
+                                        .accessibilityLabel("Duplicate section \(section.name) \(section.id)")
+                                        .help("Duplicate this section and all assigned clips immediately after it")
+                                        .disabled(ensemble.sections.count >= 8)
+                                }
                                 HStack(spacing: 5) {
                                     TextField("Beats", value: $section.beats, format: .number).frame(width: 42)
                                         .accessibilityLabel("Section length for \(section.name)")
