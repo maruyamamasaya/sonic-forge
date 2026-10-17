@@ -56,3 +56,5 @@ Status: proposed / accepted / superseded
 - [0016: 複数パートの同時演奏](0016-ensemble-playback.md)
 
 - [0017: 複数パート構成の保存](0017-ensemble-persistence.md)
+
+- [0018: パート開始位置を拍単位で保存する](0018-ensemble-start-beats.md)

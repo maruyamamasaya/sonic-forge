@@ -9,6 +9,7 @@ enum EnsemblePersistenceTests {
         defer { defaults.removePersistentDomain(forName: suite); try? FileManager.default.removeItem(at: directory) }
         let model = EnsembleModel(defaults: defaults)
         await model.addDemos(); await model.addDemos()
+        model.parts[1].startBeat = 4.5; model.parts[3].startBeat = 256
         model.tempo = 137.5; model.masterDB = -8.5
         model.parts[0].name = "Warm Pad"; model.parts[0].gainDB = -4.5; model.parts[3].muted = true
         let sourceInstrument = directory.appendingPathComponent("source.sfinstrument")
@@ -31,6 +32,7 @@ enum EnsemblePersistenceTests {
         precondition(restored.parts.count == 4 && restored.fileURL == file && !restored.dirty && !restored.playing)
         precondition(restored.tempo == expected.tempo && restored.masterDB == expected.masterDB)
         for (original, part) in zip(expected.parts, restored.parts) {
+            precondition(part.startBeat == original.startBeat)
             precondition(part.name == original.name && part.gainDB == original.gainDB && part.muted == original.muted)
             precondition(part.performance == original.performance && part.instrumentURL == nil)
             let actual = part.instrument!, before = original.instrument
@@ -45,7 +47,7 @@ enum EnsemblePersistenceTests {
         // Every persistent control marks dirty; transient transport/meter state does not.
         let changes: [(EnsembleModel) -> Void] = [
             { $0.parts[0].name = "Renamed" }, { $0.parts[0].gainDB = -7 }, { $0.parts[0].muted.toggle() },
-            { $0.tempo = 99 }, { $0.masterDB = -11 },
+            { $0.parts[0].startBeat = 3.25 }, { $0.tempo = 99 }, { $0.masterDB = -11 },
             { $0.setPerformance(.preset(.arpeggio), part: $0.parts[0].id) }, { $0.remove($0.parts.last!.id) }
         ]
         for change in changes {
@@ -62,6 +64,22 @@ enum EnsemblePersistenceTests {
             let accepted = await restored.load(bad)
             precondition(!accepted && restored.parts.map(\.id) == ids && restored.fileURL == file && !restored.dirty)
         }
+        var legacy = object; legacy["version"] = 1
+        var legacyParts = legacy["parts"] as! [[String: Any]]
+        for index in legacyParts.indices { legacyParts[index].removeValue(forKey: "startBeat") }
+        legacy["parts"] = legacyParts
+        let legacyFile = directory.appendingPathComponent("legacy.sfensemble")
+        try JSONSerialization.data(withJSONObject: legacy).write(to: legacyFile)
+        let legacySnapshot = try EnsembleDocument.load(legacyFile)
+        precondition(legacySnapshot.parts.allSatisfy { $0.startBeat == 0 })
+        for badStart: Any in [-1.0, 257.0, "four", NSNull()] {
+            var bad = object; var badParts = object["parts"] as! [[String: Any]]
+            badParts[0]["startBeat"] = badStart; bad["parts"] = badParts
+            try await invalidRead(bad)
+        }
+        var missingStart = object; var missingParts = object["parts"] as! [[String: Any]]
+        missingParts[0].removeValue(forKey: "startBeat"); missingStart["parts"] = missingParts
+        try await invalidRead(missingStart)
         var invalid = object; invalid["version"] = 99; try await invalidRead(invalid)
         invalid = object; invalid["tempo"] = 0; try await invalidRead(invalid)
         invalid = object; invalid["parts"] = []; try await invalidRead(invalid)
@@ -122,6 +140,19 @@ enum EnsemblePersistenceTests {
         precondition(restored.parts[1].level > -60 && restored.dirty)
         restored.stop()
         precondition(restored.parts.allSatisfy { $0.voices == 0 })
+        restored.parts[1].startBeat = 2
+        restored.play()
+        try await Task.sleep(nanoseconds: 180_000_000)
+        precondition(restored.parts[0].voices > 0 && restored.parts[1].voices == 0 && restored.heldNotes(part: restored.parts[1].id).isEmpty)
+        precondition(restored.durationBeats > 17)
+        restored.stop() // Cancel while the second part is still waiting.
+        try await Task.sleep(nanoseconds: 550_000_000)
+        precondition(!restored.playing && restored.parts.allSatisfy { $0.voices == 0 })
+        restored.play()
+        try await Task.sleep(nanoseconds: 650_000_000)
+        precondition(restored.playing && restored.parts[1].voices > 0 && restored.parts[1].level > -60)
+        restored.stop()
+        print("PASS: delayed entry silence, tempo-based entry, extended duration, stop during wait and restart")
         print("PASS: restored ensemble real output, saved gain/mute/tempo, per-part unmute, transport stays clean and all-stop")
     }
 }

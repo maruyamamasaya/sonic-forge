@@ -31,6 +31,7 @@ struct EnsembleView: View {
                     }
                 }.disabled(model.instrumentSample == nil || model.busy)
                 Spacer()
+                Button("Demo Entry +4") { Task { await ensemble.addDemos(staggered: true) } }.disabled(ensemble.parts.count > 2)
                 Button("Add Demo Duo") { Task { await ensemble.addDemos() } }.disabled(ensemble.parts.count > 2)
             }.buttonStyle(StudioButton()).disabled(!ensemble.canEdit || ensemble.parts.count >= 4)
             Text(ensemble.fileMessage ?? ensemble.fileURL?.lastPathComponent ?? "Untitled ensemble · Save to keep this setup")
@@ -77,7 +78,7 @@ struct EnsembleView: View {
                 }
             }
             if let error = ensemble.error { Text(error).font(.system(size: 11)).foregroundStyle(.orange).lineLimit(3).help(error) }
-            Text("Save includes all instruments, performances, levels and tempo. The last saved or opened ensemble restores on launch.")
+            Text("Save includes instruments, performances, start beats, levels and tempo. The last saved or opened ensemble restores on launch.")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(24).frame(width: 880, height: 650)
             .background(Color(red: 0.075, green: 0.09, blue: 0.105)).preferredColorScheme(.dark)
@@ -155,6 +156,11 @@ private struct EnsemblePartRow: View {
                 }
             }.disabled(!ensemble.canEdit)
             HStack {
+                Text("START").foregroundStyle(.secondary)
+                TextField("Start beat", value: $part.startBeat, format: .number).frame(width: 48).textFieldStyle(.roundedBorder)
+                    .accessibilityLabel("Start beat for \(part.name)").disabled(!ensemble.canEdit)
+                Stepper("", value: $part.startBeat, in: 0...256, step: 1).labelsHidden().disabled(!ensemble.canEdit)
+                Text("beats").foregroundStyle(.secondary)
                 Toggle("Mute", isOn: $part.muted).toggleStyle(.checkbox)
                 Slider(value: $part.gainDB, in: -36...0).frame(width: 145).tint(accent).accessibilityLabel("\(part.name) volume")
                 Text(String(format: "%.0f dB", part.gainDB)).monospacedDigit().frame(width: 40)
@@ -167,6 +173,7 @@ private struct EnsemblePartRow: View {
     }
     private var validation: String? {
         guard let instrument = part.instrument else { return "Assign an instrument" }
+        guard part.startBeat.isFinite, (0...256).contains(part.startBeat) else { return "Start: 0–256 beats" }
         do { _ = try part.performance.events(root: instrument.root); return nil }
         catch { return error.localizedDescription }
     }

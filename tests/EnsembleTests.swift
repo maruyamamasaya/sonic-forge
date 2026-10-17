@@ -18,6 +18,21 @@ enum EnsembleTests {
         ensemble.tempo = 60
         let slower = try ensemble.timeline()
         precondition(abs(slower.last!.time - events.last!.time * 2) < 0.000001)
+        second.startBeat = 4.5
+        let shifted = try ensemble.timeline()
+        for (before, after) in zip(slower.filter { $0.part == second.id }, shifted.filter { $0.part == second.id }) {
+            precondition(abs(after.time - before.time - 4.5) < 0.000001 && after.bytes == before.bytes)
+        }
+        precondition(shifted.filter { $0.part == first.id }.map(\.time) == slower.filter { $0.part == first.id }.map(\.time))
+        ensemble.tempo = 120
+        let faster = try ensemble.timeline()
+        precondition(abs(faster.last!.time - shifted.last!.time / 2) < 0.000001)
+        for invalidStart in [-1.0, 257, .nan, .infinity] {
+            second.startBeat = invalidStart
+            do { _ = try ensemble.timeline(); fatalError("Invalid start accepted") } catch {}
+        }
+        second.startBeat = 256; _ = try ensemble.timeline()
+        second.startBeat = 0
         ensemble.tempo = .nan
         do { _ = try ensemble.timeline(); fatalError("NaN tempo accepted") } catch {}
         ensemble.tempo = 120

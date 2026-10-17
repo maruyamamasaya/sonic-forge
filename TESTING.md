@@ -130,3 +130,7 @@ EnsemblePersistenceTestsは独立UserDefaults/一時領域で4パートの保存
 各保存設定のdirty、保存先解除なしの再保存、不正版/空構成/名前/音量/演奏/後半パートの壊れたWAV/過大サイズの拒否、失敗時の前の構成/保存先保持・既存ファイル保護、欠落ファイルと復元の一度だけの実行を確認する。
 --playbackは復元したデモDuoの実出力、保存Mute・音量・tempo、Mute解除、再生だけではdirtyにならないことと停止を確認。InstrumentDocumentのmakeArchive/restore共有化に伴う既存v1〜v4互換・PCM往復・ADSR/loopの回帰も継続する。
 実UIでデモの設定変更→Save…→Saved→終了/再起動→Restored/Savedと全設定→Play All、Open…の置換Cancelと保存キャンセル、縮小画面を確認。384 MB近い実データ・外部ボリューム・異常終了復旧は未評価。
+
+## Ensemble Start Position
+通常テストは0/小数/256拍、テンポ変更時の秒換算、音符・離鍵・ペダル全イベントの同一シフトと他パート不変、不正値拒否、v2保存/復元・dirty・v1の0移行、v2欠落/null/範囲外拒否を確認。
+--playbackは遅延パートの開始前無音と開始後出力、曲の終了拍延長、待機中Stop後の発音なし、再開を確認。実UIはDemo Entry +4、START入力・再生中編集不可、Save/Open/起動復元、880幅シートの描画を確認する。サンプル精度や長時間の同期は未保証。
