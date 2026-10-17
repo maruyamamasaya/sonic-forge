@@ -124,3 +124,9 @@ GenerationTestsは無料の模擬HTTP応答とローカルCLI fixtureを使用�
 EnsembleTestsの通常検証は共通テンポへの変換/原本tempo保持、独立割り当て、4パート上限、楽器と演奏の保存ファイルからの割り当て、無効tempo/gain/音域、未割当パートの全体開始拒否、壊れた楽器の読込時の以前の状態保持を確認。
 --playbackでは同一engineの2パートへ44.1/48 kHzの440/660 Hz素材を同じMIDI音程で割り当て、両成分の同時出力と片方のペダル解除/Release後の片成分だけの消失を実offline renderで測定。デモDuoの実出力・各メーター・ミュート・停止/再開・自然終了と原子的検証、既存単一楽器/MIDI/AI演奏の回帰を確認する。
 実UIはEnsemble…→Add Demo Duo→Play All→パートメーター・共通Beat、片方Mute/音量、Stop All、ファイル/現在の演奏割り当て、閉じる時の停止と再表示保持、最小幅の本体とシートを確認。長時間負荷・サンプル精度同期・外部機器・曲書き出しは未検証/未対応。
+
+## Ensemble Persistence Verification
+EnsemblePersistenceTestsは独立UserDefaults/一時領域で4パートの保存→元の楽器/演奏削除→別インスタンス起動時復元を検証。PCM全サンプル・チャンネル/レート、楽器名/Root/ADSR/Loop、演奏全値、名前/順序/音量/Mute/tempo/masterの一致を確認。
+各保存設定のdirty、保存先解除なしの再保存、不正版/空構成/名前/音量/演奏/後半パートの壊れたWAV/過大サイズの拒否、失敗時の前の構成/保存先保持・既存ファイル保護、欠落ファイルと復元の一度だけの実行を確認する。
+--playbackは復元したデモDuoの実出力、保存Mute・音量・tempo、Mute解除、再生だけではdirtyにならないことと停止を確認。InstrumentDocumentのmakeArchive/restore共有化に伴う既存v1〜v4互換・PCM往復・ADSR/loopの回帰も継続する。
+実UIでデモの設定変更→Save…→Saved→終了/再起動→Restored/Savedと全設定→Play All、Open…の置換Cancelと保存キャンセル、縮小画面を確認。384 MB近い実データ・外部ボリューム・異常終了復旧は未評価。

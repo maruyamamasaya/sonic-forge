@@ -56,3 +56,5 @@ Date: YYYY-MM-DD
 - [2026-10-17: AI演奏生成](2026-10-17-ai-performance-generation.md)
 
 - [2026-10-17: 複数パートの同時演奏](2026-10-17-ensemble-playback.md)
+
+- [2026-10-17: 複数パート構成の保存・復元](2026-10-17-ensemble-persistence.md)

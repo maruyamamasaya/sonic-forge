@@ -6,6 +6,7 @@ struct AudioTests {
     @MainActor static func main() async throws {
         try PerformanceTests.run()
         try await EnsembleTests.run()
+        try await EnsemblePersistenceTests.run()
         try await GenerationTests.run()
         if CommandLine.arguments.contains("--ai-live") { try await GenerationTests.live() }
         try await LibraryTests.run(playback: CommandLine.arguments.contains("--playback"))
@@ -445,6 +446,7 @@ struct AudioTests {
             try await PerformanceTests.integration()
             try await GenerationTests.integration()
             try await EnsembleTests.integration()
+            try await EnsemblePersistenceTests.integration()
 
             // Render the production voice graph offline to verify audible pitch,
             // rather than testing only the semitone formula.

@@ -82,9 +82,9 @@ final class EnsembleVoice {
 @MainActor
 final class EnsembleModel: ObservableObject {
     static let maximumParts = 4
-    @Published private(set) var parts: [EnsemblePart] = []
-    @Published var tempo = 100.0
-    @Published var masterDB = -12.0
+    @Published private(set) var parts: [EnsemblePart] = [] { didSet { observeParts(); markDirty() } }
+    @Published var tempo = 100.0 { didSet { if tempo != oldValue { markDirty() } } }
+    @Published var masterDB = -12.0 { didSet { if masterDB != oldValue { markDirty() } } }
     @Published private(set) var playing = false
     @Published private(set) var releasing = false
     @Published private(set) var busy = false
@@ -92,6 +92,15 @@ final class EnsembleModel: ObservableObject {
     @Published private(set) var durationBeats = 0.0
     @Published private(set) var level: Float = -60
     @Published var error: String?
+    @Published private(set) var dirty = false
+    @Published private(set) var fileURL: URL?
+    @Published private(set) var fileMessage: String?
+    private let defaults: UserDefaults
+    private static let lastFileKey = "lastEnsemblePathV1"
+    private var applyingSnapshot = false
+    private var revision = UUID()
+    private var partChanges: Set<AnyCancellable> = []
+    private var attemptedRestore = false
     private var engine: AVAudioEngine?
     private var voices: [UUID: EnsembleVoice] = [:]
     private let meter = InstrumentMeter()
@@ -101,10 +110,91 @@ final class EnsembleModel: ObservableObject {
     private var startedAt = 0.0
     private var playbackTempo = 100.0
 
-    init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.refresh() }
     }
     var canEdit: Bool { !playing && !busy }
+    private func markDirty() {
+        guard !applyingSnapshot else { return }
+        revision = UUID(); dirty = true; fileMessage = nil
+    }
+    private func observeParts() {
+        partChanges.removeAll()
+        for part in parts {
+            Publishers.Merge3(part.$name.dropFirst().removeDuplicates().map { _ in () },
+                              part.$gainDB.dropFirst().removeDuplicates().map { _ in () },
+                              part.$muted.dropFirst().removeDuplicates().map { _ in () })
+                .sink { [weak self] in self?.markDirty() }.store(in: &partChanges)
+        }
+    }
+    func snapshot() throws -> EnsembleSnapshot {
+        let values = try parts.map { part -> EnsemblePartSnapshot in
+            guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }
+            return EnsemblePartSnapshot(name: part.name, instrument: instrument, performance: part.performance, gainDB: part.gainDB, muted: part.muted)
+        }
+        let result = EnsembleSnapshot(tempo: tempo, masterDB: masterDB, parts: values)
+        try EnsembleDocument.validate(result)
+        return result
+    }
+    @discardableResult func save(to url: URL, remember: Bool = true) async -> Bool {
+        guard canEdit else { return false }
+        do {
+            let saved = try snapshot(), savedRevision = revision
+            busy = true; defer { busy = false }
+            try await Task.detached(priority: .userInitiated) { try EnsembleDocument.save(saved, to: url) }.value
+            fileURL = url
+            if revision == savedRevision { dirty = false }
+            if remember { defaults.set(url.path, forKey: Self.lastFileKey) }
+            fileMessage = "Saved · " + url.lastPathComponent; error = nil
+            return true
+        } catch { self.error = "構成を保存できませんでした。\n" + error.localizedDescription; return false }
+    }
+    @discardableResult func load(_ url: URL, remember: Bool = true) async -> Bool {
+        guard canEdit else { return false }
+        busy = true; defer { busy = false }
+        do {
+            let loaded = try await Task.detached(priority: .userInitiated) { try EnsembleDocument.load(url) }.value
+            let replacements = loaded.parts.map { item -> EnsemblePart in
+                let part = EnsemblePart(name: item.name, instrument: item.instrument, performance: item.performance)
+                part.gainDB = item.gainDB; part.muted = item.muted
+                return part
+            }
+            stop(); durationBeats = 0
+            applyingSnapshot = true
+            parts = replacements; tempo = loaded.tempo; masterDB = loaded.masterDB
+            applyingSnapshot = false; revision = UUID(); dirty = false; fileURL = url
+            if remember { defaults.set(url.path, forKey: Self.lastFileKey) }
+            fileMessage = "Opened · " + url.lastPathComponent; error = nil
+            return true
+        } catch { self.error = "構成を開けませんでした。\n" + error.localizedDescription; return false }
+    }
+    func restoreLastSession() async {
+        guard !attemptedRestore else { return }
+        attemptedRestore = true
+        guard let path = defaults.string(forKey: Self.lastFileKey) else { return }
+        if await load(URL(fileURLWithPath: path), remember: false) {
+            fileMessage = "Restored · " + URL(fileURLWithPath: path).lastPathComponent
+        } else {
+            error = "前回の構成を復元できませんでした。Open…から別の構成を選択できます。\n" + (error ?? "")
+        }
+    }
+    func savePanel() {
+        guard canEdit else { return }
+        let panel = NSSavePanel(); panel.allowedContentTypes = [.sonicForgeEnsemble]; panel.canCreateDirectories = true
+        panel.title = "Save Ensemble"
+        panel.nameFieldStringValue = fileURL?.lastPathComponent ?? "My Ensemble.sfensemble"
+        panel.directoryURL = fileURL?.deletingLastPathComponent()
+        panel.message = "全パートの音源・設定・演奏・音量・ミュートと共通テンポをまとめて保存します。"
+        if panel.runModal() == .OK, let url = panel.url { Task { await save(to: url) } }
+    }
+    func openPanel() {
+        guard canEdit else { return }
+        let panel = NSOpenPanel(); panel.allowedContentTypes = [.sonicForgeEnsemble]; panel.canChooseDirectories = false
+        panel.title = "Open Ensemble"
+        if panel.runModal() == .OK, let url = panel.url { Task { await load(url) } }
+    }
+
     @discardableResult func addPart(instrument: EnsembleInstrument? = nil, performance: PerformanceDocument = .preset(.softChords)) -> EnsemblePart? {
         guard canEdit, parts.count < Self.maximumParts else { return nil }
         let part = EnsemblePart(name: "Part \(parts.count + 1)", instrument: instrument, performance: performance)
@@ -113,7 +203,7 @@ final class EnsembleModel: ObservableObject {
     func remove(_ id: UUID) { guard canEdit else { return }; parts.removeAll { $0.id == id } }
     func setPerformance(_ document: PerformanceDocument, part id: UUID) {
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
-        do { _ = try document.events(root: part.instrument?.root); part.performance = document; error = nil }
+        do { _ = try document.events(root: part.instrument?.root); part.performance = document; markDirty(); error = nil }
         catch { self.error = error.localizedDescription }
     }
     func loadInstrument(_ url: URL, part id: UUID) async {
@@ -122,7 +212,7 @@ final class EnsembleModel: ObservableObject {
         do {
             let loaded = try await Task.detached(priority: .userInitiated) { try EnsembleInstrument.load(url) }.value
             // File failure must not replace the prior part. Range is checked at Play All.
-            part.instrument = loaded; part.instrumentURL = url; error = nil
+            part.instrument = loaded; part.instrumentURL = url; markDirty(); error = nil
         } catch { self.error = "パートの楽器を読み込めませんでした。\n" + error.localizedDescription }
     }
     func openInstrument(_ id: UUID) {

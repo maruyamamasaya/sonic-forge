@@ -51,3 +51,5 @@ AIによる操作・自動演奏の引き継ぎは[AI操作ガイド](AI_OPERATI
 Compose…から言葉で演奏候補を作れます。Codex CLI・OpenAI API・他のAIのJSON貼り付けに対応。接続不要のDemoもあります。[AI生成ガイド](AI_GENERATION.md)を参照。
 
 Ensemble…で最大4つの楽器と演奏を組み合わせられます。Add Demo Duoから同時演奏を試せます。[複数パートの操作](ENSEMBLE.md)を参照。
+
+EnsembleのSave…で全パートの音源・演奏・ミックスをまとめて保存し、再起動後も復元できます。[構成の保存](ENSEMBLE.md#構成を保存復元する)を参照。

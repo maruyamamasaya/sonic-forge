@@ -167,6 +167,7 @@ final class PlayerModel: ObservableObject {
     }
 
     func startSession() async {
+        await ensemble.restoreLastSession()
         midi.start()
         if let path = UserDefaults.standard.string(forKey: Self.lastInstrumentKey) {
             if await loadInstrument(URL(fileURLWithPath: path)) { return }

@@ -54,3 +54,5 @@ Status: proposed / accepted / superseded
 - [0015: AI演奏生成](0015-ai-performance-generation.md)
 
 - [0016: 複数パートの同時演奏](0016-ensemble-playback.md)
+
+- [0017: 複数パート構成の保存](0017-ensemble-persistence.md)

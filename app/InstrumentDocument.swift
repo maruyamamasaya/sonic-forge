@@ -6,7 +6,7 @@ extension UTType {
     static let sonicForgeInstrument = UTType(exportedAs: "local.sonicforge.instrument", conformingTo: .json)
 }
 
-private struct InstrumentArchive: Codable {
+struct InstrumentArchive: Codable {
     let version: Int
     let rootNote: Int
     let sampleName: String
@@ -26,7 +26,13 @@ struct RestoredInstrument {
 
 enum InstrumentDocument {
     static func save(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters = .standard, loop: SampleLoop? = nil, to url: URL) throws {
-        guard url.pathExtension.lowercased() == "sfinstrument", (48...72).contains(rootNote), envelope.isValid else {
+        guard url.pathExtension.lowercased() == "sfinstrument" else { throw AudioError.invalid("楽器の保存形式が無効です。") }
+        let archive = try makeArchive(sample: sample, rootNote: rootNote, envelope: envelope, loop: loop)
+        try JSONEncoder().encode(archive).write(to: url, options: .atomic)
+    }
+
+    static func makeArchive(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters, loop: SampleLoop? = nil) throws -> InstrumentArchive {
+        guard (48...72).contains(rootNote), envelope.isValid, sample.name.count <= 255 else {
             throw AudioError.invalid("楽器の保存形式または基準音が無効です。")
         }
         let loop = loop ?? SampleLoop(endFrame: Int64(sample.buffer.frameLength))
@@ -42,16 +48,18 @@ enum InstrumentDocument {
             let file = try AVAudioFile(forWriting: audioURL, settings: settings)
             try file.write(from: sample.buffer)
         }
-        let archive = InstrumentArchive(version: 4, rootNote: rootNote, sampleName: sample.name,
-                                        sampleWAV: try Data(contentsOf: audioURL), envelope: envelope, loop: loop)
-        let data = try JSONEncoder().encode(archive)
-        try data.write(to: url, options: .atomic)
+        let wav = try Data(contentsOf: audioURL)
+        guard wav.count <= 64 * 1024 * 1024 + 8192 else { throw AudioError.invalid("楽器音源は64 MB以下にしてください。") }
+        return InstrumentArchive(version: 4, rootNote: rootNote, sampleName: sample.name, sampleWAV: wav, envelope: envelope, loop: loop)
     }
 
     static func load(_ url: URL) throws -> RestoredInstrument {
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size > 0 && size <= 96 * 1024 * 1024 else { throw AudioError.invalid("楽器ファイルのサイズが無効です（最大96 MB）。") }
-        let archive = try JSONDecoder().decode(InstrumentArchive.self, from: Data(contentsOf: url))
+        return try restore(JSONDecoder().decode(InstrumentArchive.self, from: Data(contentsOf: url)))
+    }
+
+    static func restore(_ archive: InstrumentArchive) throws -> RestoredInstrument {
         guard (1...4).contains(archive.version) else { throw AudioError.invalid("このバージョンの楽器ファイルには対応していません。") }
         let envelope = archive.version == 1 ? ADSRParameters.legacy : archive.envelope
         guard let envelope, envelope.isValid else { throw AudioError.invalid("ADSRの設定が無効です。") }

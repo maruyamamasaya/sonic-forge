@@ -5,6 +5,7 @@ struct EnsembleView: View {
     @ObservedObject var ensemble: EnsembleModel
     @ObservedObject var library: InstrumentLibrary
     @Environment(\.dismiss) private var dismiss
+    @State private var confirmOpen = false
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -12,8 +13,14 @@ struct EnsembleView: View {
                 Image(systemName: "square.stack.3d.up.fill").foregroundStyle(accent)
                 Text("Ensemble").font(.system(size: 22, weight: .medium))
                 Text("\(ensemble.parts.count) / 4 parts").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(ensemble.dirty ? "● Unsaved" : ensemble.fileURL == nil ? "New" : "Saved")
+                    .font(.system(size: 11)).foregroundStyle(ensemble.dirty ? accent : .secondary)
                 Spacer()
                 if ensemble.busy { ProgressView().controlSize(.small) }
+                Button("Open…") { if ensemble.dirty { confirmOpen = true } else { ensemble.openPanel() } }
+                    .buttonStyle(StudioButton()).disabled(!ensemble.canEdit).accessibilityLabel("Open ensemble")
+                Button("Save…") { ensemble.savePanel() }.buttonStyle(StudioButton())
+                    .disabled(!ensemble.canEdit || ensemble.parts.isEmpty).accessibilityLabel("Save ensemble")
                 Button("Done") { ensemble.stop(); dismiss() }.buttonStyle(StudioButton())
             }
             HStack {
@@ -26,6 +33,8 @@ struct EnsembleView: View {
                 Spacer()
                 Button("Add Demo Duo") { Task { await ensemble.addDemos() } }.disabled(ensemble.parts.count > 2)
             }.buttonStyle(StudioButton()).disabled(!ensemble.canEdit || ensemble.parts.count >= 4)
+            Text(ensemble.fileMessage ?? ensemble.fileURL?.lastPathComponent ?? "Untitled ensemble · Save to keep this setup")
+                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             if ensemble.parts.isEmpty {
                 VStack(spacing: 14) {
                     Image(systemName: "pianokeys").font(.system(size: 36)).foregroundStyle(accent)
@@ -63,15 +72,19 @@ struct EnsembleView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(String(format: "MASTER · %.0f dB", ensemble.masterDB)).font(.system(size: 10))
-                    Slider(value: $ensemble.masterDB, in: -60...0).frame(width: 130).tint(accent).accessibilityLabel("Ensemble master volume")
+                    Slider(value: $ensemble.masterDB, in: -60...0).frame(width: 130).tint(accent).accessibilityLabel("Ensemble master volume").disabled(ensemble.busy)
                     Text("Output \(Int(ensemble.level)) dB").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
                 }
             }
             if let error = ensemble.error { Text(error).font(.system(size: 11)).foregroundStyle(.orange).lineLimit(3).help(error) }
-            Text("All parts follow the shared tempo. Assignments stay while the app is open. Your studio instrument and saved files stay unchanged.")
+            Text("Save includes all instruments, performances, levels and tempo. The last saved or opened ensemble restores on launch.")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(24).frame(width: 880, height: 650)
             .background(Color(red: 0.075, green: 0.09, blue: 0.105)).preferredColorScheme(.dark)
+            .confirmationDialog("Replace unsaved ensemble changes?", isPresented: $confirmOpen) {
+                Button("Choose Ensemble…", role: .destructive) { ensemble.openPanel() }
+                Button("Cancel", role: .cancel) { }
+            } message: { Text("Cancel and save this ensemble first to keep your changes. A failed read keeps the current ensemble.") }
             .onDisappear { ensemble.stop() }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in ensemble.stop() }
     }
@@ -147,7 +160,7 @@ private struct EnsemblePartRow: View {
                 Text(String(format: "%.0f dB", part.gainDB)).monospacedDigit().frame(width: 40)
                 Spacer()
                 Text(validation ?? "Ready").foregroundStyle(validation == nil ? Color.secondary : .orange).lineLimit(1)
-            }.font(.system(size: 10))
+            }.disabled(ensemble.busy).font(.system(size: 10))
         }.controlSize(.small).padding(14)
             .background(Color.white.opacity(0.035)).clipShape(RoundedRectangle(cornerRadius: 6))
             .overlay { RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.08)) }

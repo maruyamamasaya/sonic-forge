@@ -14,7 +14,7 @@ done
 iconutil -c icns "$iconset" -o build/SonicForge.app/Contents/Resources/AppIcon.icns
 xcrun swiftc -swift-version 5 -O -module-cache-path build/module-cache \
     -target "$(uname -m)-apple-macosx14.0" \
-    app/AudioAsset.swift app/WaveformEditor.swift app/SelectionAudio.swift app/WAVExport.swift app/ADSREnvelope.swift app/SampleInstrument.swift app/InstrumentDocument.swift app/InstrumentLibrary.swift app/EnsembleModel.swift app/PerformanceDocument.swift app/PerformanceGeneration.swift app/CodexPerformanceClient.swift app/PerformanceComposer.swift app/MIDIInput.swift app/PlayerModel.swift app/PerformanceEditor.swift app/PerformanceComposerView.swift app/InstrumentKeyboard.swift app/LibraryView.swift app/EnsembleView.swift app/StudioView.swift app/SonicForgeApp.swift \
+    app/AudioAsset.swift app/WaveformEditor.swift app/SelectionAudio.swift app/WAVExport.swift app/ADSREnvelope.swift app/SampleInstrument.swift app/InstrumentDocument.swift app/InstrumentLibrary.swift app/EnsembleModel.swift app/EnsembleDocument.swift app/PerformanceDocument.swift app/PerformanceGeneration.swift app/CodexPerformanceClient.swift app/PerformanceComposer.swift app/MIDIInput.swift app/PlayerModel.swift app/PerformanceEditor.swift app/PerformanceComposerView.swift app/InstrumentKeyboard.swift app/LibraryView.swift app/EnsembleView.swift app/StudioView.swift app/SonicForgeApp.swift \
     -o build/SonicForge.app/Contents/MacOS/SonicForge
 cat > build/SonicForge.app/Contents/Info.plist <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -38,6 +38,11 @@ cat > build/SonicForge.app/Contents/Info.plist <<'PLIST'
 <key>UTTypeDescription</key><string>SonicForge Performance</string>
 <key>UTTypeConformsTo</key><array><string>public.json</string></array>
 <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>sfperformance</string></array></dict>
+</dict><dict>
+<key>UTTypeIdentifier</key><string>local.sonicforge.ensemble</string>
+<key>UTTypeDescription</key><string>SonicForge Ensemble</string>
+<key>UTTypeConformsTo</key><array><string>public.json</string></array>
+<key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>sfensemble</string></array></dict>
 </dict></array>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>

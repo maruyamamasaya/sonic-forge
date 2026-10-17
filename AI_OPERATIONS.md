@@ -35,6 +35,7 @@ UIの要素番号や画面座標は固定ではない。機器やウィンドウ
 | MIDIを選ぶ | MIDI IN / None | MIDIInput.select / refresh |
 | 実機なしの手動確認 | Test input、VELOCITY、Test pedal、MIDI chord | createTestInput、testVelocity、sendTest、toggleTestChord |
 | 自動演奏 | プリセット、Auto play / Stop auto | performancePreset、playPerformance / stopPerformance |
+| 構成保存・復元 | Ensemble上部Open… / Save…、Saved / ● Unsaved | EnsembleModel.save/load/restoreLastSession、dirty/fileURL/fileMessage |
 | 複数パート | Ensemble…、Add Part / Add Current / Add Demo Duo、Play All / Stop All | EnsembleModel.parts/timeline/play/stop、EnsembleVoice.receive |
 | AI演奏候補 | Compose…、Generate、Cancel Generation、Use & Play | PerformanceComposer.generate/cancel、candidate/candidateRoot/source、MIDIInput.applyGeneratedPerformance |
 | 演奏編集・保存 | Edit…、TEMPO、TRANSPOSE、VELOCITY、Notes、Pedal、Open… / Save… | PerformanceEditor、MIDIInput.performance、loadPerformance / savePerformance |
@@ -96,4 +97,9 @@ APIキーやCLI認証情報をチャット・文書・ログへ転記しない�
 ## 複数の楽器と演奏を割り当てる
 正本は[ENSEMBLE.md](ENSEMBLE.md)。Ensemble…→Add Partで行を追加→INSTRUMENTのライブラリ選択またはOpen…→PERFORMANCEのPreset/Open…/Use Current。Add Currentは現在の本体楽器と演奏をスナップショットで追加する。AI生成データは本体へ採用してAdd Current、または保存した.sfperformanceをパートへOpen…する。パートごとに異なるRootで生成/検証すること。音域を勝手に補正しない。
 全行のReadyと共通TEMPOを確認してPlay All。各行のvoices/出力、共通Beat/出力で同時演奏を判定する。本体の鍵盤やメーターはパート演奏の状態を表さない。playing=trueはRelease中も含み、releasingで区別。Stop All / Done / 非アクティブで全パートを停止。Stop後はplaying=false、各voices=0、level=-60、保持音とペダルが空であることを確認する。
-再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。パート割り当てはアプリ終了で失われるため、構成が永続保存済みだと報告しない。外部操作APIは未実装。
+再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成はSave…した状態だけがディスクへ保存される。Doneで閉じただけ、または● Unsavedの状態を保存済みだと報告しない。外部操作APIは未実装。
+
+## 構成の保存と起動時復元の判定
+[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v1](ENSEMBLE_FORMAT.md)を参照。Save…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
+Open…の未保存置換確認では必要に応じてCancel→先にSave…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・Saved・設定・playing=falseを確認してからPlay All。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読みOpen…へ進み、復元成功と報告しない。
+保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、Stop All後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
