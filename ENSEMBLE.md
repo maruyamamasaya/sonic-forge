@@ -1,10 +1,10 @@
 # 複数の楽器で演奏する
 
 ## メイン制作画面
-起動時はEnsembleワークスペース。左は楽器ライブラリ、中央はセクションとタイムライン、右は選択したパート/クリップのInspector、下は共通再生操作。ウィンドウは拡大・フルスクリーン可。最小1100×760（Sample Studioは高さ880）。
+起動時はEnsembleワークスペース。左は楽器ライブラリ、中央はセクションとタイムライン、右は選択したパート/クリップのInspector、下は共通再生操作。初期サイズは1920×1080基準（macOSの表示可能領域へ収まる）。ウィンドウは拡大・フルスクリーン可。最小1100×760（Sample Studioは高さ880）。
 左で検索/選択→Preview（独立試聴）→Assignで選択パートへ楽器を割り当て、Add as Partで新規パートへ読み込む。Add Files/Add Demos/Remove from Listも利用でき、原本は削除しない。試聴は構成再生と相互に停止する。
 タイムラインのパート名/クリップをクリックすると右へ設定を表示する。ClipタブでSection/Start/Repeat/Preset/Open/Use Current/Pitch/Velocity/複製/追加/削除を操作。最初のクリップも同じ入口で編集可能。InstrumentタブでRoot/ADSR/Loopの秒単位範囲とミリ秒単位クロスフェードを編集する。音色変更は同じパートの全クリップに反映し、構成に保存する。ライブラリの原本を上書きしない。
-従来の一覧設定は上部All Parts…から開ける。以下の「各行」「PERFORMANCE」等の手順はAll Parts…でも利用可能。Demosメニューに既存のDuo/Entry/Repeatを保持。セクションの編集・並べ替え・複製は中央上部。
+従来の一覧設定は上部All Parts…から開ける。以下の「各行」「PERFORMANCE」等の手順はAll Parts…でも利用可能。Demosメニューに既存のDuo/Entry/Repeatを保持。メインのセクションはタイムライン上部の帯へ統合。帯を選ぶと右側で名前/長さ/順序/複製/削除を操作できる。Add Sectionは中央上部。従来のカード編集はAll Parts…に残る。
 左下Waveform & Instrument…で従来のSample Studio（波形/切り出し/鍵盤/MIDI/演奏編集/Compose）へ切り替える。Sample Studio上部Arrangementで戻る。両画面の状態を保持し、切り替え時は発音を停止する。Studioで作った音色/演奏はAdd CurrentまたはUse Currentで構成へ取り込む。
 Spaceはメインで構成のPlay/Stop、Sample Studioで従来のPlay/Pause。テキスト入力とモーダルには割り込まない。⌘Sは現在画面の構成/楽器を保存。Stop Allは構成・試聴・Studioの全音停止。起動時の構成復元は無音のまま。選択は表示だけの状態でファイル形式v5を継続する。
 
@@ -84,3 +84,8 @@ Demo Songはパートとセクションが空の場合に追加できる。Intro
 コピー側の各クリップをPitch/VelocityやPreset/Open…で編集して別のサビを作れる。元のクリップは変更しない。楽器と音量/Muteは引き続きパート共有。Song · absoluteの演奏は、見た目がセクション内にあっても所属しないため複製しない。
 後続セクションの演奏は挿入した長さだけ後ろへ移動する。Song基準の演奏は移動しない。その結果の重複・長さ不足・不正設定・最大8セクション/各パート8クリップ超過は、セクションもクリップも追加せずエラーで拒否する。停止中だけ操作できる。
 デモ確認: Demo Songのサビを複製→サビ · Copyに両パートのクリップがあることを確認→コピーだけPitch/Velocityを変更→Play All/Stop All→Save…→再起動→Export WAV…。タイムラインは新しい帯と全クリップを表示し、構成v5でIDと配置を保存、WAVは延長された曲と余韻を含む。
+
+## Natural Studioの表示
+上部Wood themeでWalnut / White oak / Cherryを切り替える。自然木素材はアプリに同梱し、明るい木では文字色も切り替わる。選択はアプリ設定に保存し、構成のdirtyや音源原本を変更しない。外装の丸み/面取り、マットな中央表示、押し込み感のある操作部を使用する。
+メインのタイムラインは初期Fitで曲全体を表示し、Timeline zoom in/outとFit arrangementで調整。横スクロール、¼拍ドラッグ、相対STARTとセクション追従を維持する。縮小時は左右の設定と中央のスクロールで操作できる。タイムラインと下段の境界は上下にドラッグ可能。
+クリップの音符は実データのbeat/duration/移調済みpitch/調整後velocityを表示し、REPEATも全回分を展開する。明るさはベロシティを反映。下段NOTE DETAILは選択クリップの読み取り専用表示で、音符編集は既存Sample StudioのEdit…を使う。音符の横幅は押鍵時間。ペダル保持やADSR Releaseの音響的な余韻を音符幅へ追加しない。不正な演奏はInvalid performanceで表示する。

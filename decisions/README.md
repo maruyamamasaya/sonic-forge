@@ -74,3 +74,5 @@ Status: proposed / accepted / superseded
 - [0025: セクション全体の複製](0025-section-duplication.md)
 
 - [0026: Ensembleメインワークスペース](0026-ensemble-workspace.md)
+
+- [0027: Natural Studioの素材とタイムライン表示](0027-natural-studio.md)

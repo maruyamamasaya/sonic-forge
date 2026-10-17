@@ -12,9 +12,14 @@ for size in 16 32 128 256 512; do
     sips -z "$retina" "$retina" "$icon_source" --out "$iconset/icon_${size}x${size}@2x.png" >/dev/null
 done
 iconutil -c icns "$iconset" -o build/SonicForge.app/Contents/Resources/AppIcon.icns
+mkdir -p build/SonicForge.app/Contents/Resources/Textures
+for wood in walnut oak cherry; do
+    test -s "app/Resources/Textures/$wood.png"
+    cp "app/Resources/Textures/$wood.png" "build/SonicForge.app/Contents/Resources/Textures/$wood.png"
+done
 xcrun swiftc -swift-version 5 -O -module-cache-path build/module-cache \
     -target "$(uname -m)-apple-macosx14.0" \
-    app/AudioAsset.swift app/WaveformEditor.swift app/SelectionAudio.swift app/WAVExport.swift app/ADSREnvelope.swift app/SampleInstrument.swift app/InstrumentDocument.swift app/InstrumentLibrary.swift app/EnsembleModel.swift app/EnsembleDocument.swift app/EnsembleExport.swift app/EnsembleTimeline.swift app/EnsembleSections.swift app/EnsembleClips.swift app/PerformanceDocument.swift app/PerformanceGeneration.swift app/CodexPerformanceClient.swift app/PerformanceComposer.swift app/MIDIInput.swift app/PlayerModel.swift app/PerformanceEditor.swift app/PerformanceComposerView.swift app/InstrumentKeyboard.swift app/LibraryView.swift app/EnsembleTimelineView.swift app/EnsembleSectionsView.swift app/EnsembleDuplicateMenu.swift app/EnsembleClipEditor.swift app/EnsembleView.swift app/WorkspaceInspector.swift app/WorkspaceView.swift app/StudioView.swift app/SonicForgeApp.swift \
+    app/AudioAsset.swift app/WaveformEditor.swift app/SelectionAudio.swift app/WAVExport.swift app/ADSREnvelope.swift app/SampleInstrument.swift app/InstrumentDocument.swift app/InstrumentLibrary.swift app/EnsembleModel.swift app/EnsembleDocument.swift app/EnsembleExport.swift app/EnsembleTimeline.swift app/EnsembleSections.swift app/EnsembleClips.swift app/PerformanceDocument.swift app/PerformanceGeneration.swift app/CodexPerformanceClient.swift app/PerformanceComposer.swift app/MIDIInput.swift app/PlayerModel.swift app/PerformanceEditor.swift app/PerformanceComposerView.swift app/InstrumentKeyboard.swift app/LibraryView.swift app/PerformanceNoteLayout.swift app/PerformanceNoteView.swift app/WorkspaceAppearance.swift app/WorkspaceSectionInspector.swift app/EnsembleTimelineView.swift app/EnsembleSectionsView.swift app/EnsembleDuplicateMenu.swift app/EnsembleClipEditor.swift app/EnsembleView.swift app/WorkspaceInspector.swift app/WorkspaceView.swift app/StudioView.swift app/SonicForgeApp.swift \
     -o build/SonicForge.app/Contents/MacOS/SonicForge
 cat > build/SonicForge.app/Contents/Info.plist <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

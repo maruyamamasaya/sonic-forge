@@ -158,3 +158,6 @@ EnsembleClipTestsで同じPCMを持つ1パートのIntro/Chorusの異なる演�
 ## Main Workspace
 WorkspaceTestsは選択編集入口の最初クリップ更新・未知ID保持・追加クリップ独立性、共有PCMを保つRoot/ADSR/Loop変更、別パート保持、不正Loop拒否時のdirty保持、v5保存復元を確認。--playbackで再生中の編集ロックと停止も確認する。
 UI: メイン起動→クリップ選択→右Clip編集→Instrument設定→ライブラリ検索/試聴/Assign→Space再生/Stop All→Sample StudioとArrangementの往復→All Parts…→保存/再起動→WAV書出しを確認。入力欄/モーダルでSpaceが構成を再生しないこと、最小1100×760と最大化で各列/下部操作が使えることを確認。旧Sample Studioの最小高さは880。
+
+## Natural Studio / Note Preview
+WorkspaceTestsでPerformanceNoteLayoutの全繰り返し音符をproduction MIDIの時刻・移調済み音程・強弱と照合し、ペダル終端を含む長さ/押鍵幅の区別、不正値拒否を確認する。UIでは3素材のロード/切替と再起動保持、帯の選択/名前/長さ/順序/複製/削除、音符/下段選択の同期、Fit/zoom/スクロール前後の開始位置保持とドラッグを確認。最小1100×760と1920×1080基準の最大化で表示/下段境界を確認し、保存/再起動/WAV書出し/再読み込みと既存Sample Studioの導線を確認する。全素材のbundle一致も確認する。

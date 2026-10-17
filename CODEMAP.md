@@ -21,7 +21,7 @@
 ## アプリケーションコード
 | Feature | Primary paths | Search keywords / Key entry points | Related tests |
 | --- | --- | --- | --- |
-| アプリ入口・メイン制作画面 | app/SonicForgeApp.swift、app/WorkspaceView.swift、app/WorkspaceInspector.swift | WorkspaceView、ensembleWorkspaceActive、Selected clip、setInstrumentSettings | 実アプリ手動確認 |
+| アプリ入口・メイン制作画面 | app/SonicForgeApp.swift、app/WorkspaceView.swift、app/WorkspaceInspector.swift、app/WorkspaceSectionInspector.swift、app/WorkspaceAppearance.swift | WorkspaceView、ensembleWorkspaceActive、Selected clip、setInstrumentSettings | 実アプリ手動確認 |
 | WAV・デモ・波形解析 | app/AudioAsset.swift | AudioAsset.load、DemoAudio.write、peaks | tests/AudioTests.swift |
 | 再生・ファイル選択・状態 | app/PlayerModel.swift | open、load、toggle、stop、seek、playSelection、refreshPlaybackState | tests/AudioTests.swift --playback |
 | 選択・ズーム・表示範囲 | app/WaveformEditor.swift | select、setZoom、pan、fitSelection、AudioSelection | tests/AudioTests.swift |
@@ -81,3 +81,7 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 検索の一致なしは機能が不要・仕様がないことの証明にはならない。
 
 メイン選択編集のモデル検証は tests/WorkspaceTests.swift。UIはWorkspaceView/Inspector、旧一覧はEnsembleView、素材編集はStudioView。
+
+音符プレビューは app/PerformanceNoteLayout.swift の PerformanceNoteLayout.make と app/PerformanceNoteView.swift の PerformanceNoteView / SelectedClipNotes。検証は tests/WorkspaceTests.swift と実UI。
+
+自然木素材は app/Resources/Textures/、bundleへのコピーは scripts/build.sh。

@@ -11,7 +11,7 @@ struct SonicForgeApp: App {
                 .task { model.installTransportShortcuts(); await model.startSession() }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.cleanup() }
         }
-        .defaultSize(width: 1440, height: 900)
+        .defaultSize(width: 1920, height: 1080)
         .commands {
             CommandMenu("Playback") {
                 Button("Play / Pause") {

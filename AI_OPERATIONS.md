@@ -151,3 +151,9 @@ Demo Songは2楽器/各2クリップ。Save…後のv5にはadditionalClipsが�
 Inspector modeをInstrumentへ切り替え、Selected instrument root/Attack/Decay/Sustain/Release/loopを操作する。setInstrumentSettingsは共有PCMを維持しRoot/ADSR/Loopだけを変更、無効値/再生中は保持する。値は構成へ保存し、ライブラリ原本を変更しない。最初のクリップもeditClip/setClipPerformance/openClipPerformanceで編集できる。
 全行を一覧で操作したい場合はAll Parts…（旧Ensembleシート）。Open Sample Studioで従来の波形/鍵盤/MIDI/Composeへ切り替え、Arrangementで戻る。画面移動は音を止める。main表示中はStudioのPC鍵盤・MIDIを抑制、Spaceは構成、⌘Sは構成保存。Studioでは従来のキー操作へ戻る。ファイルメニューのOpen WAV/Open Instrument/Load DemoはStudioを表示する。
 メインのStop all workspace audioで構成・ライブラリ試聴・Studioを停止。再生/書き出し中は割り当て・配置・音色編集不可。Stop後playing=false/全voices=0/previewing=nilを確認する。書き出しは上部Export WAV…、進捗とCancel Exportは下部。構成Openはdirty時の確認と失敗保持を継続する。
+
+## Natural Studio: セクション帯と音符表示
+上部Wood themeはWorkspaceWoodの3値。workspaceWoodThemeV1に保存し、構成dirtyとは独立。アプリ同梱Texturesを使用する。選択変更とテーマ変更で音が鳴らないことを確認。
+メインのSelect section 名前 UUIDをクリック→右WorkspaceSectionInspectorのSelected section name/lengthで編集。Move selected section earlier/later、Duplicate selected section、Remove Sectionを使う。複製成功時は新しいセクションを選択、削除失敗は既存を保持。All Parts…の旧カードも使用可。選択だけではdirtyにならず、メイン再読込/削除で存在しない選択を解除する。
+メインのTimeline zoom in/outとFit arrangementは表示倍率のみ変更し、clip.startBeatを書き換えない。狭い画面/拡大時は水平スクロール。ドラッグとアクセシビリティ増減は既存movePartを使用。セクション帯/クリップは同じ拍座標で動く。
+PerformanceNoteLayout.makeが実演奏から音符の時刻/長さ/移調済み音程/調整済み強弱を得る。繰り返し間隔は既存EnsembleTimelineと同じceil、終端はペダルイベントも含む。音符自体の幅は押鍵時間。Selected clip note detailで音符数/全長/表示音域を確認する。下段は読み取り専用、編集APIと誤認しない。停止は既存Stop all workspace audio、playing=false/全voices=0/previewing=nilを確認する。

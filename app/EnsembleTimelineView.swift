@@ -6,26 +6,36 @@ struct EnsembleTimelineView: View {
     var selectedPart: UUID? = nil
     var selectedClip: UUID? = nil
     var onSelect: (UUID, UUID) -> Void = { _, _ in }
-    private var rowHeight: CGFloat { expanded ? 76 : 30 }
-    private let scale = 24.0
+    var selectedSection: UUID? = nil
+    var onSelectSection: (UUID) -> Void = { _ in }
+    @State private var viewportWidth: CGFloat = 800
+    @State private var zoom = 1.0
+    private var rowHeight: CGFloat { expanded ? 86 : 30 }
+    private var scale: Double { expanded ? max(3, (viewportWidth - 116 - 16) / extent) * zoom : 24 }
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private var extent: Double {
         let last = ensemble.parts.flatMap(\.allClips).map { clip in
             EnsembleSections.offset(clip.sectionID, in: ensemble.sections) + (clip.startBeat.isFinite ? max(0, min(256, clip.startBeat)) : 0) + (EnsembleTimeline.repeatedLength(clip.performance, count: clip.repeatCount) ?? 0)
         }.max() ?? 0
-        return max(32, ceil(max(last, EnsembleSections.end(ensemble.sections)) / 16) * 16 + 8)
+        return expanded ? max(16, ceil(max(last, EnsembleSections.end(ensemble.sections)) / 4) * 4) : max(32, ceil(max(last, EnsembleSections.end(ensemble.sections)) / 16) * 16 + 8)
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("ARRANGEMENT").font(.system(size: 10, weight: .medium)).tracking(1.5)
                 Spacer()
-                Text("Beats · Drag to move · Snap ¼ · Scroll horizontally")
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                if expanded {
+                    Text("Beats · Snap ¼").font(.system(size: 10)).foregroundStyle(.secondary)
+                    Button { zoom = max(1, zoom / 1.5) } label: { Image(systemName: "minus.magnifyingglass") }.disabled(zoom <= 1).accessibilityLabel("Timeline zoom out")
+                    Button { zoom = min(16, zoom * 1.5) } label: { Image(systemName: "plus.magnifyingglass") }.disabled(zoom >= 16).accessibilityLabel("Timeline zoom in")
+                    Button("Fit") { zoom = 1 }.accessibilityLabel("Fit arrangement")
+                } else {
+                    Text("Beats · Drag to move · Snap ¼ · Scroll horizontally").font(.system(size: 10)).foregroundStyle(.secondary)
+                }
             }
             HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("PART").font(.system(size: 9)).foregroundStyle(.secondary).frame(height: ensemble.sections.isEmpty ? 22 : 42)
+                    Text(expanded ? "PART / MIX" : "PART").font(.system(size: 10)).foregroundStyle(.secondary).frame(height: ensemble.sections.isEmpty && !expanded ? 22 : expanded ? 50 : 42)
                     ForEach(ensemble.parts) { part in
                         Button { onSelect(part.id, part.primaryClipID) } label: {
                             TimelinePartLabel(part: part, expanded: expanded)
@@ -36,16 +46,23 @@ struct EnsembleTimelineView: View {
                 }
                 ScrollView(.horizontal) {
                     VStack(spacing: 0) {
-                        if !ensemble.sections.isEmpty {
+                        if !ensemble.sections.isEmpty || expanded {
                             ZStack(alignment: .topLeading) {
                                 ForEach(ensemble.sections) { section in
-                                    Text(section.name).font(.system(size: 9, weight: .medium)).lineLimit(1)
-                                        .padding(.leading, 4).frame(width: max(1, (section.beats.isFinite ? min(256, max(0, section.beats)) : 0) * scale), height: 18, alignment: .leading)
-                                        .background(accent.opacity(0.12)).border(accent.opacity(0.25), width: 0.5)
+                                    Button { onSelectSection(section.id) } label: {
+                                        Text(section.name).font(.system(size: expanded ? 11 : 9, weight: .medium)).lineLimit(1)
+                                            .padding(.leading, 6)
+                                            .frame(width: max(1, (section.beats.isFinite ? min(256, max(0, section.beats)) : 0) * scale), height: expanded ? 28 : 18, alignment: .leading)
+                                            .background(accent.opacity(selectedSection == section.id ? 0.25 : 0.09))
+                                            .overlay(alignment: .bottom) { if selectedSection == section.id { Rectangle().fill(accent).frame(height: 2) } }
+                                            .overlay { Rectangle().stroke(Color.white.opacity(0.12), lineWidth: 0.5) }
+                                    }.buttonStyle(.plain)
+                                        .accessibilityLabel("Select section \(section.name) \(section.id)")
+                                        .accessibilityValue("Start \(EnsembleSections.offset(section.id, in: ensemble.sections)) beats, length \(section.beats) beats")
+                                        .help("Select to edit section name, length, order or duplicate")
                                         .offset(x: EnsembleSections.offset(section.id, in: ensemble.sections) * scale)
-                                        .accessibilityLabel("Section \(section.name), start \(EnsembleSections.offset(section.id, in: ensemble.sections)), length \(section.beats) beats")
                                 }
-                            }.frame(width: extent * scale, height: 20, alignment: .topLeading)
+                            }.frame(width: extent * scale, height: expanded ? 28 : 20, alignment: .topLeading)
                         }
                         ZStack(alignment: .topLeading) {
                             ForEach(0...Int(extent / 4), id: \.self) { index in
@@ -59,7 +76,7 @@ struct EnsembleTimelineView: View {
                     }
                     .overlay(alignment: .topLeading) {
                         if ensemble.positionBeats > 0 {
-                            Rectangle().fill(accent).frame(width: 1, height: CGFloat(ensemble.sections.isEmpty ? 22 : 42) + CGFloat(ensemble.parts.count) * rowHeight)
+                            Rectangle().fill(accent).frame(width: 1, height: CGFloat(ensemble.sections.isEmpty && !expanded ? 22 : expanded ? 50 : 42) + CGFloat(ensemble.parts.count) * rowHeight)
                                 .offset(x: ensemble.positionBeats * scale).allowsHitTesting(false)
                         }
                     }
@@ -67,7 +84,10 @@ struct EnsembleTimelineView: View {
             }
             Text("Clip length includes rests and pedal events; Release tails continue beyond the clip.")
                 .font(.system(size: 9)).foregroundStyle(.secondary)
-        }.padding(12).background(Color.black.opacity(0.16))
+        }.padding(expanded ? 8 : 12).background(Color.black.opacity(0.16))
+            .background { GeometryReader { geometry in
+                Color.clear.onAppear { viewportWidth = geometry.size.width }.onChange(of: geometry.size.width) { _, width in viewportWidth = width }
+            } }
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .overlay { RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.08)) }
     }
@@ -139,14 +159,20 @@ private struct TimelineClipBar: View {
                         }
                     }
                 }
-                .overlay(alignment: .leading) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        if expanded { Text(clip.performance.name).font(.system(size: 11, weight: .medium)).lineLimit(1) }
+                .overlay {
+                    if expanded {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(clip.performance.name).font(.system(size: 11, weight: .medium)).foregroundStyle(accent).lineLimit(1)
+                            PerformanceNoteView(performance: clip.performance, repeatCount: clip.repeatCount, root: part.instrument?.root, selected: selected).equatable()
+                                .allowsHitTesting(false)
+                        }.padding(.horizontal, 6).padding(.vertical, 5)
+                    } else {
                         Text(String(format: "%.2f → %.2f · ×%d", start, start + length, clip.repeatCount))
-                        .font(.system(size: 9, design: .monospaced)).foregroundStyle(accent).lineLimit(1)
-                    }.padding(.horizontal, 7)
+                            .font(.system(size: 9, design: .monospaced)).foregroundStyle(accent).padding(.horizontal, 7).lineLimit(1)
+                    }
                 }
-                .frame(width: max(2, length * scale), height: expanded ? 58 : 22)
+                .frame(width: max(2, length * scale), height: expanded ? 66 : 22)
+                .clipped()
                 .contentShape(Rectangle())
                 .highPriorityGesture(DragGesture(minimumDistance: 3)
                     .updating($translation) { value, state, _ in if ensemble.canEdit { state = value.translation.width } }
@@ -160,11 +186,11 @@ private struct TimelineClipBar: View {
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { onSelect(part.id, clip.id) }
                 .accessibilityLabel("Timeline clip for \(part.name), \(clip.performance.name), \(clip.id)")
-                .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d", start, length, start + length, clip.repeatCount))
+                .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d, %d notes", start, length, start + length, clip.repeatCount, clip.performance.notes.count * clip.repeatCount))
                 .accessibilityAdjustableAction { direction in
                     ensemble.movePart(part.id, to: min(256, max(0, clip.startBeat + (direction == .increment ? 0.25 : -0.25))), clip: clip.id)
                 }
-                .help("Drag this clip to move in ¼ beats; the instrument is shared by all clips in the row.")
+                .help("Drag this clip to move in ¼ beats. Notes show pitch, key-down length and velocity; the instrument is shared.")
                 .offset(x: start * scale)
         } else {
             Text("Invalid performance").font(.system(size: 10)).foregroundStyle(.orange)
