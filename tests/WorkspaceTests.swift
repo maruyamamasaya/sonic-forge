@@ -40,6 +40,7 @@ enum WorkspaceTests {
         try await noteHistory()
         try await multipleNotes()
         try await quantizeNotes()
+        try await groupVelocity()
         // The visual note model must agree with production events at every repeat.
         var performance = PerformanceDocument.preset(.pedalStudy)
         performance.transpose = 2; performance.velocityPercent = 75
@@ -115,6 +116,7 @@ enum WorkspaceTests {
             precondition(!model.canUndoNotes(part: part.id, clip: id) && !model.restoreNoteEdit(part: part.id, clip: id))
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .move(1, 0)) == nil)
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .quantize(.quarter)) == nil)
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .velocity(100)) == nil)
             precondition(part.performance == original); model.stop()
         }
         print("PASS: atomic note add/edit/delete, invalid edit preservation, sibling isolation, events, v5 restore, WAV reload and playback lock")
@@ -283,8 +285,55 @@ enum WorkspaceTests {
         boundary.notes = [PerformanceNote(beat: 7.6, duration: 0.2, pitch: 57, velocity: 60)]
         model.setClipPerformance(boundary, part: part.id, clip: id)
         precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .quantize(.quarter)) == nil)
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .velocity(100)) == nil)
         precondition(part.performance == boundary)
         print("PASS: six quantize grids, ties/triplets, selected starts only, one-step undo/redo, no-op clean state, save/restore/events and atomic overlap/boundary rejection")
+    }
+
+    @MainActor private static func groupVelocity() async throws {
+        let model = EnsembleModel(); await model.addSharedSongDemo()
+        let part = model.parts[0], id = part.primaryClipID
+        let original = part.performance, siblings = part.additionalClips
+        let other = model.parts[1].allClips
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 2], action: .velocity(90)) == [0, 2])
+        for index in original.notes.indices {
+            var expected = original.notes[index]; if index != 1 { expected.velocity = 90 }
+            precondition(part.performance.notes[index] == expected)
+        }
+        let uniform = part.performance
+        precondition(part.additionalClips == siblings && model.parts[1].allClips == other && part.performance.pedals == original.pedals)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == original)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id, redo: true) && part.performance == uniform)
+        var source = original
+        source.notes[0].velocity = 1; source.notes[1].velocity = 64; source.notes[2].velocity = 127
+        model.setClipPerformance(source, part: part.id, clip: id)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1, 2], action: .velocityOffset(20)) == [0, 1, 2])
+        precondition(part.performance.notes.map(\.velocity) == [21, 84, 127])
+        precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == source)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1, 2], action: .velocityOffset(-20)) == [0, 1, 2])
+        precondition(part.performance.notes.map(\.velocity) == [1, 44, 107])
+        let changed = part.performance
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Velocity-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("velocity.sfensemble")
+        let saved = await model.save(to: url, remember: false); precondition(saved && !model.dirty)
+        for action: EnsembleModel.NoteGroupAction in [.velocity(0), .velocity(128), .velocity(Int.max), .velocityOffset(Int.min), .velocityOffset(127)] {
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: action) == nil)
+            precondition(part.performance == changed && !model.dirty)
+        }
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .velocityOffset(0)) == [0, 1])
+        precondition(!model.dirty)
+        let loaded = EnsembleModel(); let opened = await loaded.load(url, remember: false)
+        precondition(opened && loaded.parts[0].performance == changed)
+        let events = try changed.events(root: part.instrument!.root)
+        let noteOn = events.filter { $0.bytes[0] & 0xf0 == 0x90 }
+        precondition(noteOn.map { Int($0.bytes[2]) } == changed.notes.map(\.velocity))
+        let extra = part.additionalClips[0]
+        precondition(model.editNoteGroup(part: part.id, clip: extra.id, indices: [0, 1], action: .velocity(77)) == [0, 1])
+        precondition(part.performance == changed)
+        precondition(model.restoreNoteEdit(part: part.id, clip: extra.id) && part.additionalClips == siblings)
+        print("PASS: selected velocity set/offset, clipping bounds, attribute/sibling preservation, one-step history, invalid integer protection, no-op clean, save/restore and MIDI dynamics")
     }
 
 }

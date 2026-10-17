@@ -93,3 +93,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 複数音符: ClipNoteEditor.swift の pick/group/offsetAction、ClipNoteGridの矩形選択 → EnsembleModel.editNoteGroup → editClipNotes。テストはWorkspaceTests.swift。
 
 クオンタイズ入口: PerformanceDocument.swift の NoteQuantizeGrid、EnsembleModel.editNoteGroup(.quantize)、ClipNoteEditorのNote quantize grid / Quantize selected clip notes。tests/WorkspaceTests.swift。
+
+選択音符の強弱: ClipNoteEditorのSelected notes velocity mode/value / Apply velocity to selected notes → EnsembleModel.editNoteGroup(.velocity/.velocityOffset)。tests/WorkspaceTests.swift。

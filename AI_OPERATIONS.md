@@ -175,3 +175,7 @@ Selected note countで選択数を確認。Selected notes beat offset / Selected
 ## 選択音符のクオンタイズ
 Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32・1/8 T・1/16 Tを選択→Quantize selected clip notesを実行する。狭いウィンドウでは下段の選択操作バーを横スクロールする。四分音符=1拍、Tは三連符。開始拍のみ最寄りに揃え、中間値は後ろへ丸める。クリップ先頭が原点で、長さ/音程/強弱/チャンネル/ペダルと非選択音は保持する。ドラッグのスナップ間隔は変更しない。
 モデルはNoteQuantizeGrid、editNoteGroup(...action:.quantize(grid))→editClipNotes。成功後も選択を維持し、Clip note NのstartとSelected note countで確認する。一括Undo/Redoは既存ボタン。既に揃っている場合は履歴/dirtyを増やさずRedoも保持する。同音重複・セクション超過などは全体を拒否しensemble.errorで通知。再生/出力中は無効、Stop all workspace audioで停止後に適用する。保存/WAVには適用済み開始拍を反映し、格子選択そのものは保存しない。
+
+## 選択音符のベロシティ一括調整
+音符を選択→Selected notes velocity modeでSetまたはOffsetを選択→Selected notes velocity valueへ整数→Apply velocity to selected notes。Setは1〜127へ統一、Offsetは−126〜126を加算して結果を1〜127へ制限する。モード切替時の入力初期値はSet=90、Offset=0。操作バーが収まらない場合は横スクロールする。
+モデルはeditNoteGroup(...action:.velocity(value)/.velocityOffset(offset))→editClipNotes。成功はClip note Nのvelocityと音符の明るさ、Selected note countで確認。クリップのvelocityPercent適用前の値であり、実際のMIDI出力は既存の%調整も受ける。非選択音・開始拍・音程・長さ・チャンネル・ペダルを保持し、Undo/Redoは一括1操作。無変更は履歴/dirty/Redoを保持する。無効値はensemble.error、適用失敗時は元データを保持。再生/出力中は無効でStop all workspace audio後に操作する。保存/WAVは適用結果を使い、モード/入力値は保存しない。

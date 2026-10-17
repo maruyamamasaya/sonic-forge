@@ -84,3 +84,5 @@ Status: proposed / accepted / superseded
 - [0030: 音符の複数選択と一括編集](0030-note-multiple-selection.md)
 
 - [0031: 選択音符の開始位置クオンタイズ](0031-note-quantization.md)
+
+- [0032: 選択音符のベロシティ一括調整](0032-group-note-velocity.md)

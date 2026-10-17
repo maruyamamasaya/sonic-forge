@@ -362,7 +362,7 @@ final class EnsembleModel: ObservableObject {
         do { _ = try performance.events(root: part.instrument?.root); editClip(part: id, clip: clipID) { $0.performance = performance }; error = nil }
         catch { self.error = error.localizedDescription }
     }
-    enum NoteGroupAction { case move(Double, Int), duplicate(Double, Int), delete, quantize(NoteQuantizeGrid) }
+    enum NoteGroupAction { case move(Double, Int), duplicate(Double, Int), delete, quantize(NoteQuantizeGrid), velocity(Int), velocityOffset(Int) }
     /// Apply a selection as one validated edit and one undo step.
     func editNoteGroup(part id: UUID, clip clipID: UUID, indices: Set<Int>, action: NoteGroupAction) -> Set<Int>? {
         guard canEdit, let clip = parts.first(where: { $0.id == id })?.allClips.first(where: { $0.id == clipID }),
@@ -370,6 +370,12 @@ final class EnsembleModel: ObservableObject {
         var result = indices
         let success = editClipNotes(part: id, clip: clipID) { notes in
             switch action {
+            case let .velocity(value):
+                guard (1...127).contains(value) else { notes[0].velocity = 0; return }
+                for index in indices { notes[index].velocity = value }
+            case let .velocityOffset(offset):
+                guard (-126...126).contains(offset) else { notes[0].velocity = 0; return }
+                for index in indices { notes[index].velocity = min(127, max(1, notes[index].velocity + offset)) }
             case let .quantize(grid):
                 for index in indices { notes[index].beat = grid.snap(notes[index].beat) }
             case .delete:

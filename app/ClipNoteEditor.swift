@@ -8,6 +8,8 @@ struct SelectedClipNotes: View {
     let clipID: UUID
     @State private var selection: Set<Int> = []
     @State private var multiSelect = false
+    @State private var relativeVelocity = false
+    @State private var groupVelocity = "90"
     @State private var quantizeGrid: NoteQuantizeGrid = .sixteenth
     @State private var moveBeats = "1"
     @State private var movePitch = "0"
@@ -109,6 +111,21 @@ struct SelectedClipNotes: View {
                         Button("Quantize") { group(.quantize(quantizeGrid)) }
                             .accessibilityLabel("Quantize selected clip notes").disabled(selection.isEmpty)
                             .help("Align selected note starts; lengths and velocities stay unchanged. T = triplet.")
+                        Divider().frame(height: 16)
+                        Picker("Velocity", selection: $relativeVelocity) {
+                            Text("Set").tag(false)
+                            Text("Offset").tag(true)
+                        }.frame(width: 135).accessibilityLabel("Selected notes velocity mode")
+                            .onChange(of: relativeVelocity) { _, relative in groupVelocity = relative ? "0" : "90" }
+                        TextField("Value", text: $groupVelocity).textFieldStyle(.roundedBorder).frame(width: 48)
+                            .accessibilityLabel("Selected notes velocity value")
+                        Button("Apply velocity") {
+                            guard let value = Int(groupVelocity) else {
+                                ensemble.error = "ベロシティは整数で入力してください。"; return
+                            }
+                            group(relativeVelocity ? .velocityOffset(value) : .velocity(value))
+                        }.accessibilityLabel("Apply velocity to selected notes").disabled(selection.isEmpty)
+                            .help("Set: 1–127. Offset: −126…126, limited to 1–127. Before clip velocity %. Only selected notes change.")
                     }.font(.system(size: 10)).padding(.horizontal, 10).padding(.vertical, 4)
                 }.fixedSize(horizontal: false, vertical: true)
                 Divider()
