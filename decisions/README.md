@@ -72,3 +72,5 @@ Status: proposed / accepted / superseded
 - [0024: 演奏クリップの複製](0024-clip-duplication.md)
 
 - [0025: セクション全体の複製](0025-section-duplication.md)
+
+- [0026: Ensembleメインワークスペース](0026-ensemble-workspace.md)

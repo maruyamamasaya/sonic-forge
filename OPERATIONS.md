@@ -171,18 +171,18 @@ Search instrumentsで名前を絞り、行を選んでPreview。0.8秒の基準�
 上部Compose…で指示を入力し、Generate→候補確認→Use & Play。接続方式の設定と詳しい手順は[AI生成ガイド](AI_GENERATION.md)。音源がなければ本体Load Demo→Compose…→Demo→Generate Demoで確認できる。生成候補の採用後はEdit…から調整・Save…できる。
 
 ## 複数楽器で演奏する
-Ensemble…から最大4パートへ楽器と演奏を割り当てる。Add Demo Duo→Play Allで音源なしでも確認できる。パートの割り当て、共通テンポ、音量・ミュートと停止の詳細は[ENSEMBLE.md](ENSEMBLE.md)を参照。
+メインEnsembleから最大4パートへ楽器と演奏を割り当てる。Add Demo Duo→Play Allで音源なしでも確認できる。パートの割り当て、共通テンポ、音量・ミュートと停止の詳細は[ENSEMBLE.md](ENSEMBLE.md)を参照。
 
 ## 複数パート構成の保存
-Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保存/読込した構成は起動時に無音で復元される。Open…の未保存置換確認、欠落/破損時、デモの保存確認は[構成の保存手順](ENSEMBLE.md#構成を保存復元する)、形式は[構成v1](ENSEMBLE_FORMAT.md)。
+メインEnsembleの上部Save…で音源同梱の.sfensembleを保存。最後に保存/読込した構成は起動時に無音で復元される。Open…の未保存置換確認、欠落/破損時、デモの保存確認は[構成の保存手順](ENSEMBLE.md#構成を保存復元する)、形式は[構成v1](ENSEMBLE_FORMAT.md)。
 
-開始位置の確認: Ensemble…→Demo Entry +4→各START（0/4拍）→Play All→途中でPluckが加わる→Stop All。変更後はSave…で保存。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
+開始位置の確認: メインEnsemble（一覧はAll Parts…）→Demo Entry +4→各START（0/4拍）→Play All→途中でPluckが加わる→Stop All。変更後はSave…で保存。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
 
-全体WAV: Ensemble…→停止→Export WAV…→Exported→Done→本体Open WAV…で再読込。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
+全体WAV: メインEnsemble（一覧はAll Parts…）→停止→Export WAV…→Exported→Done→本体Open WAV…で再読込。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
 
-構成の可視化: Ensemble…のARRANGEMENTで各クリップを左右ドラッグ（¼拍）。開始位置の保存はSave…。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
+構成の可視化: メインEnsembleのARRANGEMENTで各クリップを左右ドラッグ（¼拍）。開始位置の保存はSave…。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
 
-演奏繰り返し: Ensemble…各行REPEAT（合計1〜16回）。Demo Repeatで×2/×3のデモを追加。操作は[ENSEMBLE.md](ENSEMBLE.md)。
+演奏繰り返し: All Parts…各行REPEAT（合計1〜16回）。Demo Repeatで×2/×3のデモを追加。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 曲構成: SONG SECTIONSのAdd Section→各パートSection割り当て。空の構成はDemo SongでIntro/Aメロ/サビを生成できる。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
 
@@ -191,3 +191,5 @@ Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保
 Ensembleで停止中、Duplicate To…→別セクションを選ぶ。追加クリップのPitch/Velocityで展開を調整する。詳細は[ENSEMBLE.md](ENSEMBLE.md)を参照。
 
 セクション全体の複製はカード右上のDuplicate sectionボタン。元の直後へ所属クリップごと追加する。制限とデモ手順は[ENSEMBLE.md](ENSEMBLE.md)を参照。
+
+起動時は3列Ensemble。素材編集は左下Waveform & Instrument…→Sample Studio、Arrangementで戻る。⌘S/Spaceは現在画面に従う。構成の全操作とライブラリの導線は[ENSEMBLE.md](ENSEMBLE.md)を参照。

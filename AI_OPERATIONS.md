@@ -11,11 +11,11 @@ AIがアプリを操作・拡張するときに、操作の入口、観測する
 - WAVを読み込み、範囲を切り出してサンプラー楽器へ取り込み、基準音・ADSR・ループ・クロスフェードを設定できる。
 - 最大8音を画面・PC・MIDIから演奏でき、MIDIの強弱とサステインペダルに対応する。
 - 内蔵3種類を元にテンポ・移調・強弱・個別音符・ペダルを編集・保存し、Auto playで自動演奏できる。実機や演奏スキルは不要。
-- 演奏データの外部ファイル読込・保存、Compose…によるAIフレーズ生成は対応済み。録音・曲の書き出しは未実装。
+- 演奏データの外部ファイル読込・保存、Compose…によるAIフレーズ生成は対応済み。録音は未実装。構成全体のWAV書き出しは対応済み。
 - 外部AI向けの操作API・CLI・MCPは未実装。下記Swiftメソッドはアプリ内・テスト内の入口であり、外部から直接呼べるAPIではない。現時点の外部操作は実画面を通して行う。
 
 ## 最初に試す手順
-1. アプリを起動。既存の楽器を変更せず試す場合はそのまま使用する。Load Demoは現在の未保存音色を置き換えるので、残す必要があれば先にSave…する。
+1. アプリを起動→左下Open Sample Studio（Waveform & Instrument…）。既存の楽器を変更せず試す場合はそのまま使用する。Load Demoは現在の未保存音色を置き換えるので、残す必要があれば先にSave…する。
 2. 音源の表示があり、読み込み中でないことを確認。デモの場合は楽器にも自動取り込みされる。
 3. 演奏プリセットでSoft chords / Arpeggio / Pedal phraseを選ぶ。Edit…で編集・Open…/Save…で演奏を読み書きし、Doneで戻ってAuto playを押す。仮想MIDI入力は自動で作成・選択される。
 4. 鍵盤の点灯・発音数・出力メーターを確認。Pedal phraseではPEDAL CH 1が一時表示される。
@@ -36,7 +36,7 @@ UIの要素番号や画面座標は固定ではない。機器やウィンドウ
 | 実機なしの手動確認 | Test input、VELOCITY、Test pedal、MIDI chord | createTestInput、testVelocity、sendTest、toggleTestChord |
 | 自動演奏 | プリセット、Auto play / Stop auto | performancePreset、playPerformance / stopPerformance |
 | 構成保存・復元 | Ensemble上部Open… / Save…、Saved / ● Unsaved | EnsembleModel.save/load/restoreLastSession、dirty/fileURL/fileMessage |
-| 複数パート | Ensemble…、Add Part / Add Current / Add Demo Duo、Play All / Stop All | EnsembleModel.parts/timeline/play/stop、EnsembleVoice.receive |
+| 複数パート | メインEnsemble / All Parts…、Add Part / Add Current / Add Demo Duo、Play All / Stop All | EnsembleModel.parts/timeline/play/stop、EnsembleVoice.receive |
 | AI演奏候補 | Compose…、Generate、Cancel Generation、Use & Play | PerformanceComposer.generate/cancel、candidate/candidateRoot/source、MIDIInput.applyGeneratedPerformance |
 | 演奏編集・保存 | Edit…、TEMPO、TRANSPOSE、VELOCITY、Notes、Pedal、Open… / Save… | PerformanceEditor、MIDIInput.performance、loadPerformance / savePerformance |
 | 全音停止 | All Notes Off | PlayerModel.stopInstrument |
@@ -95,7 +95,7 @@ UIの操作名、モデルの入口、演奏データ形式、成功判定、停
 APIキーやCLI認証情報をチャット・文書・ログへ転記しない。生成結果からコードを実行しない。Codex CLIは別プロセスとして利用し、SonicForgeの作業ディレクトリを渡さない。Other AIのCopy Briefは操作したときだけクリップボードへ指示とschemaを入れる。DemoはAI応答ではない。
 
 ## 複数の楽器と演奏を割り当てる
-正本は[ENSEMBLE.md](ENSEMBLE.md)。Ensemble…→Add Partで行を追加→INSTRUMENTのライブラリ選択またはOpen…→PERFORMANCEのPreset/Open…/Use Current。Add Currentは現在の本体楽器と演奏をスナップショットで追加する。AI生成データは本体へ採用してAdd Current、または保存した.sfperformanceをパートへOpen…する。パートごとに異なるRootで生成/検証すること。音域を勝手に補正しない。
+正本は[ENSEMBLE.md](ENSEMBLE.md)。メインEnsemble→Add Partで行を追加→INSTRUMENTのライブラリ選択またはOpen…→PERFORMANCEのPreset/Open…/Use Current。Add Currentは現在の本体楽器と演奏をスナップショットで追加する。AI生成データは本体へ採用してAdd Current、または保存した.sfperformanceをパートへOpen…する。パートごとに異なるRootで生成/検証すること。音域を勝手に補正しない。
 全行のReadyと共通TEMPOを確認してPlay All。各行のvoices/出力、共通Beat/出力で同時演奏を判定する。本体の鍵盤やメーターはパート演奏の状態を表さない。playing=trueはRelease中も含み、releasingで区別。Stop All / Done / 非アクティブで全パートを停止。Stop後はplaying=false、各voices=0、level=-60、保持音とペダルが空であることを確認する。
 再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成はSave…した状態だけがディスクへ保存される。Doneで閉じただけ、または● Unsavedの状態を保存済みだと報告しない。外部操作APIは未実装。
 
@@ -144,3 +144,10 @@ Demo Songは2楽器/各2クリップ。Save…後のv5にはadditionalClipsが�
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中、Duplicate section 名前 UUIDボタンを操作する。モデル入口はEnsembleModel.duplicateSection(UUID)、成功は新セクションUUID、失敗はnil（canEdit=falseでは変更なし、それ以外はerror）。元の直後へ同じ長さのCopyを挿入し、sectionIDが元IDに一致する全パートの全クリップを複製する。Song基準は対象外。
 成功判定: sections数+1/元の次のIDが返却ID、各パートの対象クリップ数だけ追加、新しいclip UUIDとコピー先sectionID、演奏/START/REPEATの一致。コピー側のClip transpose/velocity for パート名 UUIDで展開を変え、元の値が変わらないことを確認。パート/音源は増えない。後続セクションは移動、Songは固定。
 全候補を先に検証し、どこかが上限/重複/不正なら既存sections/全クリップ/dirtyを保持する。失敗時に個別複製で途中まで補わない。保存は既存v5、再起動はsection順/ID/長さと追加clip ID/設定を照合。Play AllとWAVは延長された全構成を使う。停止はStop All→playing=false・全voices=0・ペダル解除を確認する。
+
+## メインEnsembleワークスペース
+起動入口はWorkspaceView。EnsembleModel/InstrumentLibrary/PlayerModelは同じインスタンスを共有する。左Search instruments→一覧選択→Preview/Stop Preview、Assign（選択パート）、Add as Part。選択したファイルのavailableとpartを確認し、失敗はlibrary/ensemble.errorで判定する。
+中央Select part 名前またはTimeline clip for パート名/演奏名/UUIDをクリック→右Inspector。Selected clip section/start/repeat/transpose/velocityを読み、編集が対象IDだけへ反映することを確認する。ドラッグ/増減は従来movePart。古いID/削除済みIDは使わず、再読込後は最新のUUIDを再取得。選択状態は未保存変更にならない。
+Inspector modeをInstrumentへ切り替え、Selected instrument root/Attack/Decay/Sustain/Release/loopを操作する。setInstrumentSettingsは共有PCMを維持しRoot/ADSR/Loopだけを変更、無効値/再生中は保持する。値は構成へ保存し、ライブラリ原本を変更しない。最初のクリップもeditClip/setClipPerformance/openClipPerformanceで編集できる。
+全行を一覧で操作したい場合はAll Parts…（旧Ensembleシート）。Open Sample Studioで従来の波形/鍵盤/MIDI/Composeへ切り替え、Arrangementで戻る。画面移動は音を止める。main表示中はStudioのPC鍵盤・MIDIを抑制、Spaceは構成、⌘Sは構成保存。Studioでは従来のキー操作へ戻る。ファイルメニューのOpen WAV/Open Instrument/Load DemoはStudioを表示する。
+メインのStop all workspace audioで構成・ライブラリ試聴・Studioを停止。再生/書き出し中は割り当て・配置・音色編集不可。Stop後playing=false/全voices=0/previewing=nilを確認する。書き出しは上部Export WAV…、進捗とCancel Exportは下部。構成Openはdirty時の確認と失敗保持を継続する。

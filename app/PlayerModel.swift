@@ -36,6 +36,7 @@ final class PlayerModel: ObservableObject {
     let midi = MIDIInput()
     let library = InstrumentLibrary()
     let composer = PerformanceComposer()
+    @Published var ensembleWorkspaceActive = true
     let ensemble = EnsembleModel()
     @Published private(set) var midiSuspended = false
     private var computerKeys: [UInt16: Int] = [:]
@@ -108,6 +109,14 @@ final class PlayerModel: ObservableObject {
                   window.attachedSheet == nil, NSApp.modalWindow == nil,
                   !(window.firstResponder is NSTextView) else { return event }
             let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+            if self.ensembleWorkspaceActive {
+                guard event.type == .keyDown, event.keyCode == 49, modifiers.isEmpty else { return event }
+                if !event.isARepeat && !self.ensemble.busy {
+                    if self.ensemble.playing { self.ensemble.stop() }
+                    else { self.stop(); self.library.stopPreview(); self.ensemble.play() }
+                }
+                return nil
+            }
             if event.type == .keyDown, modifiers.isEmpty, let note = Self.computerKeyboard[event.keyCode], self.instrumentSample != nil, !self.busy {
                 if !event.isARepeat && self.computerKeys[event.keyCode] == nil {
                     self.computerKeys[event.keyCode] = note

@@ -154,3 +154,7 @@ EnsembleClipTestsで同じPCMを持つ1パートのIntro/Chorusの異なる演�
 クリップ複製: tests/EnsembleClipTests.swiftで最初/追加クリップの複製、元の保持、独立した移調/強弱、重複/不明ID拒否時のdirty保持、v5復元、繰り返した各セクションのWAV非ゼロ出力と再読み込みを検証。実UIはDuplicate To…から別セクション→Pitch/Velocity→タイムライン→保存/再起動を確認。
 
 セクション複製: tests/SectionDuplicationTests.swiftで複数パートの最初/追加演奏の一括複製、元の保持、独立編集、後続移動、固定Songとの重複/一部パート上限時の全体保持、空セクション/名前長/8セクション制限、v5復元、各区間のWAV非ゼロ出力と再読み込みを確認。--playbackでコピーの移調発音、再生中の複製拒否、全音停止を確認。実UIはデモサビ複製→コピー編集→タイムライン→保存/再起動→WAV出力/再読み込み。
+
+## Main Workspace
+WorkspaceTestsは選択編集入口の最初クリップ更新・未知ID保持・追加クリップ独立性、共有PCMを保つRoot/ADSR/Loop変更、別パート保持、不正Loop拒否時のdirty保持、v5保存復元を確認。--playbackで再生中の編集ロックと停止も確認する。
+UI: メイン起動→クリップ選択→右Clip編集→Instrument設定→ライブラリ検索/試聴/Assign→Space再生/Stop All→Sample StudioとArrangementの往復→All Parts…→保存/再起動→WAV書出しを確認。入力欄/モーダルでSpaceが構成を再生しないこと、最小1100×760と最大化で各列/下部操作が使えることを確認。旧Sample Studioの最小高さは880。

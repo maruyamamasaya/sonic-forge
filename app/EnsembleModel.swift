@@ -323,8 +323,23 @@ final class EnsembleModel: ObservableObject {
         } catch { self.error = "クリップを複製できませんでした。\n" + error.localizedDescription; return nil }
     }
     func editClip(part id: UUID, clip clipID: UUID, change: (inout EnsembleClip) -> Void) {
-        guard canEdit, let part = parts.first(where: { $0.id == id }), let index = part.additionalClips.firstIndex(where: { $0.id == clipID }) else { return }
-        change(&part.additionalClips[index])
+        guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
+        if clipID == part.primaryClipID {
+            var clip = part.allClips[0]; change(&clip)
+            part.performance = clip.performance; part.startBeat = clip.startBeat
+            part.repeatCount = clip.repeatCount; part.sectionID = clip.sectionID; markDirty()
+        } else if let index = part.additionalClips.firstIndex(where: { $0.id == clipID }) {
+            change(&part.additionalClips[index])
+        }
+    }
+    func setInstrumentSettings(part id: UUID, root: Int, envelope: ADSRParameters, loop: SampleLoop) {
+        guard canEdit, let part = parts.first(where: { $0.id == id }), let old = part.instrument else { return }
+        guard (48...72).contains(root), envelope.isValid,
+              loop.isValid(frameCount: Int64(old.sample.buffer.frameLength), sampleRate: old.sample.buffer.format.sampleRate) else {
+            error = "楽器の基準音・ADSR・ループ範囲を確認してください。"; return
+        }
+        part.instrument = EnsembleInstrument(sample: old.sample, root: root, envelope: envelope, loop: loop, name: old.name)
+        markDirty(); error = nil
     }
     func removeClip(part id: UUID, clip clipID: UUID) {
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }

@@ -74,3 +74,5 @@ Date: YYYY-MM-DD
 - [2026-10-17: 演奏クリップの複製](2026-10-17-clip-duplication.md)
 
 - [2026-10-17: セクション全体の複製](2026-10-17-section-duplication.md)
+
+- [2026-10-17: Ensembleメインワークスペース](2026-10-17-ensemble-workspace.md)

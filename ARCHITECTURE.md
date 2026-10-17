@@ -2,7 +2,8 @@
 
 ## System Overview / Data Flow
 ```text
-SwiftUI StudioView → MainActor PlayerModel → AVAudioPlayer → macOS system output
+SwiftUI WorkspaceView → EnsembleModel → 共通AVAudioEngine → macOS system output
+          └ StudioView → PlayerModel → AVAudioPlayer / SampleInstrument
                          │
 NSOpenPanel / DemoAudio → AudioAsset.load（background）→ peak配列 → Canvas波形
 ```
@@ -159,3 +160,8 @@ EnsembleSectionは安定UUID/name/beatsを持ち、EnsembleModel.sectionsが配�
 クリップ複製はEnsembleModel.duplicateClipが新UUID・別sectionIDの値コピーを作り、全候補をEnsembleClips.validateで検証した後に追加する。演奏/START/REPEATを保持し、失敗は原子的に拒否。EnsembleDuplicateMenuとEnsembleClipEditorが操作入口。保存形式はv5を継続する。
 
 セクション複製はEnsembleModel.duplicateSectionが元の直後へ新UUIDの同長セクションを挿入し、全パートの所属クリップを値コピーする。後続配置と固定Songを含む全パートを候補上で検証後、dirty監視を一時抑制して全状態を反映し、一度だけ変更を記録する。既存v5/イベント展開/出力を共有する。
+
+## Main Workspace
+SonicForgeAppはWorkspaceViewを表示。PlayerModelのensemble/libraryを共有し、選択したpart/clip UUIDはView内だけで管理する。WorkspaceInspectorが最新allClipsから対象を解決し、消失時は先頭へ戻す。EnsembleTimelineViewはexpanded表示と選択コールバックを追加し、旧All Partsシートでは小型表示を維持する。ドラッグ処理は既存の境界/保存経路を共有。
+editClipは最初のクリップも統一して編集し、setInstrumentSettingsは同一PCMを保持した値置換で共有音色を編集。dirty/保存/全クリップ検証は既存モデルへ集約する。Workspaceのライブラリは既存InstrumentLibraryの検索/登録/試聴を使用し、構成への割当はEnsembleModel.loadInstrumentへ渡す。
+Sample Studioは同じウィンドウの表示切替で従来機能を保持。画面移動・アプリ非アクティブ・終了時に音声を停止。表示中のモードでSpace/⌘Sを振り分け、入力欄/モーダルへ割り込まない。Studio非表示中はPC鍵盤/MIDIを抑制する。保存形式v5は変更しない。

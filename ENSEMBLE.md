@@ -1,7 +1,16 @@
 # 複数の楽器で演奏する
 
+## メイン制作画面
+起動時はEnsembleワークスペース。左は楽器ライブラリ、中央はセクションとタイムライン、右は選択したパート/クリップのInspector、下は共通再生操作。ウィンドウは拡大・フルスクリーン可。最小1100×760（Sample Studioは高さ880）。
+左で検索/選択→Preview（独立試聴）→Assignで選択パートへ楽器を割り当て、Add as Partで新規パートへ読み込む。Add Files/Add Demos/Remove from Listも利用でき、原本は削除しない。試聴は構成再生と相互に停止する。
+タイムラインのパート名/クリップをクリックすると右へ設定を表示する。ClipタブでSection/Start/Repeat/Preset/Open/Use Current/Pitch/Velocity/複製/追加/削除を操作。最初のクリップも同じ入口で編集可能。InstrumentタブでRoot/ADSR/Loopの秒単位範囲とミリ秒単位クロスフェードを編集する。音色変更は同じパートの全クリップに反映し、構成に保存する。ライブラリの原本を上書きしない。
+従来の一覧設定は上部All Parts…から開ける。以下の「各行」「PERFORMANCE」等の手順はAll Parts…でも利用可能。Demosメニューに既存のDuo/Entry/Repeatを保持。セクションの編集・並べ替え・複製は中央上部。
+左下Waveform & Instrument…で従来のSample Studio（波形/切り出し/鍵盤/MIDI/演奏編集/Compose）へ切り替える。Sample Studio上部Arrangementで戻る。両画面の状態を保持し、切り替え時は発音を停止する。Studioで作った音色/演奏はAdd CurrentまたはUse Currentで構成へ取り込む。
+Spaceはメインで構成のPlay/Stop、Sample Studioで従来のPlay/Pause。テキスト入力とモーダルには割り込まない。⌘Sは現在画面の構成/楽器を保存。Stop Allは構成・試聴・Studioの全音停止。起動時の構成復元は無音のまま。選択は表示だけの状態でファイル形式v5を継続する。
+
+
 ## デモで試す
-1. 上部Ensemble…を開く。本体の再生は停止するが、編集中の音色・演奏は保持される。
+1. メイン画面（またはAll Parts…）を表示する。本体の再生は停止するが、編集中の音色・演奏は保持される。
 2. Add Demo Duoを押す。Soft Chords（ループ付きPad）とBouncy Phrase（短いPluck）が追加される。素材は同じデモ合成音でADSR・ループと演奏が異なる。AIへの通信は行わない。
 3. Play Allで2パートを共通テンポで再生。各パートの発音数・メーターと下部のBeat・共通出力を確認する。
 4. Muteや音量で各パートのバランスを調整。Stop Allで即停止。自然終了では各楽器のReleaseの余韻を待って終わる。
@@ -22,7 +31,7 @@ PERFORMANCEはPreset、Open…で.sfperformance、Use Currentで本体に採用�
 上部Save…で.sfensembleを保存する。パート名・並び順、全パートの音源/Root/ADSR/ループ/クロスフェード、演奏データと開始位置・繰り返し回数、音量・Mute、共通テンポとEnsemble Masterをまとめて同梱。外部の楽器/演奏ファイルへの参照ではないため、原本を移動・削除しても構成単体で読み込める。
 保存済みはSaved、変更後は● Unsavedを表示する。再生・停止・メーターの変化では未保存にならないが、再生中に変えた音量/Muteは未保存変更となる。Save…は停止後に行う。未割当パートや不正な設定は保存できず、既存ファイルを保持する。
 Open…で構成を読み込む。未保存変更があれば置換確認が出るので、残したい場合はCancelして先に保存する。全パートを検証してから置き換え、失敗時は以前の構成を保持する。
-最後に正常保存/読込した構成をアプリ起動時に復元する。Ensemble…を開き、Restoredのファイル名・Saved・パート数/設定を確認してPlay All。音は自動では鳴らない。失われた/壊れたファイルでは説明を表示し、Open…から別の構成を選べる。
+最後に正常保存/読込した構成をアプリ起動時に復元する。メイン画面でRestoredのファイル名・Saved・パート数/設定を確認してPlay All。音は自動では鳴らない。失われた/壊れたファイルでは説明を表示し、Open…から別の構成を選べる。
 未保存変更・再生位置・発音/ペダル保持状態・ライブラリの元ファイルパスは復元しない。本体の単一楽器と保存先は独立している。Doneで閉じるだけではディスクへ保存されない。構成形式と制限は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。全体のWAV書き出しは下記を参照。
 楽器と演奏の既存保存形式は変わらない。読み込んだ原本と本体の未保存内容を書き換えない。実装入口と検証は[CODEMAP.md](CODEMAP.md)、[TESTING.md](TESTING.md)、AIの判定方法は[AI_OPERATIONS.md](AI_OPERATIONS.md)を参照。
 

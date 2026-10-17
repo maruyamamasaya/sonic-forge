@@ -4,7 +4,7 @@
 
 GitHub: [maruyamamasaya/sonic-forge](https://github.com/maruyamamasaya/sonic-forge)
 
-macOS向けのSample Studio。WAVを読み込み、波形を見ながら再生・一時停止・停止・シーク・音量調整ができます。
+macOS向けのサンプラー・音楽制作アプリ。メインのEnsembleで曲を組み、Sample Studioで素材を編集します。WAVを読み込み、波形を見ながら再生・一時停止・停止・シーク・音量調整ができます。
 波形のズーム、ドラッグによる範囲選択、選択部分だけの再生とWAV書き出しにも対応しています。
 音源がなくても、起動時に読み込まれる合成デモを再生・画面鍵盤で演奏できます。
 Rootで基準音を設定し、Use Selectionで選択した部分をサンプラー楽器として演奏できます。
@@ -50,6 +50,6 @@ AIによる操作・自動演奏の引き継ぎは[AI操作ガイド](AI_OPERATI
 
 Compose…から言葉で演奏候補を作れます。Codex CLI・OpenAI API・他のAIのJSON貼り付けに対応。接続不要のDemoもあります。[AI生成ガイド](AI_GENERATION.md)を参照。
 
-Ensemble…で最大4つの楽器と演奏を組み合わせられます。Add Demo Duoから同時演奏を試せます。[複数パートの操作](ENSEMBLE.md)を参照。
+メイン画面のEnsembleで最大4つの楽器と演奏を組み合わせられます。Add Demo Duoから同時演奏を試せます。[複数パートの操作](ENSEMBLE.md)を参照。
 
 EnsembleのSave…で全パートの音源・演奏・ミックスをまとめて保存し、再起動後も復元できます。[構成の保存](ENSEMBLE.md#構成を保存復元する)を参照。
