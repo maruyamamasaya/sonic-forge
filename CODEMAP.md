@@ -5,6 +5,7 @@
 | --- | --- | --- |
 | コンセプト・人間向け案内 | README.md | SonicForge、音 |
 | 現在地・次の作業 | CURRENT.md | 未実装、次に行うこと |
+| 複数楽器の演奏 | ENSEMBLE.md | Ensemble、Play All、パート |
 | AI演奏生成 | AI_GENERATION.md | Compose、Codex CLI、OpenAI API、Demo |
 | 演奏ファイル仕様 | PERFORMANCE_FORMAT.md | version、tempo、transpose、notes、pedals |
 | AIによる操作・演奏 | AI_OPERATIONS.md | 操作とアプリ内の入口、成功判定、演奏データ |
@@ -25,6 +26,7 @@
 | 選択・ズーム・表示範囲 | app/WaveformEditor.swift | select、setZoom、pan、fitSelection、AudioSelection | tests/AudioTests.swift |
 | 選択区間の音声 | app/SelectionAudio.swift | SelectionAudio.write、framePosition、frameCount | tests/AudioTests.swift |
 | WAV書き出し | app/WAVExport.swift、app/PlayerModel.swift | WAVExport.write、exportSelection、export、NSSavePanel | tests/AudioTests.swift |
+| 複数パート演奏 | app/EnsembleModel.swift、app/EnsembleView.swift、app/SampleInstrument.swift | EnsemblePart、EnsembleVoice、timeline、addDemos、destination、Play All | tests/EnsembleTests.swift / --playback |
 | 楽器ライブラリ | app/InstrumentLibrary.swift、app/LibraryView.swift | register、add、addDemos、filtered、preview、stopPreview | tests/LibraryTests.swift / --playback |
 | 楽器保存・復元 | app/InstrumentDocument.swift、app/PlayerModel.swift | InstrumentDocument.save/load、saveInstrument、loadInstrument、startSession、instrumentDirty | tests/AudioTests.swift / --playback |
 | サンプルループ | app/SampleInstrument.swift、app/PlayerModel.swift、app/InstrumentKeyboard.swift | SampleLoop.crossfadeFrames、InstrumentVoice.render、loopFromSelection、LoopControls | tests/EnvelopeTests.swift、tests/AudioTests.swift |

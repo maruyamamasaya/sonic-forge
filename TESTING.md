@@ -119,3 +119,8 @@ GenerationTestsは無料の模擬HTTP応答とローカルCLI fixtureを使用�
 --playbackはCalm/Bouncyデモ生成→候補採用→仮想CoreMIDI→デモ楽器の発音と停止を確認する。
 実接続は明示的な `sh scripts/test.sh --ai-live`（Codex CLIログイン・ネットワーク・実出力が必要、使用量を消費）。build/ai-live.sfperformanceへ保存・再読込し、実生成データの発音を確認。OpenAI API実接続の成否とは区別する。
 実UIは方式切替、指示、Generate/Cancel、候補ピアノロール、Use & Play、未保存置換Cancel、Edit保存、最小幅の本体と生成シートを確認。Demoを実AI応答として報告しない。音楽性は自動検証では保証しない。
+
+## Ensemble Verification
+EnsembleTestsの通常検証は共通テンポへの変換/原本tempo保持、独立割り当て、4パート上限、楽器と演奏の保存ファイルからの割り当て、無効tempo/gain/音域、未割当パートの全体開始拒否、壊れた楽器の読込時の以前の状態保持を確認。
+--playbackでは同一engineの2パートへ44.1/48 kHzの440/660 Hz素材を同じMIDI音程で割り当て、両成分の同時出力と片方のペダル解除/Release後の片成分だけの消失を実offline renderで測定。デモDuoの実出力・各メーター・ミュート・停止/再開・自然終了と原子的検証、既存単一楽器/MIDI/AI演奏の回帰を確認する。
+実UIはEnsemble…→Add Demo Duo→Play All→パートメーター・共通Beat、片方Mute/音量、Stop All、ファイル/現在の演奏割り当て、閉じる時の停止と再表示保持、最小幅の本体とシートを確認。長時間負荷・サンプル精度同期・外部機器・曲書き出しは未検証/未対応。

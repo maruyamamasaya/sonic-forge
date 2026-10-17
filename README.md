@@ -49,3 +49,5 @@ AIによる操作・自動演奏の引き継ぎは[AI操作ガイド](AI_OPERATI
 保存した楽器の検索・試聴・読み込みはLibrary…から。音源がなくてもAdd Demosで試せます。詳しくは[操作ガイド](OPERATIONS.md#楽器ライブラリ)を参照。
 
 Compose…から言葉で演奏候補を作れます。Codex CLI・OpenAI API・他のAIのJSON貼り付けに対応。接続不要のDemoもあります。[AI生成ガイド](AI_GENERATION.md)を参照。
+
+Ensemble…で最大4つの楽器と演奏を組み合わせられます。Add Demo Duoから同時演奏を試せます。[複数パートの操作](ENSEMBLE.md)を参照。

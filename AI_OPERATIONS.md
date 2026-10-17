@@ -35,6 +35,7 @@ UIの要素番号や画面座標は固定ではない。機器やウィンドウ
 | MIDIを選ぶ | MIDI IN / None | MIDIInput.select / refresh |
 | 実機なしの手動確認 | Test input、VELOCITY、Test pedal、MIDI chord | createTestInput、testVelocity、sendTest、toggleTestChord |
 | 自動演奏 | プリセット、Auto play / Stop auto | performancePreset、playPerformance / stopPerformance |
+| 複数パート | Ensemble…、Add Part / Add Current / Add Demo Duo、Play All / Stop All | EnsembleModel.parts/timeline/play/stop、EnsembleVoice.receive |
 | AI演奏候補 | Compose…、Generate、Cancel Generation、Use & Play | PerformanceComposer.generate/cancel、candidate/candidateRoot/source、MIDIInput.applyGeneratedPerformance |
 | 演奏編集・保存 | Edit…、TEMPO、TRANSPOSE、VELOCITY、Notes、Pedal、Open… / Save… | PerformanceEditor、MIDIInput.performance、loadPerformance / savePerformance |
 | 全音停止 | All Notes Off | PlayerModel.stopInstrument |
@@ -91,3 +92,8 @@ UIの操作名、モデルの入口、演奏データ形式、成功判定、停
 接続・方式ごとの操作は[AI_GENERATION.md](AI_GENERATION.md)を正本とする。Compose…で方式を確認し、生成指示と基準音を観測してGenerate。生成中はgenerating=true、完了はcandidate!=nilかつerror=nil。候補の方式・名前・音符数・BPMとピアノロールを確認してUse & Play。未保存演奏があればReplace & Playは明示的な置換操作となる。保持するならCancelして先にEdit…→Save…する。
 採用はcandidateRootと現在のrootNoteが一致し、再検証を通る場合のみ。シートが閉じてから自動演奏が始まるため、候補完成と発音を区別する。既存のperforming・activeNotes・soundingVoices・levelsで演奏を確認。停止はStop auto / All Notes Off。生成の取消はCancel GenerationまたはDone。取消後に遅れて返った結果は採用されず、既存演奏も変更しない。
 APIキーやCLI認証情報をチャット・文書・ログへ転記しない。生成結果からコードを実行しない。Codex CLIは別プロセスとして利用し、SonicForgeの作業ディレクトリを渡さない。Other AIのCopy Briefは操作したときだけクリップボードへ指示とschemaを入れる。DemoはAI応答ではない。
+
+## 複数の楽器と演奏を割り当てる
+正本は[ENSEMBLE.md](ENSEMBLE.md)。Ensemble…→Add Partで行を追加→INSTRUMENTのライブラリ選択またはOpen…→PERFORMANCEのPreset/Open…/Use Current。Add Currentは現在の本体楽器と演奏をスナップショットで追加する。AI生成データは本体へ採用してAdd Current、または保存した.sfperformanceをパートへOpen…する。パートごとに異なるRootで生成/検証すること。音域を勝手に補正しない。
+全行のReadyと共通TEMPOを確認してPlay All。各行のvoices/出力、共通Beat/出力で同時演奏を判定する。本体の鍵盤やメーターはパート演奏の状態を表さない。playing=trueはRelease中も含み、releasingで区別。Stop All / Done / 非アクティブで全パートを停止。Stop後はplaying=false、各voices=0、level=-60、保持音とペダルが空であることを確認する。
+再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。パート割り当てはアプリ終了で失われるため、構成が永続保存済みだと報告しない。外部操作APIは未実装。

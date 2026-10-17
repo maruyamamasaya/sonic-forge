@@ -54,3 +54,5 @@ Date: YYYY-MM-DD
 - [2026-10-16: 楽器ライブラリ](2026-10-16-instrument-library.md)
 
 - [2026-10-17: AI演奏生成](2026-10-17-ai-performance-generation.md)
+
+- [2026-10-17: 複数パートの同時演奏](2026-10-17-ensemble-playback.md)

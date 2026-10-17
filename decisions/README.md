@@ -52,3 +52,5 @@ Status: proposed / accepted / superseded
 - [0014: 楽器ライブラリ](0014-instrument-library.md)
 
 - [0015: AI演奏生成](0015-ai-performance-generation.md)
+
+- [0016: 複数パートの同時演奏](0016-ensemble-playback.md)

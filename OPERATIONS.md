@@ -169,3 +169,6 @@ Search instrumentsで名前を絞り、行を選んでPreview。0.8秒の基準�
 
 ## AIで演奏を作る
 上部Compose…で指示を入力し、Generate→候補確認→Use & Play。接続方式の設定と詳しい手順は[AI生成ガイド](AI_GENERATION.md)。音源がなければ本体Load Demo→Compose…→Demo→Generate Demoで確認できる。生成候補の採用後はEdit…から調整・Save…できる。
+
+## 複数楽器で演奏する
+Ensemble…から最大4パートへ楽器と演奏を割り当てる。Add Demo Duo→Play Allで音源なしでも確認できる。パートの割り当て、共通テンポ、音量・ミュートと停止の詳細は[ENSEMBLE.md](ENSEMBLE.md)を参照。

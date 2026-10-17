@@ -40,7 +40,7 @@ scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署�
 
 ## Sample Instrument
 InstrumentSampleが全体／選択をバックグラウンドでFloat32 PCMへ取り込む（最大30秒・デコード後64 MB）。
-SampleInstrumentは8本のSourceNode（InstrumentVoice＋ADSR）→ 各Varispeed → 共通Mixer → system outputで和音を演奏。
+SampleInstrumentは8本のSourceNode（InstrumentVoice＋ADSR）→ 各Varispeed → 出力Mixer → system outputで和音を演奏。
 再生速度は2^((鍵盤ノート−基準音)/12)。画面はC3〜C5の25鍵、基準音もC3〜C5。MIDIは基準音±24半音の範囲で演奏可能。高い音ほど短くなる。
 デモの基準音はA3、外部WAVは手動指定の初期値C4。自動ピッチ検出は行わない。
 MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。完了状態はUIタイマーで確認し、音声コールバックからUIを更新しない。
@@ -125,3 +125,10 @@ Add DemosはApplication Support/SonicForge/Library内に同一合成素材のMet
 StudioViewのCompose… → PerformanceComposer（候補・取消世代） → PerformanceBrief / PerformanceGeneration（指示・共通schema・検証） → CodexPerformanceClient / OpenAIPerformanceClient。Codexはインストール済みネイティブ実行ファイルをProcess引数配列＋stdinで起動。空の一時作業領域・read-only・ignore-user-config・ephemeral、shell/unified_exec/apps/hooks無効、web_search無効。標準出力・標準エラーは保存せず最終JSONファイルだけを検証。120秒で停止、終了時に一時領域を清掃する。Nodeラッパーは既知の同梱バイナリへ解決してNodeのPATHに依存しない。
 OpenAIはFoundation URLSessionのResponses API＋strict JSON Schema。接続先固定、リダイレクト禁止、キャッシュなし、store=false、6000出力トークン・90秒リクエスト/100秒リソース・応答1 MB上限。キーはメモリのみ。未完了・refusal・HTTPエラー・形式不正を拒否し生応答やキーをログへ出さない。音源・原本パスは添付せず、音楽の指示と基準音だけを送る。TypeScriptアプリではないためAI SDKは追加しない。
 Other AIは共通の指示とschemaをコピーしJSONを貼り付ける手動接続。Demoは2種類の決定的パターンでAI呼び出しと区別。いずれもPerformanceDocument.events(root:)に加え4小節・64音符制限を適用。候補は既存演奏を変えず、Use & Playで未保存演奏の置換確認後にMIDIInput.applyGeneratedPerformanceへ渡す。ファイル保存先を解除しdirtyにする。本体楽器は保持。シート閉鎖完了後に既存の仮想CoreMIDI経路で再生する。閉じる・取消・指示変更・方式変更で旧結果は採用されない。操作・対応範囲は[AI_GENERATION.md](AI_GENERATION.md)。
+
+## Ensemble
+EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パートはPCM/Root/ADSR/LoopのスナップショットとPerformanceDocumentを持つ。InstrumentDocumentからの読込はバックグラウンドで全検証し、PCM取得後に展開一時領域を清掃する。失敗時は以前の割り当てを保持する。演奏読込は既存形式の検証を再利用する。
+全パートを開始前に検証し、各演奏のtempoだけを共通テンポへ置換したコピーからイベントを作る。元の演奏データは書き換えない。各パートの±24半音・8音上限は既存検証を再利用。1つでも未割当/不正なら全体を開始しない。ミュートしたパートも検証する。
+再生ごとに1つのAVAudioEngineとパート別Mixerを準備。SampleInstrumentのdestination引数で出力を分け、各MixerをmainMixerの別busへ接続する。単一楽器の既定出力は従来通りmainMixer。EnsembleVoiceはパート別にMIDIの押鍵所有権/チャンネルCC64を管理し、同音程の別パートを干渉させない。ペダル中の同音再押鍵は再発音する。
+全イベントを1つのTaskから単調時計の共通開始時刻に対する絶対秒で配送する。睡眠時間の積算によるずれは避けるが、サンプル精度ではない。再生後はパートごとのReleaseを待ち、最大6秒で終了。停止はTask取消/世代変更/全ボイス停止/共通engine破棄。閉じる・アプリ非アクティブ・本体の音声再生/全音停止でも終了する。
+パートMixerの音量・ミュートは30 Hzで更新。共通出力は最大4パート分の固定1/4ヘッドルームと専用Masterを使用。各サンプラーの1/8ヘッドルームは維持する。パートと共通出力それぞれの実RMSを表示し、本体のメーターとは区別。割り当てはシートを閉じても保持し、アプリ再起動では復元しない。操作は[ENSEMBLE.md](ENSEMBLE.md)。

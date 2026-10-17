@@ -157,20 +157,22 @@ final class SampleInstrument {
         var age: UInt64 = 0
     }
     private let engine: AVAudioEngine
+    private let output: AVAudioMixerNode
     private let slots = (0..<maximumVoices).map { _ in Slot() }
     private var sequence: UInt64 = 0
     private(set) var sample: InstrumentSample?
     let meter = InstrumentMeter()
-    var gain: Float = 0.25 { didSet { engine.mainMixerNode.outputVolume = gain } }
+    var gain: Float = 0.25 { didSet { output.outputVolume = gain } }
     var isSounding: Bool { slots.contains { $0.voice.isActive } }
     var heldNotes: Set<Int> { Set(slots.compactMap { $0.held && $0.voice.isActive ? $0.note : nil }) }
     var soundingCount: Int { slots.filter { $0.voice.isActive }.count }
 
-    init(engine: AVAudioEngine = AVAudioEngine()) {
+    init(engine: AVAudioEngine = AVAudioEngine(), destination: AVAudioMixerNode? = nil) {
         self.engine = engine
+        self.output = destination ?? engine.mainMixerNode
         for slot in slots { engine.attach(slot.speed) }
         let meter = self.meter
-        engine.mainMixerNode.installTap(onBus: 0, bufferSize: 512, format: nil) { buffer, _ in meter.update(buffer) }
+        output.installTap(onBus: 0, bufferSize: 512, format: nil) { buffer, _ in meter.update(buffer) }
     }
     func install(_ sample: InstrumentSample) {
         stop(); engine.stop()
@@ -189,7 +191,7 @@ final class SampleInstrument {
             }
             engine.attach(source)
             engine.connect(source, to: slot.speed, format: sample.buffer.format)
-            engine.connect(slot.speed, to: engine.mainMixerNode, fromBus: 0, toBus: AVAudioNodeBus(index), format: sample.buffer.format)
+            engine.connect(slot.speed, to: output, fromBus: 0, toBus: AVAudioNodeBus(index), format: sample.buffer.format)
             // Fixed headroom avoids gain pumping as notes enter and leave.
             slot.source = source
         }
@@ -208,7 +210,7 @@ final class SampleInstrument {
             ?? slots.min { $0.age < $1.age }!
         slot.voice.stop()
         slot.speed.rate = rate
-        engine.mainMixerNode.outputVolume = gain
+        output.outputVolume = gain
         if !engine.isRunning { engine.prepare(); try engine.start() }
         sequence &+= 1
         slot.note = note; slot.held = true; slot.age = sequence

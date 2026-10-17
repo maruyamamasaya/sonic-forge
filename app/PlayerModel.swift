@@ -36,6 +36,7 @@ final class PlayerModel: ObservableObject {
     let midi = MIDIInput()
     let library = InstrumentLibrary()
     let composer = PerformanceComposer()
+    let ensemble = EnsembleModel()
     @Published private(set) var midiSuspended = false
     private var computerKeys: [UInt16: Int] = [:]
     static let computerKeyboard: [UInt16: Int] = [0: 60, 13: 61, 1: 62, 14: 63, 2: 64, 3: 65, 17: 66, 5: 67, 16: 68, 4: 69, 32: 70, 38: 71, 40: 72]
@@ -341,6 +342,7 @@ final class PlayerModel: ObservableObject {
     }
     func playNote(_ note: Int, input: NoteInput = .screen, velocity: Int = 127) {
         guard (1...127).contains(velocity), !busy, instrumentSample != nil, (0...127).contains(note), (0.25...4).contains(NotePitch.rate(note: note, root: rootNote)) else { return }
+        ensemble.stop()
         if noteInputs[note]?.contains(input) == true { return }
         if noteInputs[note]?.isEmpty == false {
             noteInputs[note, default: []].insert(input)
@@ -444,6 +446,7 @@ final class PlayerModel: ObservableObject {
         if soundingVoices != count { soundingVoices = count }
     }
     func stopInstrument() {
+        ensemble.stop()
         instrument.stop()
         midi.cancelTestState()
         midiHistory.removeAll()
@@ -558,6 +561,7 @@ final class PlayerModel: ObservableObject {
         } else { levels = [-60, -60] }
     }
     func cleanup() {
+        ensemble.stop()
         library.stopPreview()
         composer.cancel()
         midi.close()
