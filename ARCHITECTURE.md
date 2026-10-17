@@ -137,3 +137,7 @@ EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パ
 EnsembleDocumentが.sfensemble v2を管理（v1は開始位置0で読込）。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
 保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
 EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsのlastEnsemblePathV1へ保持。PlayerModel.startSessionから一度だけ復元し、本体の楽器復元とは独立。無音・停止状態で復元し、自動再生しない。欠落/破損時は構成エラーを表示して手動Openへ導く。復元前の構成や正常な保存先を失敗で更新しない。
+
+## Ensemble WAV Export
+EnsembleExportは検証済みEnsembleSnapshotを固定し、既存EnsembleVoice/SampleInstrumentを共通engineのoffline manual renderingへ接続。イベントを48 kHzの切上げフレームへ変換し、同時刻の順序を保ちイベント境界でバッファを分割する。共通テンポ・開始位置・mix/headroomは実再生と同じ。最後のイベント＋最大Release＋50 msまで書く。ステレオFloat32・256 MiB上限。
+MainActor上で非実時間レンダーを行い、32ブロックごとにyield/進捗更新、各ブロックで取消を検査。ライブengineとは分離。UIのbusyで設定変更を止める。保存先横の一時WAVを閉じた後にPOSIX renameで公開し、失敗/取消は一時ファイルだけを清掃。元WAV/参照楽器/構成の同一実体を開始時と公開直前に検査する。

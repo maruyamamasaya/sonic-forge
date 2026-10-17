@@ -7,6 +7,7 @@ struct AudioTests {
         try PerformanceTests.run()
         try await EnsembleTests.run()
         try await EnsemblePersistenceTests.run()
+        try await EnsembleExportTests.run()
         try await GenerationTests.run()
         if CommandLine.arguments.contains("--ai-live") { try await GenerationTests.live() }
         try await LibraryTests.run(playback: CommandLine.arguments.contains("--playback"))

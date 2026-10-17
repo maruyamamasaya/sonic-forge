@@ -60,3 +60,5 @@ Date: YYYY-MM-DD
 - [2026-10-17: 複数パート構成の保存・復元](2026-10-17-ensemble-persistence.md)
 
 - [2026-10-17: パートの演奏開始位置](2026-10-17-ensemble-start-beats.md)
+
+- [2026-10-17: 複数パート全体のWAV書き出し](2026-10-17-ensemble-wav-export.md)

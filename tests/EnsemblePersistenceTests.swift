@@ -136,7 +136,11 @@ enum EnsemblePersistenceTests {
         precondition(restored.playing && restored.parts[0].voices >= 3 && restored.parts[0].level > -60)
         precondition(restored.parts[1].level <= -59 && !restored.dirty)
         restored.parts[1].muted = false
-        try await Task.sleep(nanoseconds: 120_000_000)
+        // A pluck may be between notes at 120 ms; observe the next audible event.
+        for _ in 0..<30 {
+            if restored.parts[1].level > -60 { break }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
         precondition(restored.parts[1].level > -60 && restored.dirty)
         restored.stop()
         precondition(restored.parts.allSatisfy { $0.voices == 0 })

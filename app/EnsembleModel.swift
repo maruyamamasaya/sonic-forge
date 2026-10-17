@@ -93,6 +93,10 @@ final class EnsembleModel: ObservableObject {
     @Published private(set) var durationBeats = 0.0
     @Published private(set) var level: Float = -60
     @Published var error: String?
+    @Published private(set) var exporting = false
+    @Published private(set) var exportProgress = 0.0
+    @Published private(set) var exportedURL: URL?
+    private var exportTask: Task<Void, Never>?
     @Published private(set) var dirty = false
     @Published private(set) var fileURL: URL?
     @Published private(set) var fileMessage: String?
@@ -195,6 +199,30 @@ final class EnsembleModel: ObservableObject {
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.sonicForgeEnsemble]; panel.canChooseDirectories = false
         panel.title = "Open Ensemble"
         if panel.runModal() == .OK, let url = panel.url { Task { await load(url) } }
+    }
+
+    func exportPanel(protecting sources: [URL] = []) {
+        guard canEdit else { return }
+        let panel = NSSavePanel(); panel.allowedContentTypes = [.wav]; panel.title = "Export Ensemble WAV"
+        panel.nameFieldStringValue = "Ensemble.wav"
+        panel.message = "48 kHz · Stereo · 32-bit Float · 開始位置・音量・Mute・Releaseを反映"
+        if panel.runModal() == .OK, let url = panel.url {
+            exportTask = Task { await exportWAV(to: url, protecting: sources) }
+        }
+    }
+    func cancelExport() { exportTask?.cancel() }
+    @discardableResult func exportWAV(to url: URL, protecting sources: [URL] = []) async -> Bool {
+        guard canEdit else { return false }
+        do {
+            let saved = try snapshot()
+            let protected = sources + parts.compactMap(\.instrumentURL) + (fileURL.map { [$0] } ?? [])
+            busy = true; exporting = true; exportProgress = 0; exportedURL = nil
+            defer { busy = false; exporting = false }
+            try await EnsembleExport.write(saved, to: url, protecting: protected) { self.exportProgress = $0 }
+            exportedURL = url; fileMessage = "Exported · " + url.lastPathComponent; error = nil
+            return true
+        } catch is CancellationError { fileMessage = "Export cancelled"; return false }
+        catch { self.error = "WAVを書き出せませんでした。\n" + error.localizedDescription; return false }
     }
 
     @discardableResult func addPart(instrument: EnsembleInstrument? = nil, performance: PerformanceDocument = .preset(.softChords)) -> EnsemblePart? {

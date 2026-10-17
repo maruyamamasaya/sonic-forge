@@ -21,7 +21,9 @@ struct EnsembleView: View {
                     .buttonStyle(StudioButton()).disabled(!ensemble.canEdit).accessibilityLabel("Open ensemble")
                 Button("Save…") { ensemble.savePanel() }.buttonStyle(StudioButton())
                     .disabled(!ensemble.canEdit || ensemble.parts.isEmpty).accessibilityLabel("Save ensemble")
-                Button("Done") { ensemble.stop(); dismiss() }.buttonStyle(StudioButton())
+                Button("Export WAV…") { ensemble.exportPanel(protecting: model.asset.map { [$0.url] } ?? []) }
+                    .buttonStyle(StudioButton()).disabled(!ensemble.canEdit || ensemble.parts.isEmpty)
+                Button("Done") { ensemble.stop(); dismiss() }.buttonStyle(StudioButton()).disabled(ensemble.exporting)
             }
             HStack {
                 Button("Add Part") { ensemble.addPart() }
@@ -75,6 +77,13 @@ struct EnsembleView: View {
                     Text(String(format: "MASTER · %.0f dB", ensemble.masterDB)).font(.system(size: 10))
                     Slider(value: $ensemble.masterDB, in: -60...0).frame(width: 130).tint(accent).accessibilityLabel("Ensemble master volume").disabled(ensemble.busy)
                     Text("Output \(Int(ensemble.level)) dB").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
+                }
+            }
+            if ensemble.exporting {
+                HStack {
+                    ProgressView(value: ensemble.exportProgress).tint(accent)
+                    Text("Rendering \(Int(ensemble.exportProgress * 100))%").font(.system(size: 11)).monospacedDigit()
+                    Button("Cancel Export") { ensemble.cancelExport() }.buttonStyle(StudioButton())
                 }
             }
             if let error = ensemble.error { Text(error).font(.system(size: 11)).foregroundStyle(.orange).lineLimit(3).help(error) }

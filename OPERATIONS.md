@@ -177,3 +177,5 @@ Ensemble…から最大4パートへ楽器と演奏を割り当てる。Add Demo
 Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保存/読込した構成は起動時に無音で復元される。Open…の未保存置換確認、欠落/破損時、デモの保存確認は[構成の保存手順](ENSEMBLE.md#構成を保存復元する)、形式は[構成v1](ENSEMBLE_FORMAT.md)。
 
 開始位置の確認: Ensemble…→Demo Entry +4→各START（0/4拍）→Play All→途中でPluckが加わる→Stop All。変更後はSave…で保存。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
+
+全体WAV: Ensemble…→停止→Export WAV…→Exported→Done→本体Open WAV…で再読込。詳細は[ENSEMBLE.md](ENSEMBLE.md)。

@@ -31,7 +31,7 @@ enum WAVExport {
         if status != 0 { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
     }
 
-    private static func sameFile(_ first: URL, _ second: URL) -> Bool {
+    static func sameFile(_ first: URL, _ second: URL) -> Bool {
         let a = first.resolvingSymlinksInPath().standardizedFileURL
         let b = second.resolvingSymlinksInPath().standardizedFileURL
         if a == b { return true }

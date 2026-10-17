@@ -58,3 +58,5 @@ Status: proposed / accepted / superseded
 - [0017: 複数パート構成の保存](0017-ensemble-persistence.md)
 
 - [0018: パート開始位置を拍単位で保存する](0018-ensemble-start-beats.md)
+
+- [0019: 構成全体のWAVレンダー](0019-ensemble-wav-export.md)
