@@ -27,6 +27,7 @@ final class EnsemblePart: ObservableObject, Identifiable {
     @Published var muted = false
     @Published var startBeat = 0.0
     @Published var repeatCount = 1
+    @Published var sectionID: UUID?
     @Published fileprivate(set) var voices = 0
     @Published fileprivate(set) var level: Float = -60
     init(name: String, instrument: EnsembleInstrument? = nil, performance: PerformanceDocument = .preset(.softChords)) {
@@ -84,6 +85,7 @@ final class EnsembleVoice {
 @MainActor
 final class EnsembleModel: ObservableObject {
     static let maximumParts = 4
+    @Published var sections: [EnsembleSection] = [] { didSet { markDirty() } }
     @Published private(set) var parts: [EnsemblePart] = [] { didSet { observeParts(); markDirty() } }
     @Published var tempo = 100.0 { didSet { if tempo != oldValue { markDirty() } } }
     @Published var masterDB = -12.0 { didSet { if masterDB != oldValue { markDirty() } } }
@@ -132,6 +134,7 @@ final class EnsembleModel: ObservableObject {
                               part.$gainDB.dropFirst().removeDuplicates().map { _ in () },
                               part.$muted.dropFirst().removeDuplicates().map { _ in () })
                 .sink { [weak self] in self?.markDirty() }.store(in: &partChanges)
+            part.$sectionID.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
             part.$repeatCount.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
             part.$startBeat.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
         }
@@ -139,9 +142,9 @@ final class EnsembleModel: ObservableObject {
     func snapshot() throws -> EnsembleSnapshot {
         let values = try parts.map { part -> EnsemblePartSnapshot in
             guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }
-            return EnsemblePartSnapshot(name: part.name, instrument: instrument, performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat, repeatCount: part.repeatCount)
+            return EnsemblePartSnapshot(name: part.name, instrument: instrument, performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat, repeatCount: part.repeatCount, sectionID: part.sectionID)
         }
-        let result = EnsembleSnapshot(tempo: tempo, masterDB: masterDB, parts: values)
+        let result = EnsembleSnapshot(tempo: tempo, masterDB: masterDB, parts: values, sections: sections)
         try EnsembleDocument.validate(result)
         return result
     }
@@ -165,12 +168,12 @@ final class EnsembleModel: ObservableObject {
             let loaded = try await Task.detached(priority: .userInitiated) { try EnsembleDocument.load(url) }.value
             let replacements = loaded.parts.map { item -> EnsemblePart in
                 let part = EnsemblePart(name: item.name, instrument: item.instrument, performance: item.performance)
-                part.gainDB = item.gainDB; part.muted = item.muted; part.startBeat = item.startBeat; part.repeatCount = item.repeatCount
+                part.gainDB = item.gainDB; part.muted = item.muted; part.startBeat = item.startBeat; part.repeatCount = item.repeatCount; part.sectionID = item.sectionID
                 return part
             }
             stop(); durationBeats = 0
             applyingSnapshot = true
-            parts = replacements; tempo = loaded.tempo; masterDB = loaded.masterDB
+            sections = loaded.sections; parts = replacements; tempo = loaded.tempo; masterDB = loaded.masterDB
             applyingSnapshot = false; revision = UUID(); dirty = false; fileURL = url
             if remember { defaults.set(url.path, forKey: Self.lastFileKey) }
             fileMessage = "Opened · " + url.lastPathComponent; error = nil
@@ -232,9 +235,41 @@ final class EnsembleModel: ObservableObject {
         let part = EnsemblePart(name: "Part \(parts.count + 1)", instrument: instrument, performance: performance)
         parts.append(part); error = nil; return part
     }
+    func addSection() {
+        guard canEdit, sections.count < 8 else { return }
+        sections.append(EnsembleSection(name: "Section \(sections.count + 1)", beats: 16))
+    }
+    func reorderSection(_ id: UUID, by delta: Int) {
+        guard canEdit, let index = sections.firstIndex(where: { $0.id == id }), sections.indices.contains(index + delta) else { return }
+        sections.swapAt(index, index + delta)
+    }
+    func removeSection(_ id: UUID) {
+        guard canEdit else { return }
+        guard !parts.contains(where: { $0.sectionID == id }) else { error = "割り当て済みのパートをSongへ変更してから削除してください。"; return }
+        sections.removeAll { $0.id == id }; error = nil
+    }
+    func sectionOffset(for part: EnsemblePart) -> Double { EnsembleSections.offset(part.sectionID, in: sections) }
+    func maximumStart(for part: EnsemblePart) -> Double {
+        guard let section = sections.first(where: { $0.id == part.sectionID }) else { return 256 }
+        return max(0, min(256, section.beats - (EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount) ?? 0)))
+    }
+    func addSongDemo() async {
+        guard canEdit else { return }
+        guard parts.isEmpty && sections.isEmpty else { error = "Demo Songはパートとセクションが空のときに追加できます。既存構成は先に保存してください。"; return }
+        await addDemos()
+        guard parts.count == 2 else { return }
+        sections = [EnsembleSection(name: "Intro", beats: 8), EnsembleSection(name: "Aメロ", beats: 16), EnsembleSection(name: "サビ", beats: 16)]
+        let intro = parts[0], verse = parts[1]
+        let chorus = EnsemblePart(name: "Chorus Pad", instrument: intro.instrument, performance: intro.performance)
+        var short = intro.performance
+        short.notes = Array(short.notes.prefix(3)); short.pedals = []
+        intro.performance = short; intro.repeatCount = 2; intro.sectionID = sections[0].id; intro.name = "Intro Pad"
+        verse.sectionID = sections[1].id; verse.name = "Verse Pluck"
+        chorus.sectionID = sections[2].id; parts.append(chorus); error = nil
+    }
     func movePart(_ id: UUID, to beat: Double) {
         guard canEdit, beat.isFinite, (0...256).contains(beat), let part = parts.first(where: { $0.id == id }) else { return }
-        part.startBeat = beat
+        part.startBeat = min(beat, maximumStart(for: part))
     }
     func remove(_ id: UUID) { guard canEdit else { return }; parts.removeAll { $0.id == id } }
     func setPerformance(_ document: PerformanceDocument, part id: UUID) {
@@ -298,6 +333,7 @@ final class EnsembleModel: ObservableObject {
     func timeline() throws -> [Event] {
         guard !parts.isEmpty, parts.count <= Self.maximumParts, tempo.isFinite, (40...240).contains(tempo),
               masterDB.isFinite, (-60...0).contains(masterDB) else { throw AudioError.invalid("パート・テンポ・音量を確認してください。") }
+        try EnsembleSections.validate(sections)
         var events: [Event] = []
         for part in parts {
             guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }
@@ -306,8 +342,10 @@ final class EnsembleModel: ObservableObject {
                 throw AudioError.invalid("\(part.name): 楽器設定・音量が無効です。")
             }
             do {
+                try EnsembleSections.validatePlacement(sectionID: part.sectionID, start: part.startBeat,
+                    length: EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount), sections: sections)
                 events += try EnsembleTimeline.events(part.performance, root: instrument.root, tempo: tempo,
-                    startBeat: part.startBeat, count: part.repeatCount).map { Event(time: $0.time, part: part.id, bytes: $0.bytes) } }
+                    startBeat: sectionOffset(for: part) + part.startBeat, count: part.repeatCount).map { Event(time: $0.time, part: part.id, bytes: $0.bytes) } }
             catch { throw AudioError.invalid(part.name + ": " + error.localizedDescription) }
         }
         return events.enumerated().sorted { $0.element.time == $1.element.time ? $0.offset < $1.offset : $0.element.time < $1.element.time }.map(\.element)
@@ -326,7 +364,7 @@ final class EnsembleModel: ObservableObject {
             }
             updateGains()
             engine.prepare(); try engine.start()
-            durationBeats = (events.last?.time ?? 0) * tempo / 60
+            durationBeats = max((events.last?.time ?? 0) * tempo / 60, EnsembleSections.end(sections))
             playbackTempo = tempo; startedAt = ProcessInfo.processInfo.systemUptime
             playing = true; releasing = false; error = nil
             let token = generation
@@ -342,6 +380,11 @@ final class EnsembleModel: ObservableObject {
                     catch { self.stop(); self.error = "演奏を停止しました。\n" + error.localizedDescription; return }
                 }
                 guard let self, self.generation == token else { return }
+                let remaining = self.startedAt + self.durationBeats * 60 / self.playbackTempo - ProcessInfo.processInfo.systemUptime
+                if remaining > 0 {
+                    do { try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) } catch { return }
+                    guard self.generation == token, !Task.isCancelled else { return }
+                }
                 self.releasing = true
                 // Retain each part's Release tail before completing the session.
                 let tailDeadline = ProcessInfo.processInfo.systemUptime + 6

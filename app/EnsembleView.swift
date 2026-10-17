@@ -39,6 +39,7 @@ struct EnsembleView: View {
             }.buttonStyle(StudioButton()).disabled(!ensemble.canEdit || ensemble.parts.count >= 4)
             Text(ensemble.fileMessage ?? ensemble.fileURL?.lastPathComponent ?? "Untitled ensemble · Save to keep this setup")
                 .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            EnsembleSectionsView(ensemble: ensemble)
             if ensemble.parts.isEmpty {
                 VStack(spacing: 14) {
                     Image(systemName: "pianokeys").font(.system(size: 36)).foregroundStyle(accent)
@@ -118,6 +119,10 @@ private struct EnsemblePartRow: View {
             HStack {
                 TextField("Part name", text: $part.name).font(.system(size: 14, weight: .medium)).textFieldStyle(.plain)
                     .disabled(!ensemble.canEdit)
+                Picker("Section for \(part.name)", selection: $part.sectionID) {
+                    Text("Song · absolute").tag(Optional<UUID>.none)
+                    ForEach(ensemble.sections) { section in Text(section.name).tag(Optional(section.id)) }
+                }.labelsHidden().frame(width: 145).disabled(!ensemble.canEdit)
                 Spacer()
                 Text("\(part.voices)/8 voices").font(.system(size: 10, design: .monospaced)).foregroundStyle(accent)
                 GeometryReader { geometry in
@@ -190,7 +195,12 @@ private struct EnsemblePartRow: View {
         guard let instrument = part.instrument else { return "Assign an instrument" }
         guard part.startBeat.isFinite, (0...256).contains(part.startBeat) else { return "Start: 0–256 beats" }
         guard (1...16).contains(part.repeatCount) else { return "Repeat: 1–16" }
-        do { _ = try part.performance.events(root: instrument.root); return nil }
+        do {
+            try EnsembleSections.validate(ensemble.sections)
+            try EnsembleSections.validatePlacement(sectionID: part.sectionID, start: part.startBeat,
+                length: EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount), sections: ensemble.sections)
+            _ = try part.performance.events(root: instrument.root); return nil
+        }
         catch { return error.localizedDescription }
     }
 }

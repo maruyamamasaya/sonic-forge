@@ -21,7 +21,7 @@ enum EnsembleExport {
         var events: [(frame: Int64, part: Int, bytes: [UInt8])] = []
         for (index, part) in snapshot.parts.enumerated() {
             events += try EnsembleTimeline.events(part.performance, root: part.instrument.root, tempo: snapshot.tempo,
-                startBeat: part.startBeat, count: part.repeatCount).map {
+                startBeat: EnsembleSections.offset(part.sectionID, in: snapshot.sections) + part.startBeat, count: part.repeatCount).map {
                 (Int64(($0.time * sampleRate).rounded(.up)), index, $0.bytes)
             }
         }
@@ -29,7 +29,8 @@ enum EnsembleExport {
             $0.element.frame == $1.element.frame ? $0.offset < $1.offset : $0.element.frame < $1.element.frame
         }.map(\.element)
         let tail = snapshot.parts.map { $0.instrument.envelope.release }.max() ?? 0
-        let end = (events.last?.frame ?? 0) + Int64(((tail + 0.05) * sampleRate).rounded(.up))
+        let sectionEnd = Int64((EnsembleSections.end(snapshot.sections) * 60 / snapshot.tempo * sampleRate).rounded(.up))
+        let end = max(events.last?.frame ?? 0, sectionEnd) + Int64(((tail + 0.05) * sampleRate).rounded(.up))
         guard end > 0, end <= maximumFrames else { throw AudioError.invalid("書き出すWAVが256 MBを超えます。開始位置や演奏を短くしてください。") }
         let temporary = destination.deletingLastPathComponent().appendingPathComponent(".sonicforge-ensemble-\(UUID().uuidString).wav")
         defer { try? FileManager.default.removeItem(at: temporary) }

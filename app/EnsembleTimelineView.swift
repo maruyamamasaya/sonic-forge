@@ -6,9 +6,9 @@ struct EnsembleTimelineView: View {
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private var extent: Double {
         let last = ensemble.parts.map { part in
-            (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) + (EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount) ?? 0)
+            ensemble.sectionOffset(for: part) + (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) + (EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount) ?? 0)
         }.max() ?? 0
-        return max(32, ceil(last / 16) * 16 + 8)
+        return max(32, ceil(max(last, EnsembleSections.end(ensemble.sections)) / 16) * 16 + 8)
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -20,13 +20,24 @@ struct EnsembleTimelineView: View {
             }
             HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("PART").font(.system(size: 9)).foregroundStyle(.secondary).frame(height: 22)
+                    Text("PART").font(.system(size: 9)).foregroundStyle(.secondary).frame(height: ensemble.sections.isEmpty ? 22 : 42)
                     ForEach(ensemble.parts) { part in
                         TimelinePartLabel(part: part).frame(width: 116, height: 30, alignment: .leading)
                     }
                 }
                 ScrollView(.horizontal) {
                     VStack(spacing: 0) {
+                        if !ensemble.sections.isEmpty {
+                            ZStack(alignment: .topLeading) {
+                                ForEach(ensemble.sections) { section in
+                                    Text(section.name).font(.system(size: 9, weight: .medium)).lineLimit(1)
+                                        .padding(.leading, 4).frame(width: max(1, (section.beats.isFinite ? min(256, max(0, section.beats)) : 0) * scale), height: 18, alignment: .leading)
+                                        .background(accent.opacity(0.12)).border(accent.opacity(0.25), width: 0.5)
+                                        .offset(x: EnsembleSections.offset(section.id, in: ensemble.sections) * scale)
+                                        .accessibilityLabel("Section \(section.name), start \(EnsembleSections.offset(section.id, in: ensemble.sections)), length \(section.beats) beats")
+                                }
+                            }.frame(width: extent * scale, height: 20, alignment: .topLeading)
+                        }
                         ZStack(alignment: .topLeading) {
                             ForEach(0...Int(extent / 4), id: \.self) { index in
                                 Text("\(index * 4)").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
@@ -39,7 +50,7 @@ struct EnsembleTimelineView: View {
                     }
                     .overlay(alignment: .topLeading) {
                         if ensemble.positionBeats > 0 {
-                            Rectangle().fill(accent).frame(width: 1, height: CGFloat(22 + ensemble.parts.count * 30))
+                            Rectangle().fill(accent).frame(width: 1, height: CGFloat((ensemble.sections.isEmpty ? 22 : 42) + ensemble.parts.count * 30))
                                 .offset(x: ensemble.positionBeats * scale).allowsHitTesting(false)
                         }
                     }
@@ -69,8 +80,8 @@ private struct TimelineClipRow: View {
     @GestureState private var translation = 0.0
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private var start: Double {
-        translation == 0 ? (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) :
-            EnsembleTimeline.movedStart(original: part.startBeat, translation: translation, pixelsPerBeat: scale)
+        ensemble.sectionOffset(for: part) + (translation == 0 ? (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) :
+            min(ensemble.maximumStart(for: part), EnsembleTimeline.movedStart(original: part.startBeat, translation: translation, pixelsPerBeat: scale)))
     }
     var body: some View {
         let length = EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount)
@@ -107,7 +118,7 @@ private struct TimelineClipRow: View {
                         })
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Timeline clip for \(part.name)")
-                    .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d", part.startBeat, length, part.startBeat + length, part.repeatCount))
+                    .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d", ensemble.sectionOffset(for: part) + part.startBeat, length, ensemble.sectionOffset(for: part) + part.startBeat + length, part.repeatCount))
                     .accessibilityAdjustableAction { direction in
                         guard ensemble.canEdit else { return }
                         ensemble.movePart(part.id, to: min(256, max(0, part.startBeat + (direction == .increment ? 0.25 : -0.25))))

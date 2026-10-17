@@ -13,7 +13,7 @@ enum EnsembleTimeline {
     }
     static func events(_ performance: PerformanceDocument, root: Int, tempo: Double,
                        startBeat: Double, count: Int) throws -> [MIDIPerformanceEvent] {
-        guard (1...16).contains(count), startBeat.isFinite, (0...256).contains(startBeat),
+        guard (1...16).contains(count), startBeat.isFinite, (0...2304).contains(startBeat),
               tempo.isFinite, (40...240).contains(tempo) else { throw AudioError.invalid("開始位置・繰り返し回数・テンポを確認してください。") }
         _ = try performance.events(root: root)
         var beats = performance; beats.tempo = 60

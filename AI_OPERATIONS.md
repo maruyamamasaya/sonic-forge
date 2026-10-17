@@ -100,14 +100,14 @@ APIキーやCLI認証情報をチャット・文書・ログへ転記しない�
 再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成はSave…した状態だけがディスクへ保存される。Doneで閉じただけ、または● Unsavedの状態を保存済みだと報告しない。外部操作APIは未実装。
 
 ## 構成の保存と起動時復元の判定
-[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v3](ENSEMBLE_FORMAT.md)を参照。Save…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
+[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v4](ENSEMBLE_FORMAT.md)を参照。Save…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
 Open…の未保存置換確認では必要に応じてCancel→先にSave…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・Saved・設定・playing=falseを確認してからPlay All。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読みOpen…へ進み、復元成功と報告しない。
 保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、Stop All後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
 
 ## パートの開始位置を調整する
 Ensemble各行のSTART（アクセシビリティ名Start beat for パート名）へ0〜256の有限拍数を入力する。0は曲頭、4は4拍後。小数拍可。停止中のみ操作し、共通テンポと各STARTを読んで意図した秒数を確認する。元のperformance.notes/pedalsのbeatを同時に動かして二重に遅らせない。
 デモは空きを2つ確保してDemo Entry +4。Pad=0・Pluck=4を確認してPlay All。待機中のPluckは0 voices・−60 dB、Beat 4以降に発音する。Stop Allで待機も解除し、playing=false・全voices=0を確認。最初の音符に休符がある場合はSTARTの後も無音が続く。
-編集はdirty=trueになる。Save…でdirty=falseを確認し、Open/再起動でstartBeat一致を検証。モデル入口はEnsemblePart.startBeat、EnsembleModel.timeline/addDemos(staggered:)、保存はEnsemblePartSnapshot.startBeat。保存形式v3ではparts[].startBeatが必須、v1は0に移行する。AIが構成JSONを作る場合も同じ制限・音源同梱形式を守る。
+編集はdirty=trueになる。Save…でdirty=falseを確認し、Open/再起動でstartBeat一致を検証。モデル入口はEnsemblePart.startBeat、EnsembleModel.timeline/addDemos(staggered:)、保存はEnsemblePartSnapshot.startBeat。保存形式v4ではparts[].startBeatが必須、v1は0に移行する。AIが構成JSONを作る場合も同じ制限・音源同梱形式を守る。
 
 ## 複数パートをWAVへ書き出す
 正本は[ENSEMBLE.md](ENSEMBLE.md)。Stop All後、START・TEMPO・全音量/MuteとMasterを確認してExport WAV…。モデル入口はEnsembleModel.exportPanel/exportWAV、レンダーはEnsembleExport.write。保存先を選んだだけでは成功と判定しない。exporting=true/busy=true中は編集・再生を行わず、取消はCancel Export（cancelExport）。完了はexporting=false/busy=false・error=nil・exportedURLとExported表示で判定する。取消はExport cancelled、失敗はエラー表示で、成功と報告しない。
@@ -123,3 +123,8 @@ ARRANGEMENTで全パートを一覧し、クリップの位置と幅、START値�
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止して各行REPEAT（Repeat count for パート名）を1〜16の整数へ設定。×1は1回、×Nは合計N回。EnsemblePart.repeatCount、EnsembleTimeline.events/repeatedLengthを使用し、同じ繰り返しをperformance.notesへ二重追加しない。間隔は最終イベント拍のceil。拍子の仮定や自動小節補正は行わない。
 Demo Repeatは空き2つへPad×2/START 0・Pluck×3/START 4を追加。タイムラインの×回数・区切り・長さとREPEATを照合し、Play Allで次の回の発音と延長されたdurationBeatsを確認。再生/処理中は回数を変更せず、Stop Allで全音停止・曲頭復帰を確認する。
 変更後dirty=true→Save…→Saved、再起動後repeatCount一致を確認。構成v3はparts[].repeatCount必須、v1/v2は1へ移行。Export WAV…も全回分を出力し、容量超過は失敗として扱う。
+
+## セクションを作って曲の構成を組む
+正本は[ENSEMBLE.md](ENSEMBLE.md)。SONG SECTIONS→Add Sectionで名前・拍長を入力し、Move section earlier/laterで順序を変更。Section length for 名前で長さを読んで編集する。セクションは最大8、長さ1〜256拍、全体最大4パート。各Section for パート名から割り当て、STARTがセクション内相対値であることを確認する。Song · absoluteは曲頭基準。
+EnsembleModel.sections/addSection/reorderSection/removeSection、EnsemblePart.sectionID、EnsembleSections.offset/validatePlacementが入口。並べ替え後はタイムラインのセクション帯とクリップ絶対Start/endを確認する。元performanceのbeatを同時に書き換えない。演奏が範囲を超えるエラーは長さ/START/REPEATを直してからPlay/Save/Export。勝手に切り捨てない。割当セクションの削除が拒否されたら、必要に応じてパートをSongへ変更してから削除する。
+空の構成でDemo Songを使うとIntro 8→Aメロ16→サビ16と3パートが追加される。共通Beat 8/24からVerse/Chorusが入る。編集はdirty=true、Save後と再起動はsections配列順/ID/拍長とsectionIDの一致を確認する。v4のsections必須、旧版はセクションなし。空セクションも曲長に含み、WAVはその末尾＋余韻。停止はStop All、playing=false/全voices=0を確認する。

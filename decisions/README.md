@@ -64,3 +64,5 @@ Status: proposed / accepted / superseded
 - [0020: パート構成タイムライン](0020-ensemble-timeline.md)
 
 - [0021: パート単位の繰り返し](0021-ensemble-repeats.md)
+
+- [0022: 曲のセクション構成](0022-song-sections.md)

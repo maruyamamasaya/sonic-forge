@@ -144,3 +144,6 @@ EnsembleTestsで最後のペダルまでの長さ、テンポに依存しない�
 
 ## Ensemble Repeats
 通常テスト: イベント数・各回の音符/ペダル全bytesと間隔、最終長、1回互換、不正回数、回数のdirty/保存復元、v1/v2の1回移行、v3欠落/null/小数/範囲外拒否を確認。実WAVで2/3回目の非ゼロ音声と延長された長さを検証。実UIはDemo Repeatの×2/×3、区切り表示、回数操作、再生中変更不可、次の回の発音、保存/再起動、全回のWAV出力を確認。Fullと--playbackを実行する。
+
+## Song Sections
+EnsembleSectionTestsで並べ替え/長さの累積位置、割り当て・ドラッグ境界、参照中削除の拒否、dirty/save/load、v4必須/重複ID/無効長/未知参照/範囲超過と失敗時保持、旧v3移行を確認。実レンダーWAVで空イントロの無音・次セクションの発音・空末尾の長さを測定。--playbackではイベント終了後も曲末まで保持しStopで解除することを確認する。実UIはDemo Song、名前/拍長/順序、パート割当、タイムライン帯、Play/Save/restart/Exportを確認。

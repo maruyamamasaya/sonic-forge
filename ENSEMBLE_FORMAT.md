@@ -1,13 +1,13 @@
-# 構成ファイル形式 v3
+# 構成ファイル形式 v4
 
 正本は[EnsembleDocument.swift](app/EnsembleDocument.swift)。操作は[ENSEMBLE.md](ENSEMBLE.md)。UTF-8 JSON、拡張子.sfensemble、最大384 MiB。音源同梱で外部パスへ依存しない。
 
 ## フィールド
-v3は全フィールド必須。v1/v2も読み込み可能で、繰り返し回数は1、v1の開始位置は0として復元する。保存は常にv3。未知のversionを拒否する。
+v4はsectionsが必須、parts[].sectionIDは省略/nullでSong。v1〜v3も読み込み可能でセクションなし、v1/v2は繰り返し回数1、v1の開始位置は0へ移行。保存は常にv4。未知のversionを拒否する。
 
 | 場所・フィールド | 内容 |
 | --- | --- |
-| version | 整数3（読込は1/2も可） |
+| version | 整数4（読込は1/2/3も可） |
 | tempo | 共通テンポ、有限数40〜240 BPM |
 | masterDB | Ensemble共通Master、有限数−60〜0 dB |
 | parts | 順序付き1〜4パート |
@@ -17,6 +17,8 @@ v3は全フィールド必須。v1/v2も読み込み可能で、繰り返し回�
 | parts[].performance | [演奏形式v1](PERFORMANCE_FORMAT.md)のオブジェクト。元のtempoも保持し、再生時のみ共通tempoを優先 |
 | parts[].gainDB | パート音量、有限数−36〜0 dB |
 | parts[].muted | 真偽値 |
+| sections | v4必須、順序付き0〜8個の{id: UUID, name: 非空白1〜40文字, beats: 有限数1〜256}。ID重複不可 |
+| parts[].sectionID | sections内のUUID、または省略/nullで曲頭基準。未知参照は拒否 |
 | parts[].repeatCount | v3必須、整数1〜16。追加回数ではなく合計演奏回数 |
 | parts[].startBeat | v2必須、有限数0〜256拍。小数可。曲頭からの待機拍数 |
 
@@ -28,6 +30,8 @@ v3は全フィールド必須。v1/v2も読み込み可能で、繰り返し回�
 ファイル内に原本パス・実行コード・認証情報・再生位置・発音数・押鍵/ペダルの現在状態は保存しない。各パートのUUIDは読み込み時に新規作成する。再生するペダルイベントはperformanceに含まれるが、復元時点でペダルを踏んだ状態にはしない。
 最後に正常保存/読込したパスだけをアプリのUserDefaults（lastEnsemblePathV1）で記憶する。構成を別のMacへ移す場合は.sfensemble単体をコピーしてOpen…すればよい。移動後の自動パス追跡・クラウド同期・未保存変更の自動復旧は未実装。
 
-startBeatはperformance内のbeatを書き換えず、再生時に全イベントの秒へstartBeat × 60 / 共通tempoを加える。v2の欠落/null・負数・上限超過は拒否する。旧アプリはv3を拒否するため、上書き後は旧版で開けない。
+startBeatはperformance内のbeatを書き換えず、再生時に全イベントの秒へstartBeat × 60 / 共通tempoを加える。v2の欠落/null・負数・上限超過は拒否する。旧アプリはv4を拒否するため、上書き後は旧版で開けない。
 
 repeatCountは元のperformanceを複製して保存せず、再生/出力時に展開する。各回の間隔は元の最終イベント拍のceil、全体長は(count−1)×間隔＋元の長さ。正本は[EnsembleTimeline.swift](app/EnsembleTimeline.swift)のevents/repeatedLength。
+
+セクションは配列順に隙間なく連結する。part.startBeatは割り当て先内の相対拍。繰り返し込みの演奏終端がセクションのbeatsを超える場合は拒否。Songパートは従来の曲頭基準。曲長は全セクション合計と全イベント終端の大きい方で、空のセクションも含む。正本は[EnsembleSections.swift](app/EnsembleSections.swift)。
