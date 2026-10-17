@@ -60,3 +60,5 @@ Status: proposed / accepted / superseded
 - [0018: パート開始位置を拍単位で保存する](0018-ensemble-start-beats.md)
 
 - [0019: 構成全体のWAVレンダー](0019-ensemble-wav-export.md)
+
+- [0020: パート構成タイムライン](0020-ensemble-timeline.md)

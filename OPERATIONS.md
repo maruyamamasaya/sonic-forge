@@ -179,3 +179,5 @@ Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保
 開始位置の確認: Ensemble…→Demo Entry +4→各START（0/4拍）→Play All→途中でPluckが加わる→Stop All。変更後はSave…で保存。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
 
 全体WAV: Ensemble…→停止→Export WAV…→Exported→Done→本体Open WAV…で再読込。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
+
+構成の可視化: Ensemble…のARRANGEMENTで各クリップを左右ドラッグ（¼拍）。開始位置の保存はSave…。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。

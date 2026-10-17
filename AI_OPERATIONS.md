@@ -113,3 +113,8 @@ Ensemble各行のSTART（アクセシビリティ名Start beat for パート名�
 正本は[ENSEMBLE.md](ENSEMBLE.md)。Stop All後、START・TEMPO・全音量/MuteとMasterを確認してExport WAV…。モデル入口はEnsembleModel.exportPanel/exportWAV、レンダーはEnsembleExport.write。保存先を選んだだけでは成功と判定しない。exporting=true/busy=true中は編集・再生を行わず、取消はCancel Export（cancelExport）。完了はexporting=false/busy=false・error=nil・exportedURLとExported表示で判定する。取消はExport cancelled、失敗はエラー表示で、成功と報告しない。
 WAVは48 kHz/stereo/Float32、最大256 MiB、最後のイベント＋最大Release＋50 ms。開始位置・全Muteによる無音は正常。構成のdirtyは変えず、自動保存もしない。本体の試聴音量やOS音量はファイルへ反映しない。
 デモで完了後Done→本体Open WAV…から出力を再読み込み、assetのレート/チャンネル/長さと波形を確認して再生・停止。元音源へ上書きしない。書き出しはオフラインなのでOSの出力デバイスを必要としない。
+
+## タイムラインの表示と開始位置操作
+ARRANGEMENTで全パートを一覧し、クリップの位置と幅、START値で構成を判断する。アクセシビリティ名はTimeline clip for パート名、値はStart/length/end beats。クリップのIncrement/Decrementは¼拍。ドラッグは停止中のみ、離した時に¼拍へスナップして0〜256へ制限する。精密な任意値はStart beat for パート名へ入力する。モデル入口はEnsembleModel.movePart、計算はEnsembleTimeline.length/movedStart、UIはEnsembleTimelineView。
+クリップ長は最後の音符離鍵またはペダルイベントまでで、冒頭の休符を含み、Release余韻は含まない。Muteは幅を変えず薄く表示。無効な演奏はInvalid performanceと表示し、正常クリップと報告しない。横スクロールして後半も確認する。
+操作後はSTART/クリップ値とdirty=trueを確認。Save…後の復元は既存startBeatと同一で、保存形式変更なし。Play Allでは位置線とBeatを確認し、移動操作をしない。Stop Allでplaying=false・全voices=0・位置0を確認する。クリップ端のドラッグによる長さ変更、シーク、複製は未実装。

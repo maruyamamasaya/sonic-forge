@@ -138,3 +138,6 @@ EnsemblePersistenceTestsは独立UserDefaults/一時領域で4パートの保存
 ## Ensemble WAV Export
 EnsembleExportTestsでデモ素材を実グラフoffline renderし、先頭待機の無音・発音・ペダル後のRelease・終端無音、個別gainとMasterのエネルギー比、全Mute、48 kHz/stereo、再読込、取消/元音源保護と一時ファイル清掃を検証する。Fullと--playbackを実行する。
 実UIはデモの開始位置/音量/Muteを確認→Export WAV→成功→本体Open WAVで再読込→再生/停止。Renderingの進捗と取消、保存キャンセル、エラー時の構成保持も確認する。上限近辺の長時間出力・全音源での主観的音質は未評価。
+
+## Ensemble Timeline
+EnsembleTestsで最後のペダルまでの長さ、テンポに依存しない拍表示、不正演奏、ドラッグの¼拍丸め/境界、movePartの不正値拒否・他パート/演奏不変を確認する。実UIはデモで表示・横スクロール・ドラッグとSTART連動・再生位置線・再生中移動不可・保存/復元、4パート表示と760高シートの描画を確認。既存--playbackとFullも実行する。

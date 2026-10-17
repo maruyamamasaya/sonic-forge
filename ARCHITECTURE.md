@@ -141,3 +141,6 @@ EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsの
 ## Ensemble WAV Export
 EnsembleExportは検証済みEnsembleSnapshotを固定し、既存EnsembleVoice/SampleInstrumentを共通engineのoffline manual renderingへ接続。イベントを48 kHzの切上げフレームへ変換し、同時刻の順序を保ちイベント境界でバッファを分割する。共通テンポ・開始位置・mix/headroomは実再生と同じ。最後のイベント＋最大Release＋50 msまで書く。ステレオFloat32・256 MiB上限。
 MainActor上で非実時間レンダーを行い、32ブロックごとにyield/進捗更新、各ブロックで取消を検査。ライブengineとは分離。UIのbusyで設定変更を止める。保存先横の一時WAVを閉じた後にPOSIX renameで公開し、失敗/取消は一時ファイルだけを清掃。元WAV/参照楽器/構成の同一実体を開始時と公開直前に検査する。
+
+## Ensemble Timeline
+EnsembleTimeline.lengthはPerformanceDocument.eventsを60 BPMへ換算し、最後のイベント拍を返す（休符/ペダルを含み、Releaseは除く）。EnsembleTimelineViewは24 px/拍、4拍目盛・水平スクロールで全パートを表示。クリップのGestureStateでドラッグ中の位置をプレビューし、終了時のみmovePartへ渡す。¼拍丸め/0〜256制限とcanEditを適用し、既存startBeatのdirty/保存/演奏/出力へ接続。別の配置データは持たない。

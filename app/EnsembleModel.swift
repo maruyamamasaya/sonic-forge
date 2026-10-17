@@ -230,6 +230,10 @@ final class EnsembleModel: ObservableObject {
         let part = EnsemblePart(name: "Part \(parts.count + 1)", instrument: instrument, performance: performance)
         parts.append(part); error = nil; return part
     }
+    func movePart(_ id: UUID, to beat: Double) {
+        guard canEdit, beat.isFinite, (0...256).contains(beat), let part = parts.first(where: { $0.id == id }) else { return }
+        part.startBeat = beat
+    }
     func remove(_ id: UUID) { guard canEdit else { return }; parts.removeAll { $0.id == id } }
     func setPerformance(_ document: PerformanceDocument, part id: UUID) {
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }

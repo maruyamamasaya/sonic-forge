@@ -9,6 +9,22 @@ enum EnsembleTests {
         precondition(ensemble.parts.count == 2 && ensemble.error == nil)
         let first = ensemble.parts[0], second = ensemble.parts[1]
         let tempos = ensemble.parts.map { $0.performance.tempo }
+        var withPedal = first.performance
+        withPedal.pedals = [PerformancePedal(beat: 20, down: false, channel: 0)]
+        precondition(EnsembleTimeline.length(withPedal) == 20)
+        withPedal.tempo = 240
+        precondition(EnsembleTimeline.length(withPedal) == 20)
+        withPedal.notes = []
+        precondition(EnsembleTimeline.length(withPedal) == nil)
+        precondition(EnsembleTimeline.movedStart(original: 4.5, translation: -240, pixelsPerBeat: 24) == 0)
+        precondition(EnsembleTimeline.movedStart(original: 255.5, translation: 240, pixelsPerBeat: 24) == 256)
+        precondition(EnsembleTimeline.movedStart(original: 4.5, translation: 7, pixelsPerBeat: 24) == 4.75)
+        let beforeMove = first.performance
+        ensemble.movePart(first.id, to: 3.25)
+        precondition(first.startBeat == 3.25 && second.startBeat == 0 && first.performance == beforeMove && ensemble.dirty)
+        ensemble.movePart(first.id, to: .nan); ensemble.movePart(first.id, to: -1)
+        precondition(first.startBeat == 3.25)
+        ensemble.movePart(first.id, to: 0)
         ensemble.tempo = 120
         let events = try ensemble.timeline()
         precondition(events.count == 88 && events.filter { $0.time == 0 }.count == 4)

@@ -46,6 +46,7 @@ struct EnsembleView: View {
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                EnsembleTimelineView(ensemble: ensemble)
                 ScrollView {
                     VStack(spacing: 12) {
                         ForEach(ensemble.parts) { part in
@@ -89,7 +90,7 @@ struct EnsembleView: View {
             if let error = ensemble.error { Text(error).font(.system(size: 11)).foregroundStyle(.orange).lineLimit(3).help(error) }
             Text("Save includes instruments, performances, start beats, levels and tempo. The last saved or opened ensemble restores on launch.")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
-        }.padding(24).frame(width: 880, height: 650)
+        }.padding(24).frame(width: 880, height: 760)
             .background(Color(red: 0.075, green: 0.09, blue: 0.105)).preferredColorScheme(.dark)
             .confirmationDialog("Replace unsaved ensemble changes?", isPresented: $confirmOpen) {
                 Button("Choose Ensemble…", role: .destructive) { ensemble.openPanel() }
