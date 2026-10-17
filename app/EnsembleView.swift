@@ -191,6 +191,7 @@ private struct EnsemblePartRow: View {
                 Text("SECTION CLIPS · \(part.allClips.count) / 8 · One instrument, shared volume & mute")
                     .font(.system(size: 9)).foregroundStyle(.secondary)
                 Spacer()
+                EnsembleDuplicateMenu(part: part, ensemble: ensemble, clip: part.allClips[0])
                 Menu("Add Section Clip") {
                     ForEach(ensemble.sections) { section in
                         Button(section.name) { ensemble.addClip(part: part.id, sectionID: section.id) }

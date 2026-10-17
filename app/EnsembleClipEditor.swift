@@ -39,6 +39,19 @@ struct EnsembleClipEditor: View {
                 Spacer()
                 Text("\(clip.performance.notes.count) notes · Shared instrument & mix").foregroundStyle(.secondary)
             }.font(.system(size: 10))
+            HStack(spacing: 12) {
+                Text("VARIATION").foregroundStyle(.secondary)
+                Stepper(value: Binding(get: { clip.performance.transpose }, set: { value in
+                    ensemble.editClip(part: part.id, clip: clip.id) { $0.performance.transpose = value }
+                }), in: -24...24) { Text("Pitch \(clip.performance.transpose > 0 ? "+" : "")\(clip.performance.transpose) st").monospacedDigit() }
+                    .frame(width: 135).accessibilityLabel("Clip transpose for \(part.name) \(clip.id)")
+                Stepper(value: Binding(get: { clip.performance.velocityPercent }, set: { value in
+                    ensemble.editClip(part: part.id, clip: clip.id) { $0.performance.velocityPercent = value }
+                }), in: 25...150, step: 5) { Text("Velocity \(Int(clip.performance.velocityPercent))%").monospacedDigit() }
+                    .frame(width: 155).accessibilityLabel("Clip velocity for \(part.name) \(clip.id)")
+                Spacer()
+                EnsembleDuplicateMenu(part: part, ensemble: ensemble, clip: clip)
+            }.font(.system(size: 10))
         }.padding(10).background(Color.white.opacity(0.025)).clipShape(RoundedRectangle(cornerRadius: 4))
             .disabled(!ensemble.canEdit)
     }

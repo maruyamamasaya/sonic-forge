@@ -150,3 +150,5 @@ EnsembleSectionTestsで並べ替え/長さの累積位置、割り当て・ド�
 
 ## Shared Instrument Clips
 EnsembleClipTestsで同じPCMを持つ1パートのIntro/Chorusの異なる演奏、イベント位置/音程、順序変更、個別移動/dirty/削除、v5保存/ID復元とv4移行、追加情報欠落・重複ID・未知参照・同一パート内重複と失敗時保持を確認。実WAVの両区間の非ゼロ出力/間の無音を測定し、--playbackで後半クリップの発音/停止を確認。実UIはDemo Song、同一行の複数クリップ、追加編集と他クリップ不変、保存/再起動/Exportを確認。Fullと--playbackを実行する。
+
+クリップ複製: tests/EnsembleClipTests.swiftで最初/追加クリップの複製、元の保持、独立した移調/強弱、重複/不明ID拒否時のdirty保持、v5復元、繰り返した各セクションのWAV非ゼロ出力と再読み込みを検証。実UIはDuplicate To…から別セクション→Pitch/Velocity→タイムライン→保存/再起動を確認。

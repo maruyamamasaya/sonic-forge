@@ -117,7 +117,7 @@ WAVは48 kHz/stereo/Float32、最大256 MiB、最後のイベント＋最大Rele
 ## タイムラインの表示と開始位置操作
 ARRANGEMENTで全パートを一覧し、クリップの位置と幅、START値で構成を判断する。アクセシビリティ名はTimeline clip for パート名、値はStart/length/end beats。クリップのIncrement/Decrementは¼拍。ドラッグは停止中のみ、離した時に¼拍へスナップして0〜256へ制限する。精密な任意値はStart beat for パート名へ入力する。モデル入口はEnsembleModel.movePart、計算はEnsembleTimeline.length/movedStart、UIはEnsembleTimelineView。
 クリップ長はREPEAT全回分の最後の音符離鍵またはペダルイベントまでで、冒頭の休符を含み、Release余韻は含まない。Muteは幅を変えず薄く表示。無効な演奏はInvalid performanceと表示し、正常クリップと報告しない。横スクロールして後半も確認する。
-操作後はSTART/クリップ値とdirty=trueを確認。Save…後の復元は既存startBeatと同一。Play Allでは位置線とBeatを確認し、移動操作をしない。Stop Allでplaying=false・全voices=0・位置0を確認する。クリップ端のドラッグによる長さ変更、シーク、複製は未実装。
+操作後はSTART/クリップ値とdirty=trueを確認。Save…後の復元は既存startBeatと同一。Play Allでは位置線とBeatを確認し、移動操作をしない。Stop Allでplaying=false・全voices=0・位置0を確認する。クリップ端のドラッグによる長さ変更、シークは未実装。
 
 ## パートの繰り返し回数を操作する
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止して各行REPEAT（Repeat count for パート名）を1〜16の整数へ設定。×1は1回、×Nは合計N回。EnsemblePart.repeatCount、EnsembleTimeline.events/repeatedLengthを使用し、同じ繰り返しをperformance.notesへ二重追加しない。間隔は最終イベント拍のceil。拍子の仮定や自動小節補正は行わない。
@@ -134,3 +134,8 @@ EnsembleModel.sections/addSection/reorderSection/removeSection、EnsemblePart.se
 EnsemblePart.additionalClips/allClips、EnsembleModel.addClip/editClip/setClipPerformance/openClipPerformance/removeClipが入口。最初の演奏は従来のperformance/startBeat/repeatCount/sectionIDを維持。最大8クリップ、停止中のみ編集。追加直後は最初の演奏をコピーするため、セクション範囲や重複エラーを読んでSTART/REPEAT/演奏を調整する。自動で切り捨てたり、楽器を複製してパート上限を消費しない。
 タイムラインは同じ行の複数クリップ。アクセシビリティ名にパート名・演奏名・UUIDがあり、対象IDの値/ドラッグ後に他クリップの位置が変わらないことを確認。モデルのmovePart(...clip:)もIDを指定する。クリップのUUIDを推測しない。
 Demo Songは2楽器/各2クリップ。Save…後のv5にはadditionalClipsが必須、旧v1〜v4は追加なしとして開く。再起動で追加ID/演奏/配置と共有音色を確認し、Export WAVは全クリップを含む。Stop Allで全ボイスとペダルを解除する。
+
+## クリップ複製と展開変更
+正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中にDuplicate clip for パート名 UUIDメニュー→別セクション。UUIDは現在のタイムライン/追加エディターから取得する。最初の演奏にもSECTION CLIPS行に同じメニューがある。複製後のClip transpose/Clip velocity for パート名 新UUIDを操作し、元の演奏・START・REPEATが変わらないことを確認する。
+モデル入口はEnsembleModel.duplicateClip(part:clip:to:)。成功時は新UUID、失敗時はnilとerror。成功時のみ追加/dirtyとなる。演奏・相対START・REPEATを保ち、楽器/mixを共有する。対象セクションの長さ不足や区間重複は自動修正せず拒否。canEdit=falseでは変更しない。最大8クリップでメニュー無効。
+成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v5を継続。Play AllとExport WAVは既存の全クリップ経路を使う。停止はStop All→playing=false/全voices=0/ペダル解除を確認する。

@@ -187,3 +187,5 @@ Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保
 曲構成: SONG SECTIONSのAdd Section→各パートSection割り当て。空の構成はDemo SongでIntro/Aメロ/サビを生成できる。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
 
 同じ音色の再利用: 各パートAdd Section Clip→セクションを選択→追加演奏をPreset/Open/Use Currentで設定。Demo Songは2楽器の複数クリップを生成する。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
+
+Ensembleで停止中、Duplicate To…→別セクションを選ぶ。追加クリップのPitch/Velocityで展開を調整する。詳細は[ENSEMBLE.md](ENSEMBLE.md)を参照。

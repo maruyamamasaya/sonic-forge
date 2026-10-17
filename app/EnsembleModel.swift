@@ -277,6 +277,22 @@ final class EnsembleModel: ObservableObject {
         guard canEdit, let part = parts.first(where: { $0.id == id }), part.additionalClips.count < 7 else { return }
         part.additionalClips.append(EnsembleClip(performance: part.performance, sectionID: sectionID))
     }
+    @discardableResult func duplicateClip(part id: UUID, clip clipID: UUID, to sectionID: UUID?) -> UUID? {
+        guard canEdit else { return nil }
+        do {
+            guard let part = parts.first(where: { $0.id == id }), let source = part.allClips.first(where: { $0.id == clipID }) else {
+                throw AudioError.invalid("複製元のクリップが見つかりません。")
+            }
+            guard part.additionalClips.count < 7 else { throw AudioError.invalid("1パートのクリップは最大8個です。") }
+            guard let instrument = part.instrument else { throw AudioError.invalid("先に楽器を割り当ててください。") }
+            try EnsembleSections.validate(sections)
+            var copy = source
+            copy.id = UUID(); copy.sectionID = sectionID
+            try EnsembleClips.validate(part.allClips + [copy], root: instrument.root, sections: sections)
+            part.additionalClips.append(copy); error = nil
+            return copy.id
+        } catch { self.error = "クリップを複製できませんでした。\n" + error.localizedDescription; return nil }
+    }
     func editClip(part id: UUID, clip clipID: UUID, change: (inout EnsembleClip) -> Void) {
         guard canEdit, let part = parts.first(where: { $0.id == id }), let index = part.additionalClips.firstIndex(where: { $0.id == clipID }) else { return }
         change(&part.additionalClips[index])

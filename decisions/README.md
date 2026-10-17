@@ -68,3 +68,5 @@ Status: proposed / accepted / superseded
 - [0022: 曲のセクション構成](0022-song-sections.md)
 
 - [0023: 共有楽器の複数演奏クリップ](0023-shared-instrument-clips.md)
+
+- [0024: 演奏クリップの複製](0024-clip-duplication.md)

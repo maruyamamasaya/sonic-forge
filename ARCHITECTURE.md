@@ -155,3 +155,5 @@ EnsembleSectionは安定UUID/name/beatsを持ち、EnsembleModel.sectionsが配�
 ## Shared Instrument Clips
 既存EnsemblePartのperformance/startBeat/repeatCount/sectionIDを最初の演奏として保ち、additionalClips（0〜7個）を追加。EnsembleClipはUUID/演奏/相対開始/回数/任意sectionID。allClipsが先頭演奏と追加を統一し、EnsembleClips.validate/eventsをライブとWAVで共有する。パートごとにサンプラーとmixを一つだけ使う。セクションごとの楽器PCM複製はしない。
 同一パート内の演奏区間の重複を拒否し、接する境界では前クリップの終端イベントを先に配送する。最大8クリップ/パート。セクション削除の参照検査は追加分も対象。追加配列publisherでdirty追跡、保存v5は音源をパートに一度、追加配置をadditionalClipsへ保存。旧v1〜v4は追加なし。UIはEnsembleClipEditorで演奏/配置を独立編集し、タイムラインは一行内に全クリップを描く。
+
+クリップ複製はEnsembleModel.duplicateClipが新UUID・別sectionIDの値コピーを作り、全候補をEnsembleClips.validateで検証した後に追加する。演奏/START/REPEATを保持し、失敗は原子的に拒否。EnsembleDuplicateMenuとEnsembleClipEditorが操作入口。保存形式はv5を継続する。
