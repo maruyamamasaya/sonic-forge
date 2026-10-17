@@ -154,7 +154,7 @@ struct WorkspaceView: View {
             Button("Export WAV…") { library.stopPreview(); ensemble.exportPanel(protecting: model.asset.map { [$0.url] } ?? []) }
                 .disabled(!ensemble.canEdit || ensemble.parts.isEmpty)
         }.font(.system(size: 11)).padding(.horizontal, 16).frame(height: 52)
-            .foregroundStyle(wood.ink).environment(\.colorScheme, wood.scheme).background(WoodSurface(wood: wood))
+            .foregroundStyle(wood.ink).environment(\.colorScheme, wood.scheme).background(WoodSurface(wood: wood, horizontalGrain: true))
             .overlay(alignment: .bottom) { Rectangle().fill(.black.opacity(0.4)).frame(height: 2).allowsHitTesting(false) }
     }
     private var sectionToolbar: some View {

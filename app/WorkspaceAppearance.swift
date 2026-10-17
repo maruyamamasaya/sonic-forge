@@ -16,17 +16,26 @@ enum WorkspaceWood: String, CaseIterable, Identifiable {
 
 struct WoodSurface: View {
     let wood: WorkspaceWood
+    var horizontalGrain = false
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Color(red: 0.33, green: 0.23, blue: 0.16)
                 if let image = wood.image {
-                    Image(nsImage: image).resizable().scaledToFill().frame(width: geometry.size.width, height: geometry.size.height).clipped()
+                    if horizontalGrain {
+                        Image(nsImage: image).resizable().scaledToFill()
+                            .frame(width: geometry.size.height, height: geometry.size.width).clipped()
+                            .rotationEffect(.degrees(90))
+                            .frame(width: geometry.size.width, height: geometry.size.height).clipped()
+                    } else {
+                        Image(nsImage: image).resizable().scaledToFill()
+                            .frame(width: geometry.size.width, height: geometry.size.height).clipped()
+                    }
                 }
                 Color.black.opacity(wood == .walnut ? 0.20 : 0)
                 LinearGradient(colors: [.white.opacity(0.045), .clear, .black.opacity(wood == .walnut ? 0.22 : 0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-        }.allowsHitTesting(false)
+            }.frame(width: geometry.size.width, height: geometry.size.height).clipped()
+        }.clipped().allowsHitTesting(false)
     }
 }
 

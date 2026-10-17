@@ -80,3 +80,5 @@ Status: proposed / accepted / superseded
 - [0028: 下段でのクリップ音符編集](0028-clip-note-editing.md)
 
 - [0029: クリップごとの音符編集履歴](0029-note-edit-history.md)
+
+- [0030: 音符の複数選択と一括編集](0030-note-multiple-selection.md)

@@ -362,6 +362,34 @@ final class EnsembleModel: ObservableObject {
         do { _ = try performance.events(root: part.instrument?.root); editClip(part: id, clip: clipID) { $0.performance = performance }; error = nil }
         catch { self.error = error.localizedDescription }
     }
+    enum NoteGroupAction { case move(Double, Int), duplicate(Double, Int), delete }
+    /// Apply a selection as one validated edit and one undo step.
+    func editNoteGroup(part id: UUID, clip clipID: UUID, indices: Set<Int>, action: NoteGroupAction) -> Set<Int>? {
+        guard canEdit, let clip = parts.first(where: { $0.id == id })?.allClips.first(where: { $0.id == clipID }),
+              !indices.isEmpty, indices.allSatisfy({ clip.performance.notes.indices.contains($0) }) else { return nil }
+        var result = indices
+        let success = editClipNotes(part: id, clip: clipID) { notes in
+            switch action {
+            case .delete:
+                notes = notes.enumerated().filter { !indices.contains($0.offset) }.map(\.element)
+                result = []
+            case let .move(beats, semitones), let .duplicate(beats, semitones):
+                guard beats.isFinite, (-256...256).contains(beats), (-127...127).contains(semitones) else {
+                    notes[0].beat = .nan; return
+                }
+                let copies = indices.sorted().map { index -> PerformanceNote in
+                    var note = notes[index]; note.beat += beats; note.pitch += semitones; return note
+                }
+                if case .duplicate = action {
+                    result = Set(notes.count..<(notes.count + copies.count)); notes.append(contentsOf: copies)
+                } else {
+                    for (index, note) in zip(indices.sorted(), copies) { notes[index] = note }
+                }
+            }
+        }
+        return success ? result : nil
+    }
+
     /// Atomic note edits validate the complete part, including repeated placement and siblings.
     @discardableResult
     func editClipNotes(part id: UUID, clip clipID: UUID, change: (inout [PerformanceNote]) -> Void) -> Bool {

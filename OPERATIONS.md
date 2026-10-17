@@ -199,3 +199,5 @@ Natural Studio: 1920×1080基準、既存の小さい表示領域にも縮小可
 Ensemble下段のNOTE EDITORでクリップの音符を直接編集できる。操作・制約は[下段の音符編集](ENSEMBLE.md#下段の音符編集)を参照。
 
 NOTE EDITORの戻る/進む矢印で音符編集を取り消し/やり直しできる。履歴の範囲と保存については[音符の取り消し・やり直し](ENSEMBLE.md#音符の取り消しやり直し)を参照。
+
+下段のMulti/All/Clearで音符をまとめて選択し、Δ beats/Δ pitchとMove/Duplicate/Deleteで一括編集できる。詳細は[複数音符の選択](ENSEMBLE.md#複数音符の選択)。

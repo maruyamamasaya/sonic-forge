@@ -38,6 +38,7 @@ enum WorkspaceTests {
         }
         try await noteEditing()
         try await noteHistory()
+        try await multipleNotes()
         // The visual note model must agree with production events at every repeat.
         var performance = PerformanceDocument.preset(.pedalStudy)
         performance.transpose = 2; performance.velocityPercent = 75
@@ -111,6 +112,7 @@ enum WorkspaceTests {
             model.play(); try await Task.sleep(nanoseconds: 100_000_000)
             precondition(!model.editClipNotes(part: part.id, clip: id) { $0[0].velocity = 1 })
             precondition(!model.canUndoNotes(part: part.id, clip: id) && !model.restoreNoteEdit(part: part.id, clip: id))
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .move(1, 0)) == nil)
             precondition(part.performance == original); model.stop()
         }
         print("PASS: atomic note add/edit/delete, invalid edit preservation, sibling isolation, events, v5 restore, WAV reload and playback lock")
@@ -181,6 +183,57 @@ enum WorkspaceTests {
         model.sections[0].beats = 12
         precondition(model.restoreNoteEdit(part: loaded.id, clip: loaded.primaryClipID, redo: true))
         print("PASS: note undo/redo for all edits, clip isolation, branching/no-op/failure, save/reload reset, 50-entry bound and placement rejection")
+    }
+
+    @MainActor private static func multipleNotes() async throws {
+        let model = EnsembleModel(); await model.addSharedSongDemo()
+        model.sections[0].beats = 32; model.tempo = 240
+        let part = model.parts[0], id = part.primaryClipID
+        let original = part.performance, siblings = part.additionalClips
+        let indices: Set<Int> = [0, 1]
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: indices, action: .move(0.25, 1)) == indices)
+        for index in indices {
+            var expected = original.notes[index]; expected.beat += 0.25; expected.pitch += 1
+            precondition(part.performance.notes[index] == expected)
+        }
+        precondition(part.performance.notes[2] == original.notes[2] && part.additionalClips == siblings)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == original)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: indices, action: .duplicate(4, 0)) == [3, 4])
+        let copied = part.performance
+        precondition(Array(copied.notes.prefix(3)) == original.notes)
+        for (index, copy) in copied.notes.suffix(2).enumerated() {
+            var expected = original.notes[index]; expected.beat += 4
+            precondition(copy == expected)
+        }
+        precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == original)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id, redo: true) && part.performance == copied)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [3, 4], action: .delete) == [])
+        precondition(part.performance == original)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == copied)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Multi-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("multi.sfensemble")
+        let saved = await model.save(to: url, remember: false); precondition(saved && !model.dirty)
+        for action: EnsembleModel.NoteGroupAction in [.move(-100, 0), .move(0, 127), .duplicate(0, 0), .duplicate(100, 0), .move(.nan, 0)] {
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: indices, action: action) == nil)
+            precondition(part.performance == copied && !model.dirty)
+        }
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: Set(copied.notes.indices), action: .delete) == nil)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [999], action: .delete) == nil)
+        precondition(part.performance == copied && part.additionalClips == siblings)
+        let loaded = EnsembleModel(); let opened = await loaded.load(url, remember: false)
+        precondition(opened && loaded.parts[0].performance == copied)
+        let wav = dir.appendingPathComponent("multi.wav")
+        try await EnsembleExport.write(model.snapshot(), to: wav)
+        let audio = try AudioAsset.load(wav); precondition(audio.duration > 0)
+        var maximum = original
+        maximum.notes = (0..<256).map { PerformanceNote(beat: Double($0) * 0.25, duration: 0.2, pitch: 60, velocity: 80) }
+        model.parts[0].repeatCount = 1; model.sections[0].beats = 128
+        model.setClipPerformance(maximum, part: part.id, clip: id)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .duplicate(65, 0)) == nil)
+        precondition(part.performance == maximum)
+        print("PASS: atomic multi-note move/duplicate/delete, relative attributes, sibling preservation, one-step undo/redo, invalid bounds/overlap/count, save/restore and WAV")
     }
 
 }
