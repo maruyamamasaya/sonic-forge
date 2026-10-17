@@ -162,3 +162,7 @@ PerformanceNoteLayout.makeが実演奏から音符の時刻/長さ/移調済み�
 Timeline clipを選択するとSelectedClipNotesが1回分の音符を編集する。Clip note Nをクリックして選択し、Selected note pitch/start/length/velocityへ数値を入力してApply selected noteを実行する。pitchは移調後のMIDI番号、startとlengthはクリップ内の拍、velocityは全体%適用前の1〜127。既存channelとpedalsは変更しない。
 Add clip noteは0拍・基準音に近い空いた音程・0.5拍・velocity90で追加。空白グリッドのクリックでも指定位置に追加できる。Delete selected clip noteは選択音を削除し、最後の1音は削除できない。ドラッグは音符本体が移動、右端が長さ変更で、1/4拍スナップ。繰り返しは全周回へ反映される。
 操作の正本はEnsembleModel.editClipNotes。canEdit必須で、全クリップ検証後に適用する。成功は対象clip.performance.notes、dirty、タイムライン長、下段表示で確認。失敗はensemble.errorに表示し元データを保持する。選択だけはdirtyにしない。停止はStop all workspace audioでplaying=false、全voices=0を確認してから編集する。構成Save→再起動復元→WAV出力は同じPerformanceDocumentを使用する。
+
+## 音符の取り消し・やり直し
+下段Undo clip note edit / Redo clip note editが選択クリップの履歴入口。モデルはcanUndoNotes/canRedoNotes、適用はrestoreNoteEdit(part:clip:redo:)。各クリップ直近50操作、ドラッグ確定/Apply/追加/削除ごとに1操作。無変更・失敗は履歴へ入れず、Undo後の新編集はそのクリップのRedoを消す。別クリップの履歴は保持する。
+成功はperformance.notesと上段/下段表示、dirtyで確認。選択音は解除される。セクションや音域が変わって戻せない場合はensemble.errorで判定し、データと履歴を保持する。再生/出力中は両ボタン無効、Stop all workspace audioで停止後に操作する。Save後も使えるが構成の読込成功/再起動で履歴は空。演奏置換でも対象履歴は空。履歴自体は保存せず、適用結果のみ構成保存とWAVへ反映する。キーボードのテキストUndoと混同せず専用ボタンを使う。

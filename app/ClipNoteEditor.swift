@@ -35,6 +35,16 @@ struct SelectedClipNotes: View {
         if let clip {
             VStack(spacing: 0) {
                 HStack {
+                    Button {
+                        if ensemble.restoreNoteEdit(part: part.id, clip: clipID) { selected = nil }
+                    } label: { Image(systemName: "arrow.uturn.backward") }
+                        .accessibilityLabel("Undo clip note edit").help("Undo this clip’s last note edit")
+                        .disabled(!ensemble.canUndoNotes(part: part.id, clip: clipID))
+                    Button {
+                        if ensemble.restoreNoteEdit(part: part.id, clip: clipID, redo: true) { selected = nil }
+                    } label: { Image(systemName: "arrow.uturn.forward") }
+                        .accessibilityLabel("Redo clip note edit").help("Redo this clip’s note edit")
+                        .disabled(!ensemble.canRedoNotes(part: part.id, clip: clipID))
                     Text("NOTE EDITOR").tracking(1.3)
                     Text(clip.performance.name).foregroundStyle(.secondary).lineLimit(1)
                     Spacer()

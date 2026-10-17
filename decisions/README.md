@@ -78,3 +78,5 @@ Status: proposed / accepted / superseded
 - [0027: Natural Studioの素材とタイムライン表示](0027-natural-studio.md)
 
 - [0028: 下段でのクリップ音符編集](0028-clip-note-editing.md)
+
+- [0029: クリップごとの音符編集履歴](0029-note-edit-history.md)

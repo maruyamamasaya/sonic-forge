@@ -37,6 +37,7 @@ enum WorkspaceTests {
             restored.stop(); precondition(restored.parts.allSatisfy { $0.voices == 0 })
         }
         try await noteEditing()
+        try await noteHistory()
         // The visual note model must agree with production events at every repeat.
         var performance = PerformanceDocument.preset(.pedalStudy)
         performance.transpose = 2; performance.velocityPercent = 75
@@ -109,9 +110,77 @@ enum WorkspaceTests {
         if CommandLine.arguments.contains("--playback") {
             model.play(); try await Task.sleep(nanoseconds: 100_000_000)
             precondition(!model.editClipNotes(part: part.id, clip: id) { $0[0].velocity = 1 })
+            precondition(!model.canUndoNotes(part: part.id, clip: id) && !model.restoreNoteEdit(part: part.id, clip: id))
             precondition(part.performance == original); model.stop()
         }
         print("PASS: atomic note add/edit/delete, invalid edit preservation, sibling isolation, events, v5 restore, WAV reload and playback lock")
+    }
+
+    @MainActor private static func noteHistory() async throws {
+        let model = EnsembleModel(); await model.addSharedSongDemo()
+        let part = model.parts[0], id = part.primaryClipID
+        let original = part.performance, siblings = part.additionalClips
+        var states = [original]
+        let changes: [(inout [PerformanceNote]) -> Void] = [
+            { $0.append(PerformanceNote(beat: 0.25, duration: 0.5, pitch: 72, velocity: 80)) },
+            { $0[0].pitch += 1 }, { $0[0].beat += 0.25 },
+            { $0[0].duration -= 0.25 }, { $0[0].velocity = 100 },
+            { $0.removeLast() }
+        ]
+        for change in changes {
+            precondition(model.editClipNotes(part: part.id, clip: id, change: change))
+            states.append(part.performance)
+        }
+        for expected in states.dropLast().reversed() {
+            precondition(model.restoreNoteEdit(part: part.id, clip: id))
+            precondition(part.performance == expected && part.additionalClips == siblings)
+        }
+        precondition(!model.canUndoNotes(part: part.id, clip: id))
+        // Failure and no-op must retain redo; a real branch clears it.
+        precondition(!model.editClipNotes(part: part.id, clip: id) { $0[0].velocity = 0 })
+        precondition(model.editClipNotes(part: part.id, clip: id) { _ in })
+        for expected in states.dropFirst() {
+            precondition(model.restoreNoteEdit(part: part.id, clip: id, redo: true))
+            precondition(part.performance == expected)
+        }
+        precondition(!model.canRedoNotes(part: part.id, clip: id))
+        precondition(model.restoreNoteEdit(part: part.id, clip: id))
+        precondition(model.editClipNotes(part: part.id, clip: id) { $0[0].velocity = 101 })
+        precondition(!model.canRedoNotes(part: part.id, clip: id))
+        let extra = part.additionalClips[0]
+        precondition(model.editClipNotes(part: part.id, clip: extra.id) { $0[0].velocity = 70 })
+        let primary = part.performance
+        precondition(model.restoreNoteEdit(part: part.id, clip: extra.id))
+        precondition(part.performance == primary && part.additionalClips == siblings)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Undo-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("undo.sfensemble")
+        let saved = await model.save(to: url, remember: false); precondition(saved && !model.dirty)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id) && model.dirty)
+        precondition(model.restoreNoteEdit(part: part.id, clip: id, redo: true))
+        let reopened = await model.load(url, remember: false)
+        let loaded = model.parts[0]
+        precondition(reopened && loaded.performance == primary && !model.canUndoNotes(part: loaded.id, clip: loaded.primaryClipID))
+        for index in 0..<55 {
+            precondition(model.editClipNotes(part: loaded.id, clip: loaded.primaryClipID) { $0[0].velocity = 50 + index % 2 })
+        }
+        var count = 0
+        while model.restoreNoteEdit(part: loaded.id, clip: loaded.primaryClipID) { count += 1 }
+        precondition(count == 50)
+        model.setClipPerformance(original, part: loaded.id, clip: loaded.primaryClipID)
+        precondition(!model.canRedoNotes(part: loaded.id, clip: loaded.primaryClipID))
+        // An otherwise valid history entry cannot overflow a subsequently shortened section.
+        model.sections[0].beats = 12
+        precondition(model.editClipNotes(part: loaded.id, clip: loaded.primaryClipID) { $0.append(PerformanceNote(beat: 4, duration: 0.5, pitch: 72, velocity: 80)) })
+        precondition(model.restoreNoteEdit(part: loaded.id, clip: loaded.primaryClipID))
+        let before = loaded.performance
+        model.sections[0].beats = 8
+        precondition(!model.restoreNoteEdit(part: loaded.id, clip: loaded.primaryClipID, redo: true))
+        precondition(loaded.performance == before && model.canRedoNotes(part: loaded.id, clip: loaded.primaryClipID))
+        model.sections[0].beats = 12
+        precondition(model.restoreNoteEdit(part: loaded.id, clip: loaded.primaryClipID, redo: true))
+        print("PASS: note undo/redo for all edits, clip isolation, branching/no-op/failure, save/reload reset, 50-entry bound and placement rejection")
     }
 
 }

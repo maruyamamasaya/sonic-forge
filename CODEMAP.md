@@ -87,3 +87,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 自然木素材は app/Resources/Textures/、bundleへのコピーは scripts/build.sh。
 
 下段音符編集: app/ClipNoteEditor.swift の SelectedClipNotes / ClipNoteGrid → app/EnsembleModel.swift の editClipNotes。検証は tests/WorkspaceTests.swift。
+
+音符履歴入口: EnsembleModel.canUndoNotes / canRedoNotes / restoreNoteEdit。UIはClipNoteEditor.swiftのUndo/Redo、検証はtests/WorkspaceTests.swift。

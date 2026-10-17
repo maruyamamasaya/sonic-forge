@@ -110,6 +110,11 @@ final class EnsembleModel: ObservableObject {
     @Published private(set) var fileMessage: String?
     private let defaults: UserDefaults
     private static let lastFileKey = "lastEnsemblePathV1"
+    private struct NoteEdit { let before: PerformanceDocument; let after: PerformanceDocument }
+    private struct NoteHistory { var undo: [NoteEdit] = []; var redo: [NoteEdit] = [] }
+    @Published private var noteHistories: [String: NoteHistory] = [:]
+    private var applyingNoteHistory = false
+    private func noteKey(_ part: UUID, _ clip: UUID) -> String { part.uuidString + ":" + clip.uuidString }
     private var applyingSnapshot = false
     private var revision = UUID()
     private var partChanges: Set<AnyCancellable> = []
@@ -133,6 +138,8 @@ final class EnsembleModel: ObservableObject {
         revision = UUID(); dirty = true; fileMessage = nil
     }
     private func observeParts() {
+        let keys = Set(parts.flatMap { part in part.allClips.map { noteKey(part.id, $0.id) } })
+        noteHistories = noteHistories.filter { keys.contains($0.key) }
         partChanges.removeAll()
         for part in parts {
             Publishers.Merge3(part.$name.dropFirst().removeDuplicates().map { _ in () },
@@ -180,7 +187,7 @@ final class EnsembleModel: ObservableObject {
             stop(); durationBeats = 0
             applyingSnapshot = true
             sections = loaded.sections; parts = replacements; tempo = loaded.tempo; masterDB = loaded.masterDB
-            applyingSnapshot = false; revision = UUID(); dirty = false; fileURL = url
+            applyingSnapshot = false; noteHistories.removeAll(); revision = UUID(); dirty = false; fileURL = url
             if remember { defaults.set(url.path, forKey: Self.lastFileKey) }
             fileMessage = "Opened · " + url.lastPathComponent; error = nil
             return true
@@ -324,12 +331,16 @@ final class EnsembleModel: ObservableObject {
     }
     func editClip(part id: UUID, clip clipID: UUID, change: (inout EnsembleClip) -> Void) {
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
+        let before = part.allClips.first { $0.id == clipID }?.performance
         if clipID == part.primaryClipID {
             var clip = part.allClips[0]; change(&clip)
             part.performance = clip.performance; part.startBeat = clip.startBeat
             part.repeatCount = clip.repeatCount; part.sectionID = clip.sectionID; markDirty()
         } else if let index = part.additionalClips.firstIndex(where: { $0.id == clipID }) {
             change(&part.additionalClips[index])
+        }
+        if !applyingNoteHistory, before != part.allClips.first(where: { $0.id == clipID })?.performance {
+            noteHistories.removeValue(forKey: noteKey(id, clipID))
         }
     }
     func setInstrumentSettings(part id: UUID, root: Int, envelope: ADSRParameters, loop: SampleLoop) {
@@ -344,6 +355,7 @@ final class EnsembleModel: ObservableObject {
     func removeClip(part id: UUID, clip clipID: UUID) {
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
         part.additionalClips.removeAll { $0.id == clipID }
+        noteHistories.removeValue(forKey: noteKey(id, clipID))
     }
     func setClipPerformance(_ performance: PerformanceDocument, part id: UUID, clip clipID: UUID) {
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
@@ -361,10 +373,50 @@ final class EnsembleModel: ObservableObject {
             try EnsembleSections.validate(sections)
             try EnsembleClips.validate(clips, root: part.instrument?.root ?? 60, sections: sections)
             if clips[index] != part.allClips[index] {
-                editClip(part: id, clip: clipID) { $0.performance = clips[index].performance }
+                let before = part.allClips[index].performance, after = clips[index].performance
+                let key = noteKey(id, clipID)
+                var history = noteHistories[key] ?? NoteHistory()
+                // A preset or externally replaced document must never inherit stale edits.
+                if let last = history.undo.last, last.after != before { history = NoteHistory() }
+                applyingNoteHistory = true
+                editClip(part: id, clip: clipID) { $0.performance = after }
+                applyingNoteHistory = false
+                history.undo.append(NoteEdit(before: before, after: after))
+                if history.undo.count > 50 { history.undo.removeFirst() }
+                history.redo.removeAll(); noteHistories[key] = history
             }
             error = nil; return true
         } catch { self.error = "音符を変更できませんでした。\n" + error.localizedDescription; return false }
+    }
+
+    func canUndoNotes(part id: UUID, clip clipID: UUID) -> Bool {
+        guard canEdit, let edit = noteHistories[noteKey(id, clipID)]?.undo.last else { return false }
+        return parts.first { $0.id == id }?.allClips.first { $0.id == clipID }?.performance == edit.after
+    }
+    func canRedoNotes(part id: UUID, clip clipID: UUID) -> Bool {
+        guard canEdit, let edit = noteHistories[noteKey(id, clipID)]?.redo.last else { return false }
+        return parts.first { $0.id == id }?.allClips.first { $0.id == clipID }?.performance == edit.before
+    }
+    @discardableResult
+    func restoreNoteEdit(part id: UUID, clip clipID: UUID, redo: Bool = false) -> Bool {
+        guard redo ? canRedoNotes(part: id, clip: clipID) : canUndoNotes(part: id, clip: clipID),
+              let part = parts.first(where: { $0.id == id }),
+              let index = part.allClips.firstIndex(where: { $0.id == clipID }) else { return false }
+        let key = noteKey(id, clipID)
+        var history = noteHistories[key]!
+        let edit = redo ? history.redo.last! : history.undo.last!
+        var clips = part.allClips
+        clips[index].performance = redo ? edit.after : edit.before
+        do {
+            try EnsembleSections.validate(sections)
+            try EnsembleClips.validate(clips, root: part.instrument?.root ?? 60, sections: sections)
+            applyingNoteHistory = true
+            editClip(part: id, clip: clipID) { $0.performance = clips[index].performance }
+            applyingNoteHistory = false
+            if redo { history.redo.removeLast(); history.undo.append(edit) }
+            else { history.undo.removeLast(); history.redo.append(edit) }
+            noteHistories[key] = history; error = nil; return true
+        } catch { self.error = "音符の履歴を適用できませんでした。\n" + error.localizedDescription; return false }
     }
 
     func openClipPerformance(part id: UUID, clip clipID: UUID) {
@@ -396,7 +448,7 @@ final class EnsembleModel: ObservableObject {
     func remove(_ id: UUID) { guard canEdit else { return }; parts.removeAll { $0.id == id } }
     func setPerformance(_ document: PerformanceDocument, part id: UUID) {
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
-        do { _ = try document.events(root: part.instrument?.root); part.performance = document; markDirty(); error = nil }
+        do { _ = try document.events(root: part.instrument?.root); editClip(part: id, clip: part.primaryClipID) { $0.performance = document }; error = nil }
         catch { self.error = error.localizedDescription }
     }
     func loadInstrument(_ url: URL, part id: UUID) async {
