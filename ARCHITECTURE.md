@@ -134,7 +134,7 @@ EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パ
 パートMixerの音量・ミュートは30 Hzで更新。共通出力は最大4パート分の固定1/4ヘッドルームと専用Masterを使用。各サンプラーの1/8ヘッドルームは維持する。パートと共通出力それぞれの実RMSを表示し、本体のメーターとは区別。割り当てはシートを閉じても保持し、保存した構成は起動時に復元する。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 ## Ensemble Persistence
-EnsembleDocumentが.sfensemble v4を管理（v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読込）。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
+EnsembleDocumentが.sfensemble v5を管理（v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読込）。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
 保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/繰り返し回数/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
 EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsのlastEnsemblePathV1へ保持。PlayerModel.startSessionから一度だけ復元し、本体の楽器復元とは独立。無音・停止状態で復元し、自動再生しない。欠落/破損時は構成エラーを表示して手動Openへ導く。復元前の構成や正常な保存先を失敗で更新しない。
 
@@ -151,3 +151,7 @@ EnsemblePart/SnapshotにrepeatCount（整数1〜16）を保持。EnsembleTimelin
 ## Song Sections
 EnsembleSectionは安定UUID/name/beatsを持ち、EnsembleModel.sectionsが配列順に連結する。part.sectionIDは任意参照、nilは従来のSong基準。EnsembleSectionsがID/長さ/名前と参照/演奏終端の範囲を検証。ライブ/WAV/タイムラインは同じ累積offsetをstartBeatへ足す。元演奏は改変しない。全セクション合計も曲長の下限となり、ライブTaskは最後のイベント後も宣言された曲末まで取消可能に待機する。WAVも同じ曲末＋余韻までレンダー。
 構成v4はsectionsとpart.sectionIDを保存し、全検証後に置換。削除は参照中のセクションを拒否する。ドラッグは割り当て先の範囲へ制限し、数値入力で超過した場合は開始/保存/出力を拒否する。編集UIはEnsembleSectionsView、帯と絶対拍はEnsembleTimelineView。
+
+## Shared Instrument Clips
+既存EnsemblePartのperformance/startBeat/repeatCount/sectionIDを最初の演奏として保ち、additionalClips（0〜7個）を追加。EnsembleClipはUUID/演奏/相対開始/回数/任意sectionID。allClipsが先頭演奏と追加を統一し、EnsembleClips.validate/eventsをライブとWAVで共有する。パートごとにサンプラーとmixを一つだけ使う。セクションごとの楽器PCM複製はしない。
+同一パート内の演奏区間の重複を拒否し、接する境界では前クリップの終端イベントを先に配送する。最大8クリップ/パート。セクション削除の参照検査は追加分も対象。追加配列publisherでdirty追跡、保存v5は音源をパートに一度、追加配置をadditionalClipsへ保存。旧v1〜v4は追加なし。UIはEnsembleClipEditorで演奏/配置を独立編集し、タイムラインは一行内に全クリップを描く。

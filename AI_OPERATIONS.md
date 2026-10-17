@@ -100,7 +100,7 @@ APIキーやCLI認証情報をチャット・文書・ログへ転記しない�
 再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成はSave…した状態だけがディスクへ保存される。Doneで閉じただけ、または● Unsavedの状態を保存済みだと報告しない。外部操作APIは未実装。
 
 ## 構成の保存と起動時復元の判定
-[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v4](ENSEMBLE_FORMAT.md)を参照。Save…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
+[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v5](ENSEMBLE_FORMAT.md)を参照。Save…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
 Open…の未保存置換確認では必要に応じてCancel→先にSave…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・Saved・設定・playing=falseを確認してからPlay All。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読みOpen…へ進み、復元成功と報告しない。
 保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、Stop All後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
 
@@ -127,4 +127,10 @@ Demo Repeatは空き2つへPad×2/START 0・Pluck×3/START 4を追加。タイ�
 ## セクションを作って曲の構成を組む
 正本は[ENSEMBLE.md](ENSEMBLE.md)。SONG SECTIONS→Add Sectionで名前・拍長を入力し、Move section earlier/laterで順序を変更。Section length for 名前で長さを読んで編集する。セクションは最大8、長さ1〜256拍、全体最大4パート。各Section for パート名から割り当て、STARTがセクション内相対値であることを確認する。Song · absoluteは曲頭基準。
 EnsembleModel.sections/addSection/reorderSection/removeSection、EnsemblePart.sectionID、EnsembleSections.offset/validatePlacementが入口。並べ替え後はタイムラインのセクション帯とクリップ絶対Start/endを確認する。元performanceのbeatを同時に書き換えない。演奏が範囲を超えるエラーは長さ/START/REPEATを直してからPlay/Save/Export。勝手に切り捨てない。割当セクションの削除が拒否されたら、必要に応じてパートをSongへ変更してから削除する。
-空の構成でDemo Songを使うとIntro 8→Aメロ16→サビ16と3パートが追加される。共通Beat 8/24からVerse/Chorusが入る。編集はdirty=true、Save後と再起動はsections配列順/ID/拍長とsectionIDの一致を確認する。v4のsections必須、旧版はセクションなし。空セクションも曲長に含み、WAVはその末尾＋余韻。停止はStop All、playing=false/全voices=0を確認する。
+空の構成でDemo Songを使うとIntro 8→Aメロ16→サビ16と2楽器/4クリップが追加される。共通Beat 8/24からVerse/Chorusが入る。編集はdirty=true、Save後と再起動はsections配列順/ID/拍長とsectionIDの一致を確認する。v4のsections必須、旧版はセクションなし。空セクションも曲長に含み、WAVはその末尾＋余韻。停止はStop All、playing=false/全voices=0を確認する。
+
+## 同じ楽器のセクション別演奏を操作する
+正本は[ENSEMBLE.md](ENSEMBLE.md)。Add section clip for パート名メニューで対象セクションを選び、追加クリップのPreset/Open…/Use Currentで演奏を割り当てる。Section for clip UUID in パート名、Clip start/repeat for パート名 UUIDで個別に操作する。共有Instrument/音量/Muteの変更が全クリップへ効くことを確認する。
+EnsemblePart.additionalClips/allClips、EnsembleModel.addClip/editClip/setClipPerformance/openClipPerformance/removeClipが入口。最初の演奏は従来のperformance/startBeat/repeatCount/sectionIDを維持。最大8クリップ、停止中のみ編集。追加直後は最初の演奏をコピーするため、セクション範囲や重複エラーを読んでSTART/REPEAT/演奏を調整する。自動で切り捨てたり、楽器を複製してパート上限を消費しない。
+タイムラインは同じ行の複数クリップ。アクセシビリティ名にパート名・演奏名・UUIDがあり、対象IDの値/ドラッグ後に他クリップの位置が変わらないことを確認。モデルのmovePart(...clip:)もIDを指定する。クリップのUUIDを推測しない。
+Demo Songは2楽器/各2クリップ。Save…後のv5にはadditionalClipsが必須、旧v1〜v4は追加なしとして開く。再起動で追加ID/演奏/配置と共有音色を確認し、Export WAVは全クリップを含む。Stop Allで全ボイスとペダルを解除する。

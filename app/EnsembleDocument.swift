@@ -14,6 +14,10 @@ struct EnsemblePartSnapshot {
     var startBeat: Double = 0
     var repeatCount: Int = 1
     var sectionID: UUID? = nil
+    var additionalClips: [EnsembleClip] = []
+    var allClips: [EnsembleClip] {
+        [EnsembleClip(performance: performance, startBeat: startBeat, repeatCount: repeatCount, sectionID: sectionID)] + additionalClips
+    }
 }
 struct EnsembleSnapshot {
     let tempo: Double
@@ -31,6 +35,7 @@ private struct EnsemblePartArchive: Codable {
     let startBeat: Double?
     let repeatCount: Int?
     let sectionID: UUID?
+    let additionalClips: [EnsembleClip]?
 }
 private struct EnsembleArchive: Codable {
     let version: Int
@@ -57,7 +62,7 @@ enum EnsembleDocument {
                 throw AudioError.invalid("パート名・音量・楽器設定が無効です。パート名は1〜80文字にしてください。")
             }
             _ = try part.performance.events(root: part.instrument.root)
-            try EnsembleSections.validatePlacement(sectionID: part.sectionID, start: part.startBeat, length: EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount), sections: snapshot.sections)
+            try EnsembleClips.validate(part.allClips, root: part.instrument.root, sections: snapshot.sections)
         }
     }
     static func save(_ snapshot: EnsembleSnapshot, to url: URL) throws {
@@ -67,9 +72,9 @@ enum EnsembleDocument {
             EnsemblePartArchive(name: part.name, instrumentName: part.instrument.name,
                 instrument: try InstrumentDocument.makeArchive(sample: part.instrument.sample, rootNote: part.instrument.root,
                     envelope: part.instrument.envelope, loop: part.instrument.loop),
-                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat, repeatCount: part.repeatCount, sectionID: part.sectionID)
+                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: part.startBeat, repeatCount: part.repeatCount, sectionID: part.sectionID, additionalClips: part.additionalClips)
         }
-        let archive = EnsembleArchive(version: 4, tempo: snapshot.tempo, masterDB: snapshot.masterDB, parts: parts, sections: snapshot.sections)
+        let archive = EnsembleArchive(version: 5, tempo: snapshot.tempo, masterDB: snapshot.masterDB, parts: parts, sections: snapshot.sections)
         let data = try JSONEncoder().encode(archive)
         guard data.count <= maximumBytes else { throw AudioError.invalid("構成ファイルは384 MB以下にしてください。") }
         try data.write(to: url, options: .atomic)
@@ -78,7 +83,7 @@ enum EnsembleDocument {
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size > 0, size <= maximumBytes else { throw AudioError.invalid("構成ファイルは384 MB以下にしてください。") }
         let archive = try JSONDecoder().decode(EnsembleArchive.self, from: Data(contentsOf: url))
-        guard (1...4).contains(archive.version) else { throw AudioError.invalid("このバージョンの構成ファイルには対応していません。") }
+        guard (1...5).contains(archive.version) else { throw AudioError.invalid("このバージョンの構成ファイルには対応していません。") }
         guard (1...4).contains(archive.parts.count), archive.tempo.isFinite, (40...240).contains(archive.tempo),
               archive.masterDB.isFinite, (-60...0).contains(archive.masterDB) else { throw AudioError.invalid("構成の設定が無効です。") }
         guard archive.version < 4 || archive.sections != nil else { throw AudioError.invalid("セクション情報がありません。") }
@@ -91,7 +96,10 @@ enum EnsembleDocument {
                 throw AudioError.invalid("構成のパート名・楽器名・音量が無効です。")
             }
             _ = try part.performance.events(root: part.instrument.rootNote)
-            try EnsembleSections.validatePlacement(sectionID: archive.version < 4 ? nil : part.sectionID, start: part.startBeat ?? 0, length: EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount ?? 1), sections: sections)
+            guard archive.version < 5 || part.additionalClips != nil else { throw AudioError.invalid("演奏クリップ情報がありません。") }
+            let primary = EnsembleClip(performance: part.performance, startBeat: archive.version == 1 ? 0 : part.startBeat ?? 0,
+                repeatCount: archive.version < 3 ? 1 : part.repeatCount ?? 1, sectionID: archive.version < 4 ? nil : part.sectionID)
+            try EnsembleClips.validate([primary] + (archive.version < 5 ? [] : part.additionalClips!), root: part.instrument.rootNote, sections: sections)
         }
         let parts = try archive.parts.map { part -> EnsemblePartSnapshot in
             let restored = try InstrumentDocument.restore(part.instrument)
@@ -99,7 +107,7 @@ enum EnsembleDocument {
             return EnsemblePartSnapshot(name: part.name,
                 instrument: EnsembleInstrument(sample: restored.sample, root: restored.rootNote,
                     envelope: restored.envelope, loop: restored.loop, name: part.instrumentName),
-                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: archive.version == 1 ? 0 : part.startBeat!, repeatCount: archive.version < 3 ? 1 : part.repeatCount!, sectionID: archive.version < 4 ? nil : part.sectionID)
+                performance: part.performance, gainDB: part.gainDB, muted: part.muted, startBeat: archive.version == 1 ? 0 : part.startBeat!, repeatCount: archive.version < 3 ? 1 : part.repeatCount!, sectionID: archive.version < 4 ? nil : part.sectionID, additionalClips: archive.version < 5 ? [] : part.additionalClips!)
         }
         let snapshot = EnsembleSnapshot(tempo: archive.tempo, masterDB: archive.masterDB, parts: parts, sections: sections)
         try validate(snapshot)

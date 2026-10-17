@@ -66,3 +66,5 @@ Status: proposed / accepted / superseded
 - [0021: パート単位の繰り返し](0021-ensemble-repeats.md)
 
 - [0022: 曲のセクション構成](0022-song-sections.md)
+
+- [0023: 共有楽器の複数演奏クリップ](0023-shared-instrument-clips.md)

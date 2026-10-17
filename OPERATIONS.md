@@ -185,3 +185,5 @@ Ensemble…の上部Save…で音源同梱の.sfensembleを保存。最後に保
 演奏繰り返し: Ensemble…各行REPEAT（合計1〜16回）。Demo Repeatで×2/×3のデモを追加。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 曲構成: SONG SECTIONSのAdd Section→各パートSection割り当て。空の構成はDemo SongでIntro/Aメロ/サビを生成できる。詳細は[ENSEMBLE.md](ENSEMBLE.md)。
+
+同じ音色の再利用: 各パートAdd Section Clip→セクションを選択→追加演奏をPreset/Open/Use Currentで設定。Demo Songは2楽器の複数クリップを生成する。詳細は[ENSEMBLE.md](ENSEMBLE.md)。

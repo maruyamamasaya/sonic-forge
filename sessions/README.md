@@ -68,3 +68,5 @@ Date: YYYY-MM-DD
 - [2026-10-17: パート演奏の繰り返し](2026-10-17-ensemble-repeats.md)
 
 - [2026-10-17: 曲のセクション構成](2026-10-17-song-sections.md)
+
+- [2026-10-17: 共有楽器の複数セクション演奏](2026-10-17-shared-instrument-clips.md)

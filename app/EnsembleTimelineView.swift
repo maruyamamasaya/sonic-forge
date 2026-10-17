@@ -5,8 +5,8 @@ struct EnsembleTimelineView: View {
     private let scale = 24.0
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private var extent: Double {
-        let last = ensemble.parts.map { part in
-            ensemble.sectionOffset(for: part) + (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) + (EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount) ?? 0)
+        let last = ensemble.parts.flatMap(\.allClips).map { clip in
+            EnsembleSections.offset(clip.sectionID, in: ensemble.sections) + (clip.startBeat.isFinite ? max(0, min(256, clip.startBeat)) : 0) + (EnsembleTimeline.repeatedLength(clip.performance, count: clip.repeatCount) ?? 0)
         }.max() ?? 0
         return max(32, ceil(max(last, EnsembleSections.end(ensemble.sections)) / 16) * 16 + 8)
     }
@@ -77,56 +77,67 @@ private struct TimelineClipRow: View {
     @ObservedObject var ensemble: EnsembleModel
     let extent: Double
     let scale: Double
-    @GestureState private var translation = 0.0
-    private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
-    private var start: Double {
-        ensemble.sectionOffset(for: part) + (translation == 0 ? (part.startBeat.isFinite ? max(0, min(256, part.startBeat)) : 0) :
-            min(ensemble.maximumStart(for: part), EnsembleTimeline.movedStart(original: part.startBeat, translation: translation, pixelsPerBeat: scale)))
-    }
     var body: some View {
-        let length = EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount)
         ZStack(alignment: .leading) {
             Rectangle().fill(Color.white.opacity(0.025))
             ForEach(0...Int(extent / 4), id: \.self) { index in
                 Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1).offset(x: Double(index * 4) * scale)
             }
-            if let length {
-                RoundedRectangle(cornerRadius: 3).fill(accent.opacity(part.muted ? 0.12 : 0.24))
-                    .overlay { RoundedRectangle(cornerRadius: 3).stroke(accent.opacity(part.muted ? 0.25 : 0.65)) }
-                    .overlay(alignment: .leading) {
-                        if let single = EnsembleTimeline.length(part.performance), part.repeatCount > 1 {
-                            ForEach(1..<part.repeatCount, id: \.self) { index in
-                                Rectangle().fill(accent.opacity(0.6)).frame(width: 1, height: 20)
-                                    .offset(x: Double(index) * ceil(single) * scale)
-                            }
-                        }
-                    }
-                    .overlay(alignment: .leading) {
-                        Text(String(format: "%.2f → %.2f · ×%d", start, start + length, part.repeatCount))
-                            .font(.system(size: 9, design: .monospaced)).foregroundStyle(accent)
-                            .padding(.horizontal, 7).lineLimit(1)
-                    }
-                    .frame(width: max(2, length * scale), height: 22).offset(x: start * scale)
-                    .contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 3)
-                        .updating($translation) { value, state, _ in
-                            if ensemble.canEdit { state = value.translation.width }
-                        }
-                        .onEnded { value in
-                            ensemble.movePart(part.id, to: EnsembleTimeline.movedStart(original: part.startBeat,
-                                translation: value.translation.width, pixelsPerBeat: scale))
-                        })
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Timeline clip for \(part.name)")
-                    .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d", ensemble.sectionOffset(for: part) + part.startBeat, length, ensemble.sectionOffset(for: part) + part.startBeat + length, part.repeatCount))
-                    .accessibilityAdjustableAction { direction in
-                        guard ensemble.canEdit else { return }
-                        ensemble.movePart(part.id, to: min(256, max(0, part.startBeat + (direction == .increment ? 0.25 : -0.25))))
-                    }
-                    .help("Drag to move in ¼ beats. Use START for an exact value.")
-            } else {
-                Text("Invalid performance").font(.system(size: 10)).foregroundStyle(.orange).padding(.leading, 4)
+            ForEach(part.allClips) { clip in
+                TimelineClipBar(part: part, ensemble: ensemble, clip: clip, scale: scale)
             }
         }.frame(width: extent * scale, height: 30).clipped()
+    }
+}
+
+private struct TimelineClipBar: View {
+    @ObservedObject var part: EnsemblePart
+    @ObservedObject var ensemble: EnsembleModel
+    let clip: EnsembleClip
+    let scale: Double
+    @GestureState private var translation = 0.0
+    private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
+    private var maximum: Double {
+        guard let section = ensemble.sections.first(where: { $0.id == clip.sectionID }) else { return 256 }
+        return max(0, min(256, section.beats - (EnsembleTimeline.repeatedLength(clip.performance, count: clip.repeatCount) ?? 0)))
+    }
+    private var start: Double {
+        EnsembleSections.offset(clip.sectionID, in: ensemble.sections) + (translation == 0 ? (clip.startBeat.isFinite ? max(0, min(256, clip.startBeat)) : 0) :
+            min(maximum, EnsembleTimeline.movedStart(original: clip.startBeat, translation: translation, pixelsPerBeat: scale)))
+    }
+    var body: some View {
+        if let length = EnsembleTimeline.repeatedLength(clip.performance, count: clip.repeatCount) {
+            RoundedRectangle(cornerRadius: 3).fill(accent.opacity(part.muted ? 0.12 : 0.24))
+                .overlay { RoundedRectangle(cornerRadius: 3).stroke(accent.opacity(part.muted ? 0.25 : 0.65)) }
+                .overlay(alignment: .leading) {
+                    if let single = EnsembleTimeline.length(clip.performance), clip.repeatCount > 1 {
+                        ForEach(1..<clip.repeatCount, id: \.self) { index in
+                            Rectangle().fill(accent.opacity(0.6)).frame(width: 1, height: 20).offset(x: Double(index) * ceil(single) * scale)
+                        }
+                    }
+                }
+                .overlay(alignment: .leading) {
+                    Text(String(format: "%.2f → %.2f · ×%d", start, start + length, clip.repeatCount))
+                        .font(.system(size: 9, design: .monospaced)).foregroundStyle(accent).padding(.horizontal, 7).lineLimit(1)
+                }
+                .frame(width: max(2, length * scale), height: 22)
+                .contentShape(Rectangle())
+                .highPriorityGesture(DragGesture(minimumDistance: 3)
+                    .updating($translation) { value, state, _ in if ensemble.canEdit { state = value.translation.width } }
+                    .onEnded { value in
+                        ensemble.movePart(part.id, to: EnsembleTimeline.movedStart(original: clip.startBeat,
+                            translation: value.translation.width, pixelsPerBeat: scale), clip: clip.id)
+                    })
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Timeline clip for \(part.name), \(clip.performance.name), \(clip.id)")
+                .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d", start, length, start + length, clip.repeatCount))
+                .accessibilityAdjustableAction { direction in
+                    ensemble.movePart(part.id, to: min(256, max(0, clip.startBeat + (direction == .increment ? 0.25 : -0.25))), clip: clip.id)
+                }
+                .help("Drag this clip to move in ¼ beats; the instrument is shared by all clips in the row.")
+                .offset(x: start * scale)
+        } else {
+            Text("Invalid performance").font(.system(size: 10)).foregroundStyle(.orange)
+        }
     }
 }

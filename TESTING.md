@@ -147,3 +147,6 @@ EnsembleTestsで最後のペダルまでの長さ、テンポに依存しない�
 
 ## Song Sections
 EnsembleSectionTestsで並べ替え/長さの累積位置、割り当て・ドラッグ境界、参照中削除の拒否、dirty/save/load、v4必須/重複ID/無効長/未知参照/範囲超過と失敗時保持、旧v3移行を確認。実レンダーWAVで空イントロの無音・次セクションの発音・空末尾の長さを測定。--playbackではイベント終了後も曲末まで保持しStopで解除することを確認する。実UIはDemo Song、名前/拍長/順序、パート割当、タイムライン帯、Play/Save/restart/Exportを確認。
+
+## Shared Instrument Clips
+EnsembleClipTestsで同じPCMを持つ1パートのIntro/Chorusの異なる演奏、イベント位置/音程、順序変更、個別移動/dirty/削除、v5保存/ID復元とv4移行、追加情報欠落・重複ID・未知参照・同一パート内重複と失敗時保持を確認。実WAVの両区間の非ゼロ出力/間の無音を測定し、--playbackで後半クリップの発音/停止を確認。実UIはDemo Song、同一行の複数クリップ、追加編集と他クリップ不変、保存/再起動/Exportを確認。Fullと--playbackを実行する。

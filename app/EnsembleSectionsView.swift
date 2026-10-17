@@ -10,7 +10,7 @@ struct EnsembleSectionsView: View {
                     .font(.system(size: 9)).foregroundStyle(.secondary)
                 Spacer()
                 Button("Add Section") { ensemble.addSection() }.disabled(ensemble.sections.count >= 8)
-                Button("Demo Song") { Task { await ensemble.addSongDemo() } }
+                Button("Demo Song") { Task { await ensemble.addSharedSongDemo() } }
                     .disabled(!ensemble.parts.isEmpty || !ensemble.sections.isEmpty)
             }
             if !ensemble.sections.isEmpty {

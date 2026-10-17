@@ -187,6 +187,21 @@ private struct EnsemblePartRow: View {
                 Spacer()
                 Text(validation ?? "Ready").foregroundStyle(validation == nil ? Color.secondary : .orange).lineLimit(1)
             }.disabled(ensemble.busy).font(.system(size: 10))
+            HStack {
+                Text("SECTION CLIPS · \(part.allClips.count) / 8 · One instrument, shared volume & mute")
+                    .font(.system(size: 9)).foregroundStyle(.secondary)
+                Spacer()
+                Menu("Add Section Clip") {
+                    ForEach(ensemble.sections) { section in
+                        Button(section.name) { ensemble.addClip(part: part.id, sectionID: section.id) }
+                    }
+                    Button("Song · absolute") { ensemble.addClip(part: part.id, sectionID: nil) }
+                }.frame(width: 140).disabled(!ensemble.canEdit || part.additionalClips.count >= 7)
+                    .accessibilityLabel("Add section clip for \(part.name)")
+            }
+            ForEach(part.additionalClips) { clip in
+                EnsembleClipEditor(part: part, ensemble: ensemble, clip: clip, currentPerformance: currentPerformance)
+            }
         }.controlSize(.small).padding(14)
             .background(Color.white.opacity(0.035)).clipShape(RoundedRectangle(cornerRadius: 6))
             .overlay { RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.08)) }
@@ -197,9 +212,7 @@ private struct EnsemblePartRow: View {
         guard (1...16).contains(part.repeatCount) else { return "Repeat: 1–16" }
         do {
             try EnsembleSections.validate(ensemble.sections)
-            try EnsembleSections.validatePlacement(sectionID: part.sectionID, start: part.startBeat,
-                length: EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount), sections: ensemble.sections)
-            _ = try part.performance.events(root: instrument.root); return nil
+            try EnsembleClips.validate(part.allClips, root: instrument.root, sections: ensemble.sections); return nil
         }
         catch { return error.localizedDescription }
     }

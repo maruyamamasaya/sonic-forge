@@ -29,6 +29,7 @@
 | WAV書き出し | app/WAVExport.swift、app/PlayerModel.swift | WAVExport.write、exportSelection、export、NSSavePanel | tests/AudioTests.swift |
 | 構成保存・復元 | app/EnsembleDocument.swift、app/EnsembleModel.swift、app/InstrumentDocument.swift、app/PlayerModel.swift | EnsembleSnapshot、makeArchive/restore、save/load、dirty、restoreLastSession | tests/EnsemblePersistenceTests.swift / --playback |
 | 全体WAV書き出し | app/EnsembleExport.swift、app/EnsembleModel.swift、app/EnsembleView.swift | exportWAV、cancelExport、write、Export WAV | tests/EnsembleExportTests.swift |
+| 共有楽器の複数クリップ | app/EnsembleClips.swift、app/EnsembleClipEditor.swift、app/EnsembleModel.swift | additionalClips、allClips、addClip、editClip、EnsembleClips.events | tests/EnsembleClipTests.swift / 実UI |
 | 曲セクション | app/EnsembleSections.swift、app/EnsembleSectionsView.swift、app/EnsembleModel.swift | sections、sectionID、validatePlacement、addSongDemo | tests/EnsembleSectionTests.swift / 実UI |
 | 構成タイムライン | app/EnsembleTimeline.swift、app/EnsembleTimelineView.swift、app/EnsembleModel.swift | length、repeatedLength、events、repeatCount、movedStart、movePart、ARRANGEMENT | tests/EnsembleTests.swift / 実UI |
 | 複数パート演奏 | app/EnsembleModel.swift、app/EnsembleView.swift、app/SampleInstrument.swift | EnsemblePart.startBeat、EnsembleVoice、timeline、addDemos(staggered:)、destination、Play All | tests/EnsembleTests.swift / --playback |
