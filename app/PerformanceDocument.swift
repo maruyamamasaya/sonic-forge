@@ -37,6 +37,27 @@ enum MIDIPerformancePreset: String, CaseIterable, Identifiable {
 }
 
 
+/// Quarter-note beats. Exact ties snap forward; quantization changes starts only.
+enum NoteQuantizeGrid: String, CaseIterable, Identifiable {
+    case quarter = "1/4", eighth = "1/8", sixteenth = "1/16", thirtySecond = "1/32"
+    case eighthTriplet = "1/8 T", sixteenthTriplet = "1/16 T"
+    var id: String { rawValue }
+    var beats: Double {
+        switch self {
+        case .quarter: return 1
+        case .eighth: return 0.5
+        case .sixteenth: return 0.25
+        case .thirtySecond: return 0.125
+        case .eighthTriplet: return 1.0 / 3
+        case .sixteenthTriplet: return 1.0 / 6
+        }
+    }
+    func snap(_ beat: Double) -> Double {
+        let value = (beat / beats).rounded(.toNearestOrAwayFromZero) * beats
+        return abs(value - beat) < 1e-9 ? beat : value
+    }
+}
+
 struct PerformanceNote: Codable, Equatable {
     var beat: Double
     var duration: Double

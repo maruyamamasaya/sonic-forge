@@ -8,6 +8,7 @@ struct SelectedClipNotes: View {
     let clipID: UUID
     @State private var selection: Set<Int> = []
     @State private var multiSelect = false
+    @State private var quantizeGrid: NoteQuantizeGrid = .sixteenth
     @State private var moveBeats = "1"
     @State private var movePitch = "0"
     private var selected: Int? { selection.count == 1 ? selection.first : nil }
@@ -101,6 +102,13 @@ struct SelectedClipNotes: View {
                         field("Δ pitch", value: $movePitch, label: "Selected notes pitch offset")
                         Button("Move") { offsetAction(duplicate: false) }.accessibilityLabel("Move selected clip notes").disabled(selection.isEmpty)
                         Button("Duplicate") { offsetAction(duplicate: true) }.accessibilityLabel("Duplicate selected clip notes").disabled(selection.isEmpty)
+                        Divider().frame(height: 16)
+                        Picker("Grid", selection: $quantizeGrid) {
+                            ForEach(NoteQuantizeGrid.allCases) { grid in Text(grid.rawValue).tag(grid) }
+                        }.frame(width: 112).accessibilityLabel("Note quantize grid")
+                        Button("Quantize") { group(.quantize(quantizeGrid)) }
+                            .accessibilityLabel("Quantize selected clip notes").disabled(selection.isEmpty)
+                            .help("Align selected note starts; lengths and velocities stay unchanged. T = triplet.")
                     }.font(.system(size: 10)).padding(.horizontal, 10).padding(.vertical, 4)
                 }.fixedSize(horizontal: false, vertical: true)
                 Divider()

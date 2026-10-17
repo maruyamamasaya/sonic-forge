@@ -201,3 +201,5 @@ Ensemble下段のNOTE EDITORでクリップの音符を直接編集できる。�
 NOTE EDITORの戻る/進む矢印で音符編集を取り消し/やり直しできる。履歴の範囲と保存については[音符の取り消し・やり直し](ENSEMBLE.md#音符の取り消しやり直し)を参照。
 
 下段のMulti/All/Clearで音符をまとめて選択し、Δ beats/Δ pitchとMove/Duplicate/Deleteで一括編集できる。詳細は[複数音符の選択](ENSEMBLE.md#複数音符の選択)。
+
+下段Grid→Quantizeで選択音符の開始拍を揃えられる。細かさと制約は[クオンタイズ](ENSEMBLE.md#クオンタイズ)を参照。

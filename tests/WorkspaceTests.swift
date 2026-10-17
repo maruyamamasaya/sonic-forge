@@ -39,6 +39,7 @@ enum WorkspaceTests {
         try await noteEditing()
         try await noteHistory()
         try await multipleNotes()
+        try await quantizeNotes()
         // The visual note model must agree with production events at every repeat.
         var performance = PerformanceDocument.preset(.pedalStudy)
         performance.transpose = 2; performance.velocityPercent = 75
@@ -113,6 +114,7 @@ enum WorkspaceTests {
             precondition(!model.editClipNotes(part: part.id, clip: id) { $0[0].velocity = 1 })
             precondition(!model.canUndoNotes(part: part.id, clip: id) && !model.restoreNoteEdit(part: part.id, clip: id))
             precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 1], action: .move(1, 0)) == nil)
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .quantize(.quarter)) == nil)
             precondition(part.performance == original); model.stop()
         }
         print("PASS: atomic note add/edit/delete, invalid edit preservation, sibling isolation, events, v5 restore, WAV reload and playback lock")
@@ -234,6 +236,55 @@ enum WorkspaceTests {
         precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .duplicate(65, 0)) == nil)
         precondition(part.performance == maximum)
         print("PASS: atomic multi-note move/duplicate/delete, relative attributes, sibling preservation, one-step undo/redo, invalid bounds/overlap/count, save/restore and WAV")
+    }
+
+    @MainActor private static func quantizeNotes() async throws {
+        let model = EnsembleModel(); await model.addSharedSongDemo()
+        let part = model.parts[0], id = part.primaryClipID
+        part.repeatCount = 1
+        var source = part.performance
+        source.notes = [PerformanceNote(beat: 0.12, duration: 0.2, pitch: 57, velocity: 61, channel: 2),
+                        PerformanceNote(beat: 0.64, duration: 0.2, pitch: 61, velocity: 83),
+                        PerformanceNote(beat: 1.13, duration: 0.2, pitch: 64, velocity: 105)]
+        let siblings = part.additionalClips
+        for grid in NoteQuantizeGrid.allCases {
+            model.setClipPerformance(source, part: part.id, clip: id)
+            precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 2], action: .quantize(grid)) == [0, 2])
+            let result = part.performance
+            precondition(result.notes[1] == source.notes[1] && result.pedals == source.pedals && part.additionalClips == siblings)
+            for index in [0, 2] {
+                var expected = source.notes[index]; expected.beat = grid.snap(expected.beat)
+                precondition(result.notes[index] == expected)
+                precondition(abs(result.notes[index].beat / grid.beats - (result.notes[index].beat / grid.beats).rounded()) < 1e-8)
+            }
+            precondition(model.restoreNoteEdit(part: part.id, clip: id) && part.performance == source)
+            precondition(model.restoreNoteEdit(part: part.id, clip: id, redo: true) && part.performance == result)
+        }
+        precondition(NoteQuantizeGrid.eighth.snap(0.25) == 0.5 && NoteQuantizeGrid.eighth.snap(0.75) == 1)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Quantize-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("quantize.sfensemble")
+        let saved = await model.save(to: url, remember: false); precondition(saved && !model.dirty)
+        let quantized = part.performance
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0, 2], action: .quantize(.sixteenthTriplet)) == [0, 2])
+        precondition(!model.dirty && part.performance == quantized)
+        let loaded = EnsembleModel(); let opened = await loaded.load(url, remember: false)
+        precondition(opened && loaded.parts[0].performance == quantized)
+        let events = try quantized.events(root: part.instrument!.root)
+        precondition(events.contains { abs($0.time - quantized.notes[2].beat * 60 / quantized.tempo) < 1e-9 && $0.bytes[0] == 0x90 && $0.bytes[1] == 64 })
+        var overlap = source
+        overlap.notes = [PerformanceNote(beat: 0, duration: 0.4, pitch: 57, velocity: 60),
+                         PerformanceNote(beat: 0.41, duration: 0.2, pitch: 57, velocity: 70)]
+        model.setClipPerformance(overlap, part: part.id, clip: id)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [1], action: .quantize(.quarter)) == nil)
+        precondition(part.performance == overlap && !model.canUndoNotes(part: part.id, clip: id))
+        var boundary = source
+        boundary.notes = [PerformanceNote(beat: 7.6, duration: 0.2, pitch: 57, velocity: 60)]
+        model.setClipPerformance(boundary, part: part.id, clip: id)
+        precondition(model.editNoteGroup(part: part.id, clip: id, indices: [0], action: .quantize(.quarter)) == nil)
+        precondition(part.performance == boundary)
+        print("PASS: six quantize grids, ties/triplets, selected starts only, one-step undo/redo, no-op clean state, save/restore/events and atomic overlap/boundary rejection")
     }
 
 }

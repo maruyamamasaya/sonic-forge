@@ -91,3 +91,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 音符履歴入口: EnsembleModel.canUndoNotes / canRedoNotes / restoreNoteEdit。UIはClipNoteEditor.swiftのUndo/Redo、検証はtests/WorkspaceTests.swift。
 
 複数音符: ClipNoteEditor.swift の pick/group/offsetAction、ClipNoteGridの矩形選択 → EnsembleModel.editNoteGroup → editClipNotes。テストはWorkspaceTests.swift。
+
+クオンタイズ入口: PerformanceDocument.swift の NoteQuantizeGrid、EnsembleModel.editNoteGroup(.quantize)、ClipNoteEditorのNote quantize grid / Quantize selected clip notes。tests/WorkspaceTests.swift。

@@ -171,3 +171,7 @@ Add clip noteは0拍・基準音に近い空いた音程・0.5拍・velocity90�
 Multiple note selection（Multi）をONにしClip note Nをクリックすると選択を追加/解除する。通常はクリックで単独選択、Shiftクリックで追加/解除。Select all clip notes / Clear note selectionも使用できる。空白から矩形ドラッグすると交差する音符を選び、Shift付きでは既存集合へ追加する。空白クリックは通常モードで音符追加、Multiモードでは選択解除。
 Selected note countで選択数を確認。Selected notes beat offset / Selected notes pitch offsetへ相対拍/半音を入力し、Move selected clip notes / Duplicate selected clip notesを実行。複製は元を残す。Delete selected clip notesは選択群を削除し、最後の全音削除は不可。選択中の音符本体ドラッグも集合を移動する。単独のPitch/Start/Length/Velocityと右端リサイズは単独選択用。
 正本はEnsembleModel.editNoteGroup(part:clip:indices:action:) → editClipNotes。成功時の戻り値は移動/複製後の選択インデックス集合、失敗はnilで元データを保持。全操作は一括検証し、Undo clip note edit / Redo clip note editで1操作ずつ往復できる。選択だけはdirtyにしない。再生/出力中は不可、Stop all workspace audioで停止後に操作する。構成保存/WAVは適用後の同じ演奏を使い、選択状態は保存しない。
+
+## 選択音符のクオンタイズ
+Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32・1/8 T・1/16 Tを選択→Quantize selected clip notesを実行する。狭いウィンドウでは下段の選択操作バーを横スクロールする。四分音符=1拍、Tは三連符。開始拍のみ最寄りに揃え、中間値は後ろへ丸める。クリップ先頭が原点で、長さ/音程/強弱/チャンネル/ペダルと非選択音は保持する。ドラッグのスナップ間隔は変更しない。
+モデルはNoteQuantizeGrid、editNoteGroup(...action:.quantize(grid))→editClipNotes。成功後も選択を維持し、Clip note NのstartとSelected note countで確認する。一括Undo/Redoは既存ボタン。既に揃っている場合は履歴/dirtyを増やさずRedoも保持する。同音重複・セクション超過などは全体を拒否しensemble.errorで通知。再生/出力中は無効、Stop all workspace audioで停止後に適用する。保存/WAVには適用済み開始拍を反映し、格子選択そのものは保存しない。
