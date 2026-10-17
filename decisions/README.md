@@ -76,3 +76,5 @@ Status: proposed / accepted / superseded
 - [0026: Ensembleメインワークスペース](0026-ensemble-workspace.md)
 
 - [0027: Natural Studioの素材とタイムライン表示](0027-natural-studio.md)
+
+- [0028: 下段でのクリップ音符編集](0028-clip-note-editing.md)

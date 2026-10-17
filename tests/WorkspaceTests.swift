@@ -36,6 +36,7 @@ enum WorkspaceTests {
             precondition(restored.parts[0].performance == before && restored.parts[0].instrument!.root == 58)
             restored.stop(); precondition(restored.parts.allSatisfy { $0.voices == 0 })
         }
+        try await noteEditing()
         // The visual note model must agree with production events at every repeat.
         var performance = PerformanceDocument.preset(.pedalStudy)
         performance.transpose = 2; performance.velocityPercent = 75
@@ -58,4 +59,59 @@ enum WorkspaceTests {
         print("PASS: note preview matches repeated production MIDI pitch/velocity/time and pedal ending; rejects invalid values")
         print("PASS: selected primary clip editing, shared instrument settings, independent parts, invalid-loop preservation, v5 restoration and playback edit lock")
     }
+    @MainActor private static func noteEditing() async throws {
+        let model = EnsembleModel(); await model.addSharedSongDemo()
+        let part = model.parts[0], id = part.primaryClipID
+        let siblings = part.additionalClips, other = model.parts[1].allClips
+        let original = part.performance
+        precondition(model.editClipNotes(part: part.id, clip: id) {
+            $0.append(PerformanceNote(beat: 0.25, duration: 0.5, pitch: 72, velocity: 73))
+        })
+        let index = part.performance.notes.count - 1
+        precondition(model.editClipNotes(part: part.id, clip: id) {
+            $0[index].pitch = 71; $0[index].beat = 0.5; $0[index].duration = 0.75; $0[index].velocity = 61
+        })
+        precondition(model.dirty && part.performance.pedals == original.pedals && part.additionalClips == siblings && model.parts[1].allClips == other)
+        let changed = part.performance
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-NoteEditor-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("notes.sfensemble")
+        let saved = await model.save(to: file, remember: false); precondition(saved && !model.dirty)
+        // Invalid edits never replace the document or mark a saved arrangement dirty.
+        for mutation: (inout [PerformanceNote]) -> Void in [
+            { $0[index].beat = Double.nan }, { $0[index].duration = 0 },
+            { $0[index].pitch = 127 }, { $0[index].velocity = 0 },
+            { $0[index].beat = 255; $0[index].duration = 2 },
+            { $0.append($0[0]) }, { $0.removeAll() },
+            { $0 = Array(repeating: $0[0], count: 257) }
+        ] {
+            precondition(!model.editClipNotes(part: part.id, clip: id, change: mutation))
+            precondition(part.performance == changed && !model.dirty && model.error != nil)
+        }
+        let loaded = EnsembleModel(); let opened = await loaded.load(file, remember: false)
+        precondition(opened && loaded.parts[0].performance == changed)
+        let events = try EnsembleClips.events(part.allClips, root: part.instrument!.root, tempo: 60, sections: model.sections)
+        precondition(events.contains { $0.time == 0.5 && $0.bytes == [0x90, 71, 61] })
+        let wav = dir.appendingPathComponent("edited.wav")
+        try await EnsembleExport.write(model.snapshot(), to: wav)
+        let audio = try AudioAsset.load(wav)
+        precondition(audio.duration > 0)
+        precondition(model.editClipNotes(part: part.id, clip: id) { $0.remove(at: index) })
+        precondition(part.performance == original)
+        // Additional clip isolation and placement validation on a complete part.
+        let extra = part.additionalClips[0]
+        precondition(model.editClipNotes(part: part.id, clip: extra.id) { $0[0].velocity = 62 })
+        precondition(part.performance == original && part.additionalClips[0].performance.notes[0].velocity == 62)
+        let before = part.allClips
+        precondition(!model.editClipNotes(part: part.id, clip: extra.id) { $0[0].duration = 30 })
+        precondition(part.allClips == before)
+        if CommandLine.arguments.contains("--playback") {
+            model.play(); try await Task.sleep(nanoseconds: 100_000_000)
+            precondition(!model.editClipNotes(part: part.id, clip: id) { $0[0].velocity = 1 })
+            precondition(part.performance == original); model.stop()
+        }
+        print("PASS: atomic note add/edit/delete, invalid edit preservation, sibling isolation, events, v5 restore, WAV reload and playback lock")
+    }
+
 }

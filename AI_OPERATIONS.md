@@ -156,4 +156,9 @@ Inspector modeをInstrumentへ切り替え、Selected instrument root/Attack/Dec
 上部Wood themeはWorkspaceWoodの3値。workspaceWoodThemeV1に保存し、構成dirtyとは独立。アプリ同梱Texturesを使用する。選択変更とテーマ変更で音が鳴らないことを確認。
 メインのSelect section 名前 UUIDをクリック→右WorkspaceSectionInspectorのSelected section name/lengthで編集。Move selected section earlier/later、Duplicate selected section、Remove Sectionを使う。複製成功時は新しいセクションを選択、削除失敗は既存を保持。All Parts…の旧カードも使用可。選択だけではdirtyにならず、メイン再読込/削除で存在しない選択を解除する。
 メインのTimeline zoom in/outとFit arrangementは表示倍率のみ変更し、clip.startBeatを書き換えない。狭い画面/拡大時は水平スクロール。ドラッグとアクセシビリティ増減は既存movePartを使用。セクション帯/クリップは同じ拍座標で動く。
-PerformanceNoteLayout.makeが実演奏から音符の時刻/長さ/移調済み音程/調整済み強弱を得る。繰り返し間隔は既存EnsembleTimelineと同じceil、終端はペダルイベントも含む。音符自体の幅は押鍵時間。Selected clip note detailで音符数/全長/表示音域を確認する。下段は読み取り専用、編集APIと誤認しない。停止は既存Stop all workspace audio、playing=false/全voices=0/previewing=nilを確認する。
+PerformanceNoteLayout.makeが実演奏から音符の時刻/長さ/移調済み音程/調整済み強弱を得る。繰り返し間隔は既存EnsembleTimelineと同じceil、終端はペダルイベントも含む。音符自体の幅は押鍵時間。Clip note gridで音符数、Clip note Nで音程/拍/強弱を確認する。下段の編集操作は次節を参照。停止は既存Stop all workspace audio、playing=false/全voices=0/previewing=nilを確認する。
+
+## 下段クリップ音符編集
+Timeline clipを選択するとSelectedClipNotesが1回分の音符を編集する。Clip note Nをクリックして選択し、Selected note pitch/start/length/velocityへ数値を入力してApply selected noteを実行する。pitchは移調後のMIDI番号、startとlengthはクリップ内の拍、velocityは全体%適用前の1〜127。既存channelとpedalsは変更しない。
+Add clip noteは0拍・基準音に近い空いた音程・0.5拍・velocity90で追加。空白グリッドのクリックでも指定位置に追加できる。Delete selected clip noteは選択音を削除し、最後の1音は削除できない。ドラッグは音符本体が移動、右端が長さ変更で、1/4拍スナップ。繰り返しは全周回へ反映される。
+操作の正本はEnsembleModel.editClipNotes。canEdit必須で、全クリップ検証後に適用する。成功は対象clip.performance.notes、dirty、タイムライン長、下段表示で確認。失敗はensemble.errorに表示し元データを保持する。選択だけはdirtyにしない。停止はStop all workspace audioでplaying=false、全voices=0を確認してから編集する。構成Save→再起動復元→WAV出力は同じPerformanceDocumentを使用する。

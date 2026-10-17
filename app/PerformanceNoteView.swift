@@ -52,28 +52,3 @@ struct PerformanceNoteView: View, Equatable {
         }
     }
 }
-
-struct SelectedClipNotes: View {
-    @ObservedObject var part: EnsemblePart
-    let clipID: UUID
-    private var clip: EnsembleClip { part.allClips.first { $0.id == clipID } ?? part.allClips[0] }
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("NOTE DETAIL").tracking(1.3)
-                Text(clip.performance.name).foregroundStyle(.secondary).lineLimit(1)
-                Spacer()
-                Text("×\(clip.repeatCount) · Read only").foregroundStyle(.secondary)
-            }.font(.system(size: 10)).padding(.horizontal, 12).frame(height: 30)
-            Divider()
-            PerformanceNoteView(performance: clip.performance, repeatCount: clip.repeatCount, root: part.instrument?.root, detail: true, selected: true).equatable()
-                .frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.black.opacity(0.12))
-            HStack {
-                Text("Pitch ↑ · Time →")
-                Spacer()
-                Text("\(clip.performance.notes.count * clip.repeatCount) notes · Key-down lengths")
-            }.font(.system(size: 9)).foregroundStyle(.secondary).padding(.horizontal, 12).frame(height: 22)
-        }.background(Color(red: 0.105, green: 0.13, blue: 0.095))
-            .overlay { Rectangle().stroke(.black.opacity(0.4), lineWidth: 1).allowsHitTesting(false) }
-    }
-}

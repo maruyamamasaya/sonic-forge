@@ -82,6 +82,8 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 
 メイン選択編集のモデル検証は tests/WorkspaceTests.swift。UIはWorkspaceView/Inspector、旧一覧はEnsembleView、素材編集はStudioView。
 
-音符プレビューは app/PerformanceNoteLayout.swift の PerformanceNoteLayout.make と app/PerformanceNoteView.swift の PerformanceNoteView / SelectedClipNotes。検証は tests/WorkspaceTests.swift と実UI。
+音符プレビューは app/PerformanceNoteLayout.swift の PerformanceNoteLayout.make と app/PerformanceNoteView.swift の PerformanceNoteView。検証は tests/WorkspaceTests.swift と実UI。
 
 自然木素材は app/Resources/Textures/、bundleへのコピーは scripts/build.sh。
+
+下段音符編集: app/ClipNoteEditor.swift の SelectedClipNotes / ClipNoteGrid → app/EnsembleModel.swift の editClipNotes。検証は tests/WorkspaceTests.swift。

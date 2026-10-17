@@ -77,7 +77,7 @@ struct WorkspaceView: View {
                                     .frame(maxWidth: .infinity, alignment: .top)
                             }.frame(minHeight: 190, idealHeight: CGFloat(ensemble.parts.count) * 86 + 94, maxHeight: CGFloat(max(2, ensemble.parts.count)) * 86 + 128)
                             if let part, let activeClip {
-                                SelectedClipNotes(part: part, clipID: activeClip).frame(minHeight: 145, idealHeight: 270)
+                                SelectedClipNotes(ensemble: ensemble, part: part, clipID: activeClip).id(activeClip).frame(minHeight: 145, idealHeight: 270)
                             }
                         }
                     }

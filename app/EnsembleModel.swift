@@ -350,6 +350,23 @@ final class EnsembleModel: ObservableObject {
         do { _ = try performance.events(root: part.instrument?.root); editClip(part: id, clip: clipID) { $0.performance = performance }; error = nil }
         catch { self.error = error.localizedDescription }
     }
+    /// Atomic note edits validate the complete part, including repeated placement and siblings.
+    @discardableResult
+    func editClipNotes(part id: UUID, clip clipID: UUID, change: (inout [PerformanceNote]) -> Void) -> Bool {
+        guard canEdit, let part = parts.first(where: { $0.id == id }),
+              let index = part.allClips.firstIndex(where: { $0.id == clipID }) else { return false }
+        var clips = part.allClips
+        change(&clips[index].performance.notes)
+        do {
+            try EnsembleSections.validate(sections)
+            try EnsembleClips.validate(clips, root: part.instrument?.root ?? 60, sections: sections)
+            if clips[index] != part.allClips[index] {
+                editClip(part: id, clip: clipID) { $0.performance = clips[index].performance }
+            }
+            error = nil; return true
+        } catch { self.error = "音符を変更できませんでした。\n" + error.localizedDescription; return false }
+    }
+
     func openClipPerformance(part id: UUID, clip clipID: UUID) {
         guard canEdit else { return }
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.sonicForgePerformance, .json]; panel.canChooseDirectories = false

@@ -195,3 +195,5 @@ Ensembleで停止中、Duplicate To…→別セクションを選ぶ。追加ク
 起動時は3列Ensemble。素材編集は左下Waveform & Instrument…→Sample Studio、Arrangementで戻る。⌘S/Spaceは現在画面に従う。構成の全操作とライブラリの導線は[ENSEMBLE.md](ENSEMBLE.md)を参照。
 
 Natural Studio: 1920×1080基準、既存の小さい表示領域にも縮小可能。上部Wood themeで木材テーマ、メインのセクション帯を選んで右側で編集。音符詳細は読み取り専用。Fit/拡大と下段の分割境界で表示を調整する。詳しくは[ENSEMBLE.md](ENSEMBLE.md)。
+
+Ensemble下段のNOTE EDITORでクリップの音符を直接編集できる。操作・制約は[下段の音符編集](ENSEMBLE.md#下段の音符編集)を参照。
