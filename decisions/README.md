@@ -98,3 +98,5 @@ Status: proposed / accepted / superseded
 - [0037: 曲全体の編集履歴](0037-song-edit-history.md)
 
 - [0038: 曲の途中再生と範囲ループ試聴](0038-ensemble-audition-transport.md)
+
+- [0039: パート単位のパンと構成形式v6](0039-part-pan.md)

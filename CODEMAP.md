@@ -63,6 +63,8 @@ app配下の追加ルールは [app/AGENTS.md](app/AGENTS.md)。外部操作API�
 
 途中再生/範囲ループ: `app/EnsemblePlayback.swift` のplan、`app/EnsembleModel.swift` のseek/pause/setPlaybackRange、UIはEnsembleTransportControls/EnsembleTimelineView、検証は `tests/EnsemblePlaybackTests.swift`。
 
+パートのパン: EnsemblePart.pan / SampleInstrument.pan / EnsemblePartSnapshot.pan、EnsemblePanControl（WorkspaceInspector/EnsembleView）、addDemos(panned:)。検証は `tests/EnsemblePanTests.swift`、保存形式は `ENSEMBLE_FORMAT.md`。
+
 ## 検索方法
 | 分かっていること | 優先する探索 |
 | --- | --- |

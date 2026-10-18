@@ -22,6 +22,7 @@ struct WorkspaceInspector: View {
                     Toggle("消音", isOn: $part.muted).disabled(ensemble.busy)
                     Slider(value: $part.gainDB, in: -36...0).accessibilityIdentifier("\(part.name) volume").accessibilityLabel("\(part.name) の音量").disabled(ensemble.busy)
                     Text(String(format: "%.0f dB・%d/8音・出力 %.0f dB", part.gainDB, part.voices, part.level)).font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
+                    EnsemblePanControl(part: part, ensemble: ensemble)
                     Button("パート削除") { ensemble.remove(part.id) }.disabled(!ensemble.canEdit)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 3)
             }
@@ -116,5 +117,33 @@ struct WorkspaceInspector: View {
     private func update(root: Int? = nil, envelope: ADSRParameters? = nil, loop: SampleLoop? = nil) {
         guard let old = part.instrument else { return }
         ensemble.setInstrumentSettings(part: part.id, root: root ?? old.root, envelope: envelope ?? old.envelope, loop: loop ?? old.loop)
+    }
+}
+
+struct EnsemblePanControl: View {
+    @ObservedObject var part: EnsemblePart
+    @ObservedObject var ensemble: EnsembleModel
+    private var position: String {
+        if abs(part.pan) < 0.005 { return "中央" }
+        return String(format: "%@ %.0f%%", part.pan < 0 ? "左" : "右", abs(part.pan) * 100)
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text("パン・左右の配置").foregroundStyle(.secondary)
+                Spacer()
+                Text(position).monospacedDigit()
+                Button("中央") { part.pan = 0 }.accessibilityIdentifier("Center pan for \(part.id)")
+                    .accessibilityLabel("\(part.name) のパンを中央に戻す")
+            }
+            HStack(spacing: 7) {
+                Text("左")
+                Slider(value: $part.pan, in: -1...1).accessibilityIdentifier("Pan for \(part.id)")
+                    .accessibilityLabel("\(part.name) のパン・左右の配置")
+                    .accessibilityValue(position)
+                Text("右")
+            }
+        }.font(.system(size: 10)).disabled(ensemble.busy)
+            .help("パート全体の音を左右へ配置します。中央0・左−1・右+1。同じ楽器の全クリップで共通。再生中も調整でき、構成保存とWAVに反映します。")
     }
 }

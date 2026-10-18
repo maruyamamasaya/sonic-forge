@@ -38,7 +38,7 @@ enum EnsembleExport {
         defer { voices.forEach { $0.stop() }; engine.stop() }
         for (index, part) in snapshot.parts.enumerated() {
             let mixer = AVAudioMixerNode(); engine.attach(mixer)
-            engine.connect(mixer, to: engine.mainMixerNode, fromBus: 0, toBus: AVAudioNodeBus(index), format: nil)
+            engine.connect(mixer, to: engine.mainMixerNode, fromBus: 0, toBus: AVAudioNodeBus(index), format: AVAudioFormat(standardFormatWithSampleRate: 48000, channels: 2)!)
             let voice = EnsembleVoice(instrument: part.instrument, engine: engine, mixer: mixer)
             voice.sampler.gain = part.muted ? 0 : Float(pow(10, part.gainDB / 20))
             voices.append(voice)
@@ -48,6 +48,8 @@ enum EnsembleExport {
         try engine.enableManualRenderingMode(.offline, format: format, maximumFrameCount: 512)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 512) else { throw AudioError.invalid("書き出しメモリを確保できません。") }
         engine.prepare(); try engine.start()
+        // Mixer connection parameters must be set after the graph is initialized.
+        for (voice, part) in zip(voices, snapshot.parts) { voice.sampler.pan = Float(part.pan) }
         // Close the file before publishing it by atomic rename.
         do {
             var settings = format.settings; settings[AVLinearPCMIsNonInterleaved] = false

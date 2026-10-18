@@ -195,6 +195,7 @@ private struct EnsemblePartRow: View {
                 Spacer()
                 Text(validation ?? "準備完了").foregroundStyle(validation == nil ? Color.secondary : .orange).lineLimit(1)
             }.disabled(ensemble.busy).font(.system(size: 10))
+            EnsemblePanControl(part: part, ensemble: ensemble).frame(maxWidth: 280)
             HStack {
                 Text("演奏クリップ・\(part.allClips.count) / 8・音色と音量は共通")
                     .font(.system(size: 9)).foregroundStyle(.secondary)

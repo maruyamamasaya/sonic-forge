@@ -9,6 +9,7 @@ struct AudioTests {
         try await EnsemblePlaybackTests.run()
         try await EnsemblePersistenceTests.run()
         try await EnsembleExportTests.run()
+        try await EnsemblePanTests.run()
         try await EnsembleSectionTests.run()
         try await SectionDuplicationTests.run()
         try await WorkspaceTests.run()

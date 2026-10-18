@@ -135,7 +135,7 @@ EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パ
 パートMixerの音量・ミュートは30 Hzで更新。共通出力は最大4パート分の固定1/4ヘッドルームと専用Masterを使用。各サンプラーの1/8ヘッドルームは維持する。パートと共通出力それぞれの実RMSを表示し、本体のメーターとは区別。割り当てはシートを閉じても保持し、保存した構成は起動時に復元する。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 ## Ensemble Persistence
-EnsembleDocumentが.sfensemble v5を管理（v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読込）。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
+EnsembleDocumentが.sfensemble v6を管理。旧v1〜v5のpanは中央0、v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読み込む。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
 保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/繰り返し回数/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
 EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsのlastEnsemblePathV1へ保持。PlayerModel.startSessionから一度だけ復元し、本体の楽器復元とは独立。無音・停止状態で復元し、自動再生しない。欠落/破損時は構成エラーを表示して手動Openへ導く。復元前の構成や正常な保存先を失敗で更新しない。
 
@@ -201,3 +201,6 @@ restoreSongEditは再生/処理中を拒否し、既存音声を停止して一�
 ## Ensemble Audition Transport
 EnsemblePlayback.planはtimelineの絶対イベントから[start,end)の相対秒イベントと開始前の押鍵/サステイン状態を作る。パート/チャンネル別に保持音を復元し、Attack/サンプル先頭から再発音する。Release途中の音声位相は追跡しない。通常再生では曲末の終端MIDIも配送して余韻を待つ。範囲ループは同じengine上で全ボイス/ペダルを停止し、次周を再スケジュール。generationとTask取消で古いシーク/周回の配送を防ぐ。サンプル精度/継ぎ目なしのループではない。
 EnsembleModelのpositionBeats/playbackRange/rangeLoopEnabled/playbackPassは試聴専用。pauseは位置を保持、stopは拍0、seekは再生中なら再スケジュール。編集は一時停止後に行い、次回再生は最新timeline/楽器を使う。PlayerModel.prepareEnsemblePlaybackがStudio音声を止めつつ試聴カーソルを保つ。EnsembleTransportControlsをメイン/全パートで共有し、Timelineの拍目盛りとセクション選択に接続する。試聴状態は履歴/dirty/保存/WAVに含めず、読込で初期化、範囲外となる構成短縮で解除する。
+
+## Part Pan
+EnsemblePart.panとEnsemblePartSnapshot.panは−1〜1の有限数、既定0。SongStateにも含めdirty/全体Undo/Redoを共有する。SampleInstrument.panがパートのAVAudioMixerNode.panを更新し、ライブはupdateGainsで30 Hz、EnsembleExportは固定Snapshotで同じ設定を適用。中央0では既存の出力を維持する。構成v6はpan必須、v1〜v5は中央へ移行して安価なメタデータ検証後に音源を復号。AI編曲materializeは既存panを保持し提案schemaは変更しない。UIはWorkspaceInspectorのEnsemblePanControlを全パートでも共有、addDemos(panned:)が左右配置デモの入口。

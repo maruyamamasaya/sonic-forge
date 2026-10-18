@@ -162,6 +162,7 @@ final class SampleInstrument {
     private var sequence: UInt64 = 0
     private(set) var sample: InstrumentSample?
     let meter = InstrumentMeter()
+    var pan: Float = 0 { didSet { output.pan = pan } }
     var gain: Float = 0.25 { didSet { output.outputVolume = gain } }
     var isSounding: Bool { slots.contains { $0.voice.isActive } }
     var heldNotes: Set<Int> { Set(slots.compactMap { $0.held && $0.voice.isActive ? $0.note : nil }) }
