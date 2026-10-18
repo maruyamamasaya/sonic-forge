@@ -7,11 +7,13 @@ GitHub: [maruyamamasaya/sonic-forge](https://github.com/maruyamamasaya/sonic-for
 macOS向けのサンプラー・音楽制作アプリ。メインのEnsembleで曲を組み、Sample Studioで素材を編集します。WAVを読み込み、波形を見ながら再生・一時停止・停止・シーク・音量調整ができます。
 波形のズーム、ドラッグによる範囲選択、選択部分だけの再生とWAV書き出しにも対応しています。
 音源がなくても、起動時に読み込まれる合成デモを再生・画面鍵盤で演奏できます。
-Rootで基準音を設定し、Use Selectionで選択した部分をサンプラー楽器として演奏できます。
+基準音で基準音を設定し、選択を楽器にで選択した部分をサンプラー楽器として演奏できます。
 鍵盤上のADSRで立ち上がりと余韻を調整できます。
-Save…で音源・基準音・ADSR・ループ設定をまとめて保存し、Open…で復元できます。次回起動時には最後の保存済み楽器を復元します。
+保存…で音源・基準音・ADSR・ループ設定をまとめて保存し、開く…で復元できます。次回起動時には最後の保存済み楽器を復元します。
 
 ## はじめに読む
+
+主要画面は日本語表示です。上部の「使い方」で操作や用語を検索でき、設定には短い説明が付きます。
 
 機能が増えて全体像をつかみたい場合は[ここまでの開発の流れ](DEVELOPMENT_JOURNEY.md)、操作や用語を知りたい場合は[人向けの使い方と用語](USER_GUIDE.md)から読めます。
 
@@ -23,9 +25,9 @@ sh scripts/build.sh
 open build/SonicForge.app
 ```
 
-Play／Spaceで再生、Open WAV…／⌘Oで音源を読み込み、Load Demoでデモに戻ります。
-範囲をドラッグしてPlay Selection（Shift-Space）で試聴できます。＋／−でズーム、Fit Allで全体に戻ります。
-Export WAV…で選択範囲を32-bit Float WAVとして保存できます。
+Play／Spaceで再生、WAVを開く…／⌘Oで音源を読み込み、デモを開くでデモに戻ります。
+範囲をドラッグして選択範囲を再生（Shift-Space）で試聴できます。＋／−でズーム、全体表示で全体に戻ります。
+WAV書き出し…で選択範囲を32-bit Float WAVとして保存できます。
 対応形式と詳しい操作は [運用ガイド](OPERATIONS.md)、検証は [TESTING.md](TESTING.md)。
 
 ## 開発ガイド
@@ -42,18 +44,18 @@ Export WAV…で選択範囲を32-bit Float WAVとして保存できます。
 
 最大8音の和音演奏に対応。画面鍵盤のHold keys、PC鍵盤、Demo chordで試せます。詳しくは[演奏操作](OPERATIONS.md#和音の演奏)を参照。
 
-MIDI INで外部キーボードを選択できます。実機なしの確認はTest input → MIDI chord。[MIDI操作](OPERATIONS.md#外部midiキーボード)を参照。
+MIDI INで外部キーボードを選択できます。実機なしの確認はテスト入力 → MIDI和音。[MIDI操作](OPERATIONS.md#外部midiキーボード)を参照。
 
-弾けなくてもプリセットを選んでAuto playで試聴できます。MIDIの強弱・サステインペダルにも対応。[自動演奏と操作](OPERATIONS.md#弾かずに試す自動演奏)を参照。
+弾けなくてもプリセットを選んで自動演奏で試聴できます。MIDIの強弱・サステインペダルにも対応。[自動演奏と操作](OPERATIONS.md#弾かずに試す自動演奏)を参照。
 
 AIによる操作・自動演奏の引き継ぎは[AI操作ガイド](AI_OPERATIONS.md)を参照。
 
-自動演奏はEdit…でテンポ・移調・強弱と音符を編集し、演奏専用ファイルへ保存できます。[演奏データ形式](PERFORMANCE_FORMAT.md)はAI生成にも使う共通形式です。
+自動演奏は演奏編集…でテンポ・移調・強弱と音符を編集し、演奏専用ファイルへ保存できます。[演奏データ形式](PERFORMANCE_FORMAT.md)はAI生成にも使う共通形式です。
 
-保存した楽器の検索・試聴・読み込みはLibrary…から。音源がなくてもAdd Demosで試せます。詳しくは[操作ガイド](OPERATIONS.md#楽器ライブラリ)を参照。
+保存した楽器の検索・試聴・読み込みは楽器一覧…から。音源がなくてもデモ楽器追加で試せます。詳しくは[操作ガイド](OPERATIONS.md#楽器ライブラリ)を参照。
 
-Compose…から言葉で演奏候補を作れます。Codex CLI・OpenAI API・他のAIのJSON貼り付けに対応。接続不要のDemoもあります。[AI生成ガイド](AI_GENERATION.md)を参照。
+AI演奏…から言葉で演奏候補を作れます。Codex CLI・OpenAI API・他のAIのJSON貼り付けに対応。接続不要のDemoもあります。[AI生成ガイド](AI_GENERATION.md)を参照。
 
-メイン画面のEnsembleで最大4つの楽器と演奏を組み合わせられます。Add Demo Duoから同時演奏を試せます。[複数パートの操作](ENSEMBLE.md)を参照。
+メイン画面のEnsembleで最大4つの楽器と演奏を組み合わせられます。デモ2パートから同時演奏を試せます。[複数パートの操作](ENSEMBLE.md)を参照。
 
-EnsembleのSave…で全パートの音源・演奏・ミックスをまとめて保存し、再起動後も復元できます。[構成の保存](ENSEMBLE.md#構成を保存復元する)を参照。
+Ensembleの保存…で全パートの音源・演奏・ミックスをまとめて保存し、再起動後も復元できます。[構成の保存](ENSEMBLE.md#構成を保存復元する)を参照。

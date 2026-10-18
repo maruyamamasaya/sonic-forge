@@ -12,27 +12,27 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "square.stack.3d.up").foregroundStyle(accent)
-                Text("Instrument Library").font(.system(size: 22, weight: .medium))
+                Text("楽器ライブラリ").font(.system(size: 22, weight: .medium))
                 Spacer()
                 if library.busy || model.busy { ProgressView().controlSize(.small) }
-                Button("Done") { dismiss() }.buttonStyle(StudioButton())
+                Button("閉じる") { dismiss() }.buttonStyle(StudioButton())
             }
             HStack {
-                TextField("Search instruments", text: $library.query).textFieldStyle(.roundedBorder)
-                    .accessibilityLabel("Search instruments")
-                Button("Add Files…") { library.addPanel() }.buttonStyle(StudioButton())
-                Button("Add Demos") { Task { await library.addDemos() } }.buttonStyle(StudioButton())
+                TextField("楽器を検索", text: $library.query).textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("Search instruments").accessibilityLabel("楽器を検索")
+                Button("楽器ファイルを追加") { library.addPanel() }.buttonStyle(StudioButton())
+                Button("デモ楽器追加") { Task { await library.addDemos() } }.buttonStyle(StudioButton())
             }.disabled(library.busy || model.busy)
             HStack {
-                Text("\(library.filtered.count) \(library.filtered.count == 1 ? "instrument" : "instruments")").foregroundStyle(.secondary)
+                Text("\(library.filtered.count) \(library.filtered.count == 1 ? "楽器" : "楽器")").foregroundStyle(.secondary)
                 Spacer()
-                Text("Saved files · Original locations").foregroundStyle(.secondary)
+                Text("保存した楽器・元の保存場所").foregroundStyle(.secondary)
             }.font(.system(size: 11))
             if library.filtered.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "pianokeys").font(.system(size: 32)).foregroundStyle(accent)
-                    Text(library.entries.isEmpty ? "Your instruments, together" : "No matching instruments")
-                    Text(library.entries.isEmpty ? "Add saved instruments, or explore with Add Demos." : "Try another name.")
+                    Text(library.entries.isEmpty ? "楽器を一覧にまとめる" : "一致する楽器がありません")
+                    Text(library.entries.isEmpty ? "保存済みの楽器を追加するか、デモ楽器で試せます。" : "別の名前で検索してください。")
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -45,7 +45,7 @@ struct LibraryView: View {
                                 .lineLimit(1).truncationMode(.middle)
                         }
                         Spacer()
-                        Text(entry.available ? (library.previewing == entry.url ? "PREVIEW" : "Ready") : "Missing")
+                        Text(entry.available ? (library.previewing == entry.url ? "試聴中" : "準備完了") : "見つかりません")
                             .font(.system(size: 10, design: .monospaced)).foregroundStyle(entry.available ? accent : .secondary)
                     }.padding(.vertical, 8).tag(entry.id)
                 }.scrollContentBackground(.hidden).background(.black.opacity(0.15))
@@ -53,26 +53,26 @@ struct LibraryView: View {
             Divider()
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(library.previewing == nil ? "Select an instrument to preview or load" : "Playing preview · −18 dB")
-                    Text(library.previewDescription ?? "Preview keeps your current instrument and edits.")
+                    Text(library.previewing == nil ? "楽器を選んで試聴・読み込み" : "試聴中・−18 dB")
+                    Text(library.previewDescription.map(JapaneseUI.preview) ?? "試聴は編集中の楽器や変更を保ちます。")
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                 }.font(.system(size: 12))
                 Spacer()
-                Button(library.previewing == nil ? "Preview" : "Stop Preview") {
+                Button(library.previewing == nil ? "試聴" : "試聴停止") {
                     if library.previewing != nil { library.stopPreview() }
                     else if let selected { model.stop(); Task { await library.preview(selected) } }
                 }.buttonStyle(StudioButton())
                     .disabled(library.busy || model.busy || (library.previewing == nil && selected?.available != true))
-                Button("Load Instrument") {
+                Button("楽器を読み込む") {
                     if model.instrumentDirty { confirmLoad = true } else { loadSelected() }
                 }.buttonStyle(StudioButton(primary: true))
                     .disabled(selected?.available != true || library.busy || model.busy)
             }
             HStack {
                 if let selected {
-                    Button("Remove from List") { library.remove(selected); selection = nil }.buttonStyle(.plain)
+                    Button("一覧から外す") { library.remove(selected); selection = nil }.buttonStyle(.plain)
                         .disabled(library.busy || model.busy)
-                    Text("Original file is kept.").foregroundStyle(.secondary)
+                    Text("元のファイルは保持します。").foregroundStyle(.secondary)
                 }
                 Spacer()
             }.font(.system(size: 10))
@@ -81,10 +81,10 @@ struct LibraryView: View {
             }
         }.padding(24).frame(width: 780, height: 570)
             .background(Color(red: 0.075, green: 0.09, blue: 0.105)).preferredColorScheme(.dark)
-            .confirmationDialog("Replace unsaved instrument changes?", isPresented: $confirmLoad) {
-                Button("Replace Instrument", role: .destructive) { loadSelected() }
-                Button("Cancel", role: .cancel) { }
-            } message: { Text("Your current instrument has unsaved changes. Cancel and save it first to keep them.") }
+            .confirmationDialog("未保存の楽器を置き換えますか？", isPresented: $confirmLoad) {
+                Button("楽器を置き換える", role: .destructive) { loadSelected() }
+                Button("キャンセル", role: .cancel) { }
+            } message: { Text("編集中の楽器に未保存の変更があります。残す場合はキャンセルして先に保存してください。") }
             .onChange(of: selection) { _, _ in library.stopPreview() }
             .onChange(of: library.query) { _, _ in selection = nil; library.stopPreview() }
             .onDisappear { library.stopPreview() }

@@ -5,22 +5,22 @@
 ## この文書の役割
 AIがアプリを操作・拡張するときに、操作の入口、観測する状態、停止方法を短時間で把握するためのガイド。
 現在地は[CURRENT.md](CURRENT.md)、構造は[ARCHITECTURE.md](ARCHITECTURE.md)、人向けの詳しい操作は[OPERATIONS.md](OPERATIONS.md)、コードの配置は[CODEMAP.md](CODEMAP.md)を正本とする。
-実装と異なる場合はコード・テストを確認し、本書を更新する。
+実装と異なる場合はコード・テストを確認し、本書を更新する。主要操作の現在の日本語名と識別子は末尾の[日本語UIとヘルプ](#日本語uiとヘルプ)も参照。
 
 ## 現在できることと境界
 - WAVを読み込み、範囲を切り出してサンプラー楽器へ取り込み、基準音・ADSR・ループ・クロスフェードを設定できる。
 - 最大8音を画面・PC・MIDIから演奏でき、MIDIの強弱とサステインペダルに対応する。
-- 内蔵3種類を元にテンポ・移調・強弱・個別音符・ペダルを編集・保存し、Auto playで自動演奏できる。実機や演奏スキルは不要。
-- 演奏データの外部ファイル読込・保存、Compose…によるAIフレーズ生成は対応済み。録音は未実装。構成全体のWAV書き出しは対応済み。
+- 内蔵3種類を元にテンポ・移調・強弱・個別音符・ペダルを編集・保存し、自動演奏で自動演奏できる。実機や演奏スキルは不要。
+- 演奏データの外部ファイル読込・保存、AI演奏…によるAIフレーズ生成は対応済み。録音は未実装。構成全体のWAV書き出しは対応済み。
 - 外部AI向けの操作API・CLI・MCPは未実装。下記Swiftメソッドはアプリ内・テスト内の入口であり、外部から直接呼べるAPIではない。現時点の外部操作は実画面を通して行う。
 
 ## 最初に試す手順
-1. アプリを起動→左下Open Sample Studio（Waveform & Instrument…）。既存の楽器を変更せず試す場合はそのまま使用する。Load Demoは現在の未保存音色を置き換えるので、残す必要があれば先にSave…する。
+1. アプリを起動→左下素材・楽器編集を開く（波形・楽器を編集…）。既存の楽器を変更せず試す場合はそのまま使用する。デモを開くは現在の未保存音色を置き換えるので、残す必要があれば先に保存…する。
 2. 音源の表示があり、読み込み中でないことを確認。デモの場合は楽器にも自動取り込みされる。
-3. 演奏プリセットでSoft chords / Arpeggio / Pedal phraseを選ぶ。Edit…で編集・Open…/Save…で演奏を読み書きし、Doneで戻ってAuto playを押す。仮想MIDI入力は自動で作成・選択される。
-4. 鍵盤の点灯・発音数・出力メーターを確認。Pedal phraseではPEDAL CH 1が一時表示される。
+3. 演奏プリセットで柔らかい和音 / 分散和音 / ペダルの演奏を選ぶ。演奏編集…で編集・開く…/保存…で演奏を読み書きし、閉じるで戻って自動演奏を押す。仮想MIDI入力は自動で作成・選択される。
+4. 鍵盤の点灯・発音数・出力メーターを確認。ペダルの演奏ではPEDAL CH 1が一時表示される。
 5. 自然終了後、保持音とペダルが解除され、Release後に発音数とメーターが無音へ戻ることを確認。
-6. 途中停止はStop auto、余韻も含め全入力を止める場合はAll Notes Offを使う。
+6. 途中停止は自動演奏停止、余韻も含め全入力を止める場合は全音停止を使う。
 
 UIの要素番号や画面座標は固定ではない。機器やウィンドウ幅によって変わるため、操作前後に現在の画面状態を確認する。
 画面が隠れたりフォーカスが外れたりすると演奏は停止する。Pausedの場合は本体ウィンドウを再選択する。
@@ -28,18 +28,18 @@ UIの要素番号や画面座標は固定ではない。機器やウィンドウ
 ## 操作とアプリ内の入口
 | 目的 | 画面 | 主な実装入口 |
 | --- | --- | --- |
-| 素材を用意 | Load Demo / Open WAV… | PlayerModel.loadDemo / load |
-| 音色を作る | Use Selection、Root、ADSR、LOOP、CROSSFADE | prepareInstrument、rootNote、setEnvelope、setLoop |
-| 楽器を探す・試聴・読込 | Library…、Search instruments、Preview / Stop Preview、Load Instrument | InstrumentLibrary.filtered / preview / stopPreview、PlayerModel.loadInstrument |
-| 音色を保存・復元 | Save… / Open… | saveInstrumentPanel / openInstrumentPanel、InstrumentDocument |
-| MIDIを選ぶ | MIDI IN / None | MIDIInput.select / refresh |
-| 実機なしの手動確認 | Test input、VELOCITY、Test pedal、MIDI chord | createTestInput、testVelocity、sendTest、toggleTestChord |
-| 自動演奏 | プリセット、Auto play / Stop auto | performancePreset、playPerformance / stopPerformance |
-| 構成保存・復元 | Ensemble上部Open… / Save…、Saved / ● Unsaved | EnsembleModel.save/load/restoreLastSession、dirty/fileURL/fileMessage |
-| 複数パート | メインEnsemble / All Parts…、Add Part / Add Current / Add Demo Duo、Play All / Stop All | EnsembleModel.parts/timeline/play/stop、EnsembleVoice.receive |
-| AI演奏候補 | Compose…、Generate、Cancel Generation、Use & Play | PerformanceComposer.generate/cancel、candidate/candidateRoot/source、MIDIInput.applyGeneratedPerformance |
-| 演奏編集・保存 | Edit…、TEMPO、TRANSPOSE、VELOCITY、Notes、Pedal、Open… / Save… | PerformanceEditor、MIDIInput.performance、loadPerformance / savePerformance |
-| 全音停止 | All Notes Off | PlayerModel.stopInstrument |
+| 素材を用意 | デモを開く / WAVを開く… | PlayerModel.loadDemo / load |
+| 音色を作る | 選択を楽器に、基準音、ADSR、ループ、継ぎ目 | prepareInstrument、rootNote、setEnvelope、setLoop |
+| 楽器を探す・試聴・読込 | Library…、楽器を検索、試聴 / 試聴停止、楽器を読み込む | InstrumentLibrary.filtered / preview / stopPreview、PlayerModel.loadInstrument |
+| 音色を保存・復元 | 保存… / 開く… | saveInstrumentPanel / openInstrumentPanel、InstrumentDocument |
+| MIDIを選ぶ | MIDI入力 / None | MIDIInput.select / refresh |
+| 実機なしの手動確認 | テスト入力、強弱、ペダルを試す、MIDI和音 | createTestInput、testVelocity、sendTest、toggleTestChord |
+| 自動演奏 | プリセット、自動演奏 / 自動演奏停止 | performancePreset、playPerformance / stopPerformance |
+| 構成保存・復元 | Ensemble上部開く… / 保存…、保存済み / ● 未保存 | EnsembleModel.save/load/restoreLastSession、dirty/fileURL/fileMessage |
+| 複数パート | メインEnsemble / 全パート…、パート追加 / 編集中の楽器を追加 / デモ2パート、全体を再生 / 全停止 | EnsembleModel.parts/timeline/play/stop、EnsembleVoice.receive |
+| AI演奏候補 | AI演奏…、候補を生成、生成を中止、採用して再生 | PerformanceComposer.generate/cancel、candidate/candidateRoot/source、MIDIInput.applyGeneratedPerformance |
+| 演奏編集・保存 | 演奏編集…、テンポ、移調、強弱、Notes、Pedal、開く… / 保存… | PerformanceEditor、MIDIInput.performance、loadPerformance / savePerformance |
+| 全音停止 | 全音停止 | PlayerModel.stopInstrument |
 
 MainActorでUI・モデルを操作する。外部MIDIの受信処理や音声スレッドから直接状態を書き換えない。
 責務・スレッド・接続世代の詳細は[構造](ARCHITECTURE.md)を参照。
@@ -49,7 +49,7 @@ MainActorでUI・モデルを操作する。外部MIDIの受信処理や音声�
 | --- | --- |
 | asset / instrumentSample | 波形用素材 / 演奏用PCM。外部WAVを開くだけでは楽器への取り込みは完了しない |
 | busy / error | 作業中 / ファイル・演奏エラー。処理が終わってから次の操作へ進む |
-| midi.selected / midi.error | 0はNone、非0は選択した入力。接続エラーはモデルのerrorと別に表示される |
+| midi.selected / midi.error | 0は未選択（画面表示は「なし」）、非0は選択した入力。接続エラーはモデルのerrorと別に表示される |
 | midi.performing | イベント送信中。falseでもReleaseの余韻が残る場合がある |
 | activeNotes / soundingVoices | 保持中の音程集合 / Releaseも含む発音数。ペダル保持音もactiveNotesに含む |
 | sustainChannels | ペダルONのチャンネル集合。内部0〜15、画面のCHは1〜16 |
@@ -62,13 +62,13 @@ MainActorでUI・モデルを操作する。外部MIDIの受信処理や音声�
 
 ## 演奏データとAI生成の入口
 外部データは.sfperformanceのJSON。仕様・制限・例は[演奏形式v1](PERFORMANCE_FORMAT.md)を正本とする。
-AIがファイルを作成し、Edit… → Open…で読み込める。Compose…でアプリ内生成も可能。外部操作APIは未実装。
+AIがファイルを作成し、演奏編集… → 開く…で読み込める。AI演奏…でアプリ内生成も可能。外部操作APIは未実装。
 コードを実行せず、音符・ペダルの構造化データをPerformanceDocument.load/eventsで検証してから再生する。
 現在の楽器での再生可能範囲は開始前に検証される。拒否された場合はエラーを読み、移調・音符・基準音を見直す。
 
 ## 拡張時の入口と確認
 - PerformanceDocument.swift: 保存データ、内蔵プリセット、MIDIイベントへの変換・検証。
-- PerformanceEditor.swift: 名前・全体調整・音符・ペダルの編集。Doneは変更を保持して閉じる。保存とは別操作。
+- PerformanceEditor.swift: 名前・全体調整・音符・ペダルの編集。閉じるは変更を保持して閉じる。保存とは別操作。
 - MIDIInput.swift: 演奏の読込・保存、開始時のスナップショット、仮想sourceへの配送と停止。
 - PerformanceTests.swift: 変換・保存往復・不正データ・同時発音・仮想MIDI演奏の検証。
 
@@ -81,80 +81,80 @@ UIの操作名、モデルの入口、演奏データ形式、成功判定、停
 構造はARCHITECTURE、詳細操作はOPERATIONS、検証はTESTINGに置き、同じ仕様を各文書へ複写しない。
 
 ## 楽器ライブラリの操作
-1. Library…→必要ならAdd Files…、音源がなければAdd Demos。追加のbusyがfalseになるまで待つ。
-2. Search instrumentsでファイル名検索→対象行を選択。同名は親フォルダを確認。Missingは読み込み不可なので移動後の場所から再追加する。
-3. Preview→PREVIEW表示とpreviewingを確認。独立音声エンジンなので本体の鍵盤・出力メーターは試聴の状態を表さない。previewLevelsは専用エンジンの実測値。開始3秒で停止しpreviewing=nilに戻る。Stop Preview・選択変更・Done・非アクティブで即停止する。
-4. Load Instrument→未保存時は確認文を読み、保持するならCancelして先に保存する。置換承認時のみReplace Instrument。成功するとシートが閉じ、instrumentFileURL・Root・ADSR・ループが対象へ変わりinstrumentDirty=false。失敗は元の楽器を保持しエラー表示。
-5. 必要ならAuto play→All Notes Offで本体の演奏を確認する。
+1. Library…→必要ならファイル追加…、音源がなければデモ楽器追加。追加のbusyがfalseになるまで待つ。
+2. 楽器を検索でファイル名検索→対象行を選択。同名は親フォルダを確認。Missingは読み込み不可なので移動後の場所から再追加する。
+3. 試聴→PREVIEW表示とpreviewingを確認。独立音声エンジンなので本体の鍵盤・出力メーターは試聴の状態を表さない。previewLevelsは専用エンジンの実測値。開始3秒で停止しpreviewing=nilに戻る。試聴停止・選択変更・閉じる・非アクティブで即停止する。
+4. 楽器を読み込む→未保存時は確認文を読み、保持するならキャンセルして先に保存する。置換承認時のみReplace Instrument。成功するとシートが閉じ、instrumentFileURL・基準音・ADSR・ループが対象へ変わりinstrumentDirty=false。失敗は元の楽器を保持しエラー表示。
+5. 必要なら自動演奏→全音停止で本体の演奏を確認する。
 
-一覧登録は原本への参照。Remove from Listは登録解除のみ。試聴は楽器の保存・起動時復元先を変更しない。Add Demosはアプリ用保存領域に生成楽器を作る。外部からアプリを操作するAPIは未実装のため、AIは現在のUIを観測して操作する。追加・復号中に閉じても遅延発音しないことを検証する。
+一覧登録は原本への参照。Remove from Listは登録解除のみ。試聴は楽器の保存・起動時復元先を変更しない。デモ楽器追加はアプリ用保存領域に生成楽器を作る。外部からアプリを操作するAPIは未実装のため、AIは現在のUIを観測して操作する。追加・復号中に閉じても遅延発音しないことを検証する。
 
 ## 言葉からの演奏生成
-接続・方式ごとの操作は[AI_GENERATION.md](AI_GENERATION.md)を正本とする。Compose…で方式を確認し、生成指示と基準音を観測してGenerate。生成中はgenerating=true、完了はcandidate!=nilかつerror=nil。候補の方式・名前・音符数・BPMとピアノロールを確認してUse & Play。未保存演奏があればReplace & Playは明示的な置換操作となる。保持するならCancelして先にEdit…→Save…する。
-採用はcandidateRootと現在のrootNoteが一致し、再検証を通る場合のみ。シートが閉じてから自動演奏が始まるため、候補完成と発音を区別する。既存のperforming・activeNotes・soundingVoices・levelsで演奏を確認。停止はStop auto / All Notes Off。生成の取消はCancel GenerationまたはDone。取消後に遅れて返った結果は採用されず、既存演奏も変更しない。
-APIキーやCLI認証情報をチャット・文書・ログへ転記しない。生成結果からコードを実行しない。Codex CLIは別プロセスとして利用し、SonicForgeの作業ディレクトリを渡さない。Other AIのCopy Briefは操作したときだけクリップボードへ指示とschemaを入れる。DemoはAI応答ではない。
+接続・方式ごとの操作は[AI_GENERATION.md](AI_GENERATION.md)を正本とする。AI演奏…で方式を確認し、生成指示と基準音を観測して候補を生成。生成中はgenerating=true、完了はcandidate!=nilかつerror=nil。候補の方式・名前・音符数・BPMとピアノロールを確認して採用して再生。未保存演奏があれば置き換えて再生は明示的な置換操作となる。保持するならキャンセルして先に演奏編集…→保存…する。
+採用はcandidateRootと現在のrootNoteが一致し、再検証を通る場合のみ。シートが閉じてから自動演奏が始まるため、候補完成と発音を区別する。既存のperforming・activeNotes・soundingVoices・levelsで演奏を確認。停止は自動演奏停止 / 全音停止。生成の取消は生成を中止または閉じる。取消後に遅れて返った結果は採用されず、既存演奏も変更しない。
+APIキーやCLI認証情報をチャット・文書・ログへ転記しない。生成結果からコードを実行しない。Codex CLIは別プロセスとして利用し、SonicForgeの作業ディレクトリを渡さない。Other AIの指示をコピーは操作したときだけクリップボードへ指示とschemaを入れる。DemoはAI応答ではない。
 
 ## 複数の楽器と演奏を割り当てる
-正本は[ENSEMBLE.md](ENSEMBLE.md)。メインEnsemble→Add Partで行を追加→INSTRUMENTのライブラリ選択またはOpen…→PERFORMANCEのPreset/Open…/Use Current。Add Currentは現在の本体楽器と演奏をスナップショットで追加する。AI生成データは本体へ採用してAdd Current、または保存した.sfperformanceをパートへOpen…する。パートごとに異なるRootで生成/検証すること。音域を勝手に補正しない。
-全行のReadyと共通TEMPOを確認してPlay All。各行のvoices/出力、共通Beat/出力で同時演奏を判定する。本体の鍵盤やメーターはパート演奏の状態を表さない。playing=trueはRelease中も含み、releasingで区別。Stop All / Done / 非アクティブで全パートを停止。Stop後はplaying=false、各voices=0、level=-60、保持音とペダルが空であることを確認する。
-再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成はSave…した状態だけがディスクへ保存される。Doneで閉じただけ、または● Unsavedの状態を保存済みだと報告しない。外部操作APIは未実装。
+正本は[ENSEMBLE.md](ENSEMBLE.md)。メインEnsemble→パート追加で行を追加→INSTRUMENTのライブラリ選択または開く…→PERFORMANCEのPreset/開く…/編集中の演奏を使う。編集中の楽器を追加は現在の本体楽器と演奏をスナップショットで追加する。AI生成データは本体へ採用して編集中の楽器を追加、または保存した.sfperformanceをパートへ開く…する。パートごとに異なる基準音で生成/検証すること。音域を勝手に補正しない。
+全行のReadyと共通テンポを確認して全体を再生。各行のvoices/出力、共通Beat/出力で同時演奏を判定する。本体の鍵盤やメーターはパート演奏の状態を表さない。playing=trueはRelease中も含み、releasingで区別。全停止 / 閉じる / 非アクティブで全パートを停止。Stop後はplaying=false、各voices=0、level=-60、保持音とペダルが空であることを確認する。
+再生中は割り当てを変えず、Muteと音量だけを操作する。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成は保存…した状態だけがディスクへ保存される。閉じるで閉じただけ、または● 未保存の状態を保存済みだと報告しない。外部操作APIは未実装。
 
 ## 構成の保存と起動時復元の判定
-[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v5](ENSEMBLE_FORMAT.md)を参照。Save…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
-Open…の未保存置換確認では必要に応じてCancel→先にSave…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・Saved・設定・playing=falseを確認してからPlay All。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読みOpen…へ進み、復元成功と報告しない。
-保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、Stop All後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
+[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v5](ENSEMBLE_FORMAT.md)を参照。保存…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
+開く…の未保存置換確認では必要に応じてキャンセル→先に保存…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・保存済み・設定・playing=falseを確認してから全体を再生。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読み開く…へ進み、復元成功と報告しない。
+保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、全停止後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
 
 ## パートの開始位置を調整する
 Ensemble各行のSTART（アクセシビリティ名Start beat for パート名）へ0〜256の有限拍数を入力する。0は曲頭、4は4拍後。小数拍可。停止中のみ操作し、共通テンポと各STARTを読んで意図した秒数を確認する。元のperformance.notes/pedalsのbeatを同時に動かして二重に遅らせない。
-デモは空きを2つ確保してDemo Entry +4。Pad=0・Pluck=4を確認してPlay All。待機中のPluckは0 voices・−60 dB、Beat 4以降に発音する。Stop Allで待機も解除し、playing=false・全voices=0を確認。最初の音符に休符がある場合はSTARTの後も無音が続く。
-編集はdirty=trueになる。Save…でdirty=falseを確認し、Open/再起動でstartBeat一致を検証。モデル入口はEnsemblePart.startBeat、EnsembleModel.timeline/addDemos(staggered:)、保存はEnsemblePartSnapshot.startBeat。保存形式v4ではparts[].startBeatが必須、v1は0に移行する。AIが構成JSONを作る場合も同じ制限・音源同梱形式を守る。
+デモは空きを2つ確保してDemo Entry +4。Pad=0・Pluck=4を確認して全体を再生。待機中のPluckは0 voices・−60 dB、Beat 4以降に発音する。全停止で待機も解除し、playing=false・全voices=0を確認。最初の音符に休符がある場合はSTARTの後も無音が続く。
+編集はdirty=trueになる。保存…でdirty=falseを確認し、Open/再起動でstartBeat一致を検証。モデル入口はEnsemblePart.startBeat、EnsembleModel.timeline/addDemos(staggered:)、保存はEnsemblePartSnapshot.startBeat。保存形式v4ではparts[].startBeatが必須、v1は0に移行する。AIが構成JSONを作る場合も同じ制限・音源同梱形式を守る。
 
 ## 複数パートをWAVへ書き出す
-正本は[ENSEMBLE.md](ENSEMBLE.md)。Stop All後、START・TEMPO・全音量/MuteとMasterを確認してExport WAV…。モデル入口はEnsembleModel.exportPanel/exportWAV、レンダーはEnsembleExport.write。保存先を選んだだけでは成功と判定しない。exporting=true/busy=true中は編集・再生を行わず、取消はCancel Export（cancelExport）。完了はexporting=false/busy=false・error=nil・exportedURLとExported表示で判定する。取消はExport cancelled、失敗はエラー表示で、成功と報告しない。
+正本は[ENSEMBLE.md](ENSEMBLE.md)。全停止後、START・テンポ・全音量/MuteとMasterを確認してWAV書き出し…。モデル入口はEnsembleModel.exportPanel/exportWAV、レンダーはEnsembleExport.write。保存先を選んだだけでは成功と判定しない。exporting=true/busy=true中は編集・再生を行わず、取消はキャンセル Export（cancelExport）。完了はexporting=false/busy=false・error=nil・exportedURLとExported表示で判定する。取消はExport cancelled、失敗はエラー表示で、成功と報告しない。
 WAVは48 kHz/stereo/Float32、最大256 MiB、最後のイベント＋最大Release＋50 ms。開始位置・全Muteによる無音は正常。構成のdirtyは変えず、自動保存もしない。本体の試聴音量やOS音量はファイルへ反映しない。
-デモで完了後Done→本体Open WAV…から出力を再読み込み、assetのレート/チャンネル/長さと波形を確認して再生・停止。元音源へ上書きしない。書き出しはオフラインなのでOSの出力デバイスを必要としない。
+デモで完了後閉じる→本体WAVを開く…から出力を再読み込み、assetのレート/チャンネル/長さと波形を確認して再生・停止。元音源へ上書きしない。書き出しはオフラインなのでOSの出力デバイスを必要としない。
 
 ## タイムラインの表示と開始位置操作
 ARRANGEMENTで全パートを一覧し、クリップの位置と幅、START値で構成を判断する。アクセシビリティ名はTimeline clip for パート名、値はStart/length/end beats。クリップのIncrement/Decrementは¼拍。ドラッグは停止中のみ、離した時に¼拍へスナップして0〜256へ制限する。精密な任意値はStart beat for パート名へ入力する。モデル入口はEnsembleModel.movePart、計算はEnsembleTimeline.length/movedStart、UIはEnsembleTimelineView。
 クリップ長はREPEAT全回分の最後の音符離鍵またはペダルイベントまでで、冒頭の休符を含み、Release余韻は含まない。Muteは幅を変えず薄く表示。無効な演奏はInvalid performanceと表示し、正常クリップと報告しない。横スクロールして後半も確認する。
-操作後はSTART/クリップ値とdirty=trueを確認。Save…後の復元は既存startBeatと同一。Play Allでは位置線とBeatを確認し、移動操作をしない。Stop Allでplaying=false・全voices=0・位置0を確認する。クリップ端のドラッグによる長さ変更、シークは未実装。
+操作後はSTART/クリップ値とdirty=trueを確認。保存…後の復元は既存startBeatと同一。全体を再生では位置線とBeatを確認し、移動操作をしない。全停止でplaying=false・全voices=0・位置0を確認する。クリップ端のドラッグによる長さ変更、シークは未実装。
 
 ## パートの繰り返し回数を操作する
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止して各行REPEAT（Repeat count for パート名）を1〜16の整数へ設定。×1は1回、×Nは合計N回。EnsemblePart.repeatCount、EnsembleTimeline.events/repeatedLengthを使用し、同じ繰り返しをperformance.notesへ二重追加しない。間隔は最終イベント拍のceil。拍子の仮定や自動小節補正は行わない。
-Demo Repeatは空き2つへPad×2/START 0・Pluck×3/START 4を追加。タイムラインの×回数・区切り・長さとREPEATを照合し、Play Allで次の回の発音と延長されたdurationBeatsを確認。再生/処理中は回数を変更せず、Stop Allで全音停止・曲頭復帰を確認する。
-変更後dirty=true→Save…→Saved、再起動後repeatCount一致を確認。構成v3はparts[].repeatCount必須、v1/v2は1へ移行。Export WAV…も全回分を出力し、容量超過は失敗として扱う。
+Demo Repeatは空き2つへPad×2/START 0・Pluck×3/START 4を追加。タイムラインの×回数・区切り・長さとREPEATを照合し、全体を再生で次の回の発音と延長されたdurationBeatsを確認。再生/処理中は回数を変更せず、全停止で全音停止・曲頭復帰を確認する。
+変更後dirty=true→保存…→保存済み、再起動後repeatCount一致を確認。構成v3はparts[].repeatCount必須、v1/v2は1へ移行。WAV書き出し…も全回分を出力し、容量超過は失敗として扱う。
 
 ## セクションを作って曲の構成を組む
-正本は[ENSEMBLE.md](ENSEMBLE.md)。SONG SECTIONS→Add Sectionで名前・拍長を入力し、Move section earlier/laterで順序を変更。Section length for 名前で長さを読んで編集する。セクションは最大8、長さ1〜256拍、全体最大4パート。各Section for パート名から割り当て、STARTがセクション内相対値であることを確認する。Song · absoluteは曲頭基準。
+正本は[ENSEMBLE.md](ENSEMBLE.md)。SONG SECTIONS→セクション追加で名前・拍長を入力し、Move section earlier/laterで順序を変更。Section length for 名前で長さを読んで編集する。セクションは最大8、長さ1〜256拍、全体最大4パート。各Section for パート名から割り当て、STARTがセクション内相対値であることを確認する。Song · absoluteは曲頭基準。
 EnsembleModel.sections/addSection/reorderSection/removeSection、EnsemblePart.sectionID、EnsembleSections.offset/validatePlacementが入口。並べ替え後はタイムラインのセクション帯とクリップ絶対Start/endを確認する。元performanceのbeatを同時に書き換えない。演奏が範囲を超えるエラーは長さ/START/REPEATを直してからPlay/Save/Export。勝手に切り捨てない。割当セクションの削除が拒否されたら、必要に応じてパートをSongへ変更してから削除する。
-空の構成でDemo Songを使うとIntro 8→Aメロ16→サビ16と2楽器/4クリップが追加される。共通Beat 8/24からVerse/Chorusが入る。編集はdirty=true、Save後と再起動はsections配列順/ID/拍長とsectionIDの一致を確認する。v4のsections必須、旧版はセクションなし。空セクションも曲長に含み、WAVはその末尾＋余韻。停止はStop All、playing=false/全voices=0を確認する。
+空の構成でデモ曲を使うとIntro 8→Aメロ16→サビ16と2楽器/4クリップが追加される。共通Beat 8/24からVerse/Chorusが入る。編集はdirty=true、Save後と再起動はsections配列順/ID/拍長とsectionIDの一致を確認する。v4のsections必須、旧版はセクションなし。空セクションも曲長に含み、WAVはその末尾＋余韻。停止は全停止、playing=false/全voices=0を確認する。
 
 ## 同じ楽器のセクション別演奏を操作する
-正本は[ENSEMBLE.md](ENSEMBLE.md)。Add section clip for パート名メニューで対象セクションを選び、追加クリップのPreset/Open…/Use Currentで演奏を割り当てる。Section for clip UUID in パート名、Clip start/repeat for パート名 UUIDで個別に操作する。共有Instrument/音量/Muteの変更が全クリップへ効くことを確認する。
+正本は[ENSEMBLE.md](ENSEMBLE.md)。Add section clip for パート名メニューで対象セクションを選び、追加クリップのPreset/開く…/編集中の演奏を使うで演奏を割り当てる。Section for clip UUID in パート名、Clip start/repeat for パート名 UUIDで個別に操作する。共有Instrument/音量/Muteの変更が全クリップへ効くことを確認する。
 EnsemblePart.additionalClips/allClips、EnsembleModel.addClip/editClip/setClipPerformance/openClipPerformance/removeClipが入口。最初の演奏は従来のperformance/startBeat/repeatCount/sectionIDを維持。最大8クリップ、停止中のみ編集。追加直後は最初の演奏をコピーするため、セクション範囲や重複エラーを読んでSTART/REPEAT/演奏を調整する。自動で切り捨てたり、楽器を複製してパート上限を消費しない。
 タイムラインは同じ行の複数クリップ。アクセシビリティ名にパート名・演奏名・UUIDがあり、対象IDの値/ドラッグ後に他クリップの位置が変わらないことを確認。モデルのmovePart(...clip:)もIDを指定する。クリップのUUIDを推測しない。
-Demo Songは2楽器/各2クリップ。Save…後のv5にはadditionalClipsが必須、旧v1〜v4は追加なしとして開く。再起動で追加ID/演奏/配置と共有音色を確認し、Export WAVは全クリップを含む。Stop Allで全ボイスとペダルを解除する。
+デモ曲は2楽器/各2クリップ。保存…後のv5にはadditionalClipsが必須、旧v1〜v4は追加なしとして開く。再起動で追加ID/演奏/配置と共有音色を確認し、Export WAVは全クリップを含む。全停止で全ボイスとペダルを解除する。
 
 ## クリップ複製と展開変更
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中にDuplicate clip for パート名 UUIDメニュー→別セクション。UUIDは現在のタイムライン/追加エディターから取得する。最初の演奏にもSECTION CLIPS行に同じメニューがある。複製後のClip transpose/Clip velocity for パート名 新UUIDを操作し、元の演奏・START・REPEATが変わらないことを確認する。
 モデル入口はEnsembleModel.duplicateClip(part:clip:to:)。成功時は新UUID、失敗時はnilとerror。成功時のみ追加/dirtyとなる。演奏・相対START・REPEATを保ち、楽器/mixを共有する。対象セクションの長さ不足や区間重複は自動修正せず拒否。canEdit=falseでは変更しない。最大8クリップでメニュー無効。
-成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v5を継続。Play AllとExport WAVは既存の全クリップ経路を使う。停止はStop All→playing=false/全voices=0/ペダル解除を確認する。
+成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v5を継続。全体を再生とExport WAVは既存の全クリップ経路を使う。停止は全停止→playing=false/全voices=0/ペダル解除を確認する。
 
 ## セクション全体を複製する
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中、Duplicate section 名前 UUIDボタンを操作する。モデル入口はEnsembleModel.duplicateSection(UUID)、成功は新セクションUUID、失敗はnil（canEdit=falseでは変更なし、それ以外はerror）。元の直後へ同じ長さのCopyを挿入し、sectionIDが元IDに一致する全パートの全クリップを複製する。Song基準は対象外。
 成功判定: sections数+1/元の次のIDが返却ID、各パートの対象クリップ数だけ追加、新しいclip UUIDとコピー先sectionID、演奏/START/REPEATの一致。コピー側のClip transpose/velocity for パート名 UUIDで展開を変え、元の値が変わらないことを確認。パート/音源は増えない。後続セクションは移動、Songは固定。
-全候補を先に検証し、どこかが上限/重複/不正なら既存sections/全クリップ/dirtyを保持する。失敗時に個別複製で途中まで補わない。保存は既存v5、再起動はsection順/ID/長さと追加clip ID/設定を照合。Play AllとWAVは延長された全構成を使う。停止はStop All→playing=false・全voices=0・ペダル解除を確認する。
+全候補を先に検証し、どこかが上限/重複/不正なら既存sections/全クリップ/dirtyを保持する。失敗時に個別複製で途中まで補わない。保存は既存v5、再起動はsection順/ID/長さと追加clip ID/設定を照合。全体を再生とWAVは延長された全構成を使う。停止は全停止→playing=false・全voices=0・ペダル解除を確認する。
 
 ## メインEnsembleワークスペース
-起動入口はWorkspaceView。EnsembleModel/InstrumentLibrary/PlayerModelは同じインスタンスを共有する。左Search instruments→一覧選択→Preview/Stop Preview、Assign（選択パート）、Add as Part。選択したファイルのavailableとpartを確認し、失敗はlibrary/ensemble.errorで判定する。
+起動入口はWorkspaceView。EnsembleModel/InstrumentLibrary/PlayerModelは同じインスタンスを共有する。左楽器を検索→一覧選択→試聴/試聴停止、割り当て（選択パート）、新規パートに追加。選択したファイルのavailableとpartを確認し、失敗はlibrary/ensemble.errorで判定する。
 中央Select part 名前またはTimeline clip for パート名/演奏名/UUIDをクリック→右Inspector。Selected clip section/start/repeat/transpose/velocityを読み、編集が対象IDだけへ反映することを確認する。ドラッグ/増減は従来movePart。古いID/削除済みIDは使わず、再読込後は最新のUUIDを再取得。選択状態は未保存変更にならない。
-Inspector modeをInstrumentへ切り替え、Selected instrument root/Attack/Decay/Sustain/Release/loopを操作する。setInstrumentSettingsは共有PCMを維持しRoot/ADSR/Loopだけを変更、無効値/再生中は保持する。値は構成へ保存し、ライブラリ原本を変更しない。最初のクリップもeditClip/setClipPerformance/openClipPerformanceで編集できる。
-全行を一覧で操作したい場合はAll Parts…（旧Ensembleシート）。Open Sample Studioで従来の波形/鍵盤/MIDI/Composeへ切り替え、Arrangementで戻る。画面移動は音を止める。main表示中はStudioのPC鍵盤・MIDIを抑制、Spaceは構成、⌘Sは構成保存。Studioでは従来のキー操作へ戻る。ファイルメニューのOpen WAV/Open Instrument/Load DemoはStudioを表示する。
-メインのStop all workspace audioで構成・ライブラリ試聴・Studioを停止。再生/書き出し中は割り当て・配置・音色編集不可。Stop後playing=false/全voices=0/previewing=nilを確認する。書き出しは上部Export WAV…、進捗とCancel Exportは下部。構成Openはdirty時の確認と失敗保持を継続する。
+Inspector modeをInstrumentへ切り替え、Selected instrument root/Attack/Decay/Sustain/Release/loopを操作する。setInstrumentSettingsは共有PCMを維持し基準音/ADSR/Loopだけを変更、無効値/再生中は保持する。値は構成へ保存し、ライブラリ原本を変更しない。最初のクリップもeditClip/setClipPerformance/openClipPerformanceで編集できる。
+全行を一覧で操作したい場合は全パート…（旧Ensembleシート）。素材・楽器編集を開くで従来の波形/鍵盤/MIDI/Composeへ切り替え、曲の構成へで戻る。画面移動は音を止める。main表示中はStudioのPC鍵盤・MIDIを抑制、Spaceは構成、⌘Sは構成保存。Studioでは従来のキー操作へ戻る。ファイルメニューのOpen WAV/Open Instrument/デモを開くはStudioを表示する。
+メインのStop all workspace audioで構成・ライブラリ試聴・Studioを停止。再生/書き出し中は割り当て・配置・音色編集不可。Stop後playing=false/全voices=0/previewing=nilを確認する。書き出しは上部WAV書き出し…、進捗とキャンセル Exportは下部。構成Openはdirty時の確認と失敗保持を継続する。
 
 ## Natural Studio: セクション帯と音符表示
 上部Wood themeはWorkspaceWoodの3値。workspaceWoodThemeV1に保存し、構成dirtyとは独立。アプリ同梱Texturesを使用する。選択変更とテーマ変更で音が鳴らないことを確認。
-メインのSelect section 名前 UUIDをクリック→右WorkspaceSectionInspectorのSelected section name/lengthで編集。Move selected section earlier/later、Duplicate selected section、Remove Sectionを使う。複製成功時は新しいセクションを選択、削除失敗は既存を保持。All Parts…の旧カードも使用可。選択だけではdirtyにならず、メイン再読込/削除で存在しない選択を解除する。
+メインのSelect section 名前 UUIDをクリック→右WorkspaceSectionInspectorのSelected section name/lengthで編集。Move selected section earlier/later、Duplicate selected section、セクション削除を使う。複製成功時は新しいセクションを選択、削除失敗は既存を保持。全パート…の旧カードも使用可。選択だけではdirtyにならず、メイン再読込/削除で存在しない選択を解除する。
 メインのTimeline zoom in/outとFit arrangementは表示倍率のみ変更し、clip.startBeatを書き換えない。狭い画面/拡大時は水平スクロール。ドラッグとアクセシビリティ増減は既存movePartを使用。セクション帯/クリップは同じ拍座標で動く。
 PerformanceNoteLayout.makeが実演奏から音符の時刻/長さ/移調済み音程/調整済み強弱を得る。繰り返し間隔は既存EnsembleTimelineと同じceil、終端はペダルイベントも含む。音符自体の幅は押鍵時間。Clip note gridで音符数、Clip note Nで音程/拍/強弱を確認する。下段の編集操作は次節を参照。停止は既存Stop all workspace audio、playing=false/全voices=0/previewing=nilを確認する。
 
@@ -189,4 +189,27 @@ Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32
 モデルはcopiedNotes、copyClipNotes(part:clip:indices:)、pasteClipNotes(part:clip:at:)→editClipNotes。コピーはdirty/履歴を変えない。Pasteは一括1操作のUndo/Redo対象。対象の移調と強弱%を逆算し、元のMIDI強弱が対象%で再現不能なら失敗して100%へ調整する案内を出す。無断で設定を変えない。同音重複/音域外/音数/配置の失敗はensemble.errorとnilで判定し、元データとクリップボードを保持する。再生/出力中は不可、Stop all workspace audio後に操作する。クリップボードはアプリ内セッションのみで構成読込では残り、再起動で空になる。OSのクリップボードやペダルはコピーしない。保存/WAVは貼り付け済みデータを使用する。
 
 ## 複数パート・セクションのAI編曲
-正本は[AI_ARRANGEMENT.md](AI_ARRANGEMENT.md)。停止したEnsembleのArrange…（Arrange ensemble with AI）から方式・指示を選びGenerate。generating=false・candidate/previewあり・error=nilで案の方式/全セクション/クリップ/音符/tempo/音量/Muteを確認し、Use Arrangementで採用する。元を保持するなら先にSave Current…。未保存時はReplace with Arrangementの確認がある。採用で全配置/tempo/パートmixが置換され、音符Undoは消える。楽器/Masterは保持し自動再生はしない。Play All/Stop All・Save/Exportは既存操作。Cancel Generation/Doneで候補を破棄し、元構成を保持する。生成後の編集はrevision照合で採用を拒否し、再生成する。DemoはAIではない。
+正本は[AI_ARRANGEMENT.md](AI_ARRANGEMENT.md)。停止したEnsembleのAI編曲…（Arrange ensemble with AI）から方式・指示を選び候補を生成。generating=false・candidate/previewあり・error=nilで案の方式/全セクション/クリップ/音符/tempo/音量/Muteを確認し、この編曲案を採用で採用する。元を保持するなら先に現在の構成を保存…。未保存時は編曲案で置き換えるの確認がある。採用で全配置/tempo/パートmixが置換され、音符Undoは消える。楽器/Masterは保持し自動再生はしない。全体を再生/全停止・Save/Exportは既存操作。生成を中止/閉じるで候補を破棄し、元構成を保持する。生成後の編集はrevision照合で採用を拒否し、再生成する。DemoはAIではない。
+
+## 日本語UIとヘルプ
+主要画面の操作名・アクセシビリティ名は日本語。以前の英語の明示ラベルはaccessibilityIdentifierへ保持している。座標/要素番号を再利用せず、現在の日本語ラベルまたは識別子で対象を特定する。内部のモデル名・保存キー・enum rawValue・モデルのfileMessageは従来のまま。例えば画面の「保存済み・ファイル名」はモデルではSavedの接頭辞を持つ。日本語表示だけでなく既存のdirty/busy/error/playingも照合する。
+
+| 操作 | 現在のラベル | 主な識別子または入口 |
+| --- | --- | --- |
+| 操作と用語の説明 | 使い方と用語を開く | help.guide → StudioHelpButton |
+| 説明を検索 | 使い方と用語を検索 | help.search、用語を入力。該当説明がなければ空結果文を表示 |
+| 構成を開く・保存 | 構成を開く / 構成を保存 | Open ensemble / Save ensemble |
+| 編曲候補 | AIで編曲案を作る | Arrange ensemble with AI |
+| 素材編集へ移動 | 素材・楽器編集を開く | Open Sample Studio |
+| 全音停止 | すべての音を止める | Stop all workspace audio |
+| 波形ズーム | 波形を拡大 / 波形を縮小 | Zoom in / Zoom out |
+| 音符追加 | 音符を追加 | Add clip note |
+| 履歴 | 音符編集を取り消す / 音符編集をやり直す | Undo clip note edit / Redo clip note edit |
+| 音符を拍へ揃える | 選択音符の開始を拍に揃える | Quantize selected clip notes |
+| まとめて強弱・長さを変更 | 選択音符の強弱をまとめて変更 / 選択音符の長さをまとめて変更 | Apply velocity to selected notes / Apply length to selected notes |
+| 音符コピー・貼付 | 選択音符をコピー / コピーした音符を貼り付け | Copy selected clip notes / Paste copied clip notes |
+| タイムライン | タイムラインのクリップ パート名, 演奏名, UUID | Timeline clip for パート名, 演奏名, UUID |
+| 右側の音色調整 | 基準音、立ち上がり、減衰時間、保持音量、余韻時間、素材をループ | Selected instrument root / Attack / Decay / Sustain / Release / loop（各項目はSelected instrumentの接頭辞） |
+
+「使い方」は木材ヘッダーを持つポップオーバー。検索で「強弱」「ベロシティ」「ADSR」「保存」等の説明を確認し、「閉じる」または外側クリックで編集へ戻る。ヘルプを開いたことを候補の採用や保存と扱わない。短い説明は入力欄・設定のhelp属性にもある。
+日本語UIのデモ手順: 保存済み構成かデモ曲→全体を再生→全停止→クリップ選択→下段で音符選択→音程/開始/長さ/強弱→適用→取り消し/やり直し。編曲はAI編曲…→生成方式「デモ（AIなし）」→デモ案を作る→候補を確認→この編曲案を採用。残したい元構成は先に現在の構成を保存…。既存の置換確認・再生中のロック・停止入口は維持する。

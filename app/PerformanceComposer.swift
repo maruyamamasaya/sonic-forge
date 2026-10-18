@@ -23,7 +23,7 @@ final class PerformanceComposer: ObservableObject {
     typealias Generator = (PerformanceBrief) async throws -> PerformanceDocument
 
     func browseCodex() {
-        let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.title = "Choose Codex CLI"
+        let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.title = "Codexの実行ファイルを選択"
         if panel.runModal() == .OK, let url = panel.url { executable = CodexPerformanceClient.nativeExecutable(url)?.path ?? url.path }
     }
     func copyBrief(root: Int) {

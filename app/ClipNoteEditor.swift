@@ -72,18 +72,18 @@ struct SelectedClipNotes: View {
                     Button {
                         if ensemble.restoreNoteEdit(part: part.id, clip: clipID) { selection = [] }
                     } label: { Image(systemName: "arrow.uturn.backward") }
-                        .accessibilityLabel("Undo clip note edit").help("Undo this clip’s last note edit")
+                        .accessibilityIdentifier("Undo clip note edit").accessibilityLabel("音符編集を取り消す").help("このクリップの音符編集を1操作戻します。構成全体の取り消しではありません。")
                         .disabled(!ensemble.canUndoNotes(part: part.id, clip: clipID))
                     Button {
                         if ensemble.restoreNoteEdit(part: part.id, clip: clipID, redo: true) { selection = [] }
                     } label: { Image(systemName: "arrow.uturn.forward") }
-                        .accessibilityLabel("Redo clip note edit").help("Redo this clip’s note edit")
+                        .accessibilityIdentifier("Redo clip note edit").accessibilityLabel("音符編集をやり直す").help("取り消した音符編集をやり直します。")
                         .disabled(!ensemble.canRedoNotes(part: part.id, clip: clipID))
-                    Text("NOTE EDITOR").tracking(1.3)
+                    Text("音符編集").tracking(1.3)
                     Text(clip.performance.name).foregroundStyle(.secondary).lineLimit(1)
                     Spacer()
-                    Text("1 cycle · ×\(clip.repeatCount)").foregroundStyle(.secondary)
-                    Button("Add Note") {
+                    Text("1周を編集・×\(clip.repeatCount)").foregroundStyle(.secondary)
+                    Button("音符追加") {
                         let root = part.instrument?.root ?? 60
                         let candidates = (max(0, root - 24)...min(127, root + 24)).sorted {
                             abs($0 - root) == abs($1 - root) ? $0 < $1 : abs($0 - root) < abs($1 - root)
@@ -93,70 +93,70 @@ struct SelectedClipNotes: View {
                         } ?? root
                         add(beat: 0, pitch: free)
                     }
-                        .accessibilityLabel("Add clip note").disabled(clip.performance.notes.count >= 256)
-                    Button("Delete") { group(.delete) }
-                        .accessibilityLabel("Delete selected clip notes").disabled(selection.isEmpty || selection.count >= clip.performance.notes.count)
+                        .accessibilityIdentifier("Add clip note").accessibilityLabel("音符を追加").disabled(clip.performance.notes.count >= 256)
+                    Button("削除") { group(.delete) }
+                        .accessibilityIdentifier("Delete selected clip notes").accessibilityLabel("選択した音符を削除").disabled(selection.isEmpty || selection.count >= clip.performance.notes.count)
                 }.font(.system(size: 10)).padding(.horizontal, 10).frame(height: 34)
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
-                        Toggle("Multi", isOn: $multiSelect).toggleStyle(.button).accessibilityLabel("Multiple note selection")
-                        Button("All") { selection = Set(clip.performance.notes.indices) }.accessibilityLabel("Select all clip notes")
-                        Button("Clear") { selection = [] }.accessibilityLabel("Clear note selection")
-                        Text("\(selection.count) selected").foregroundStyle(.secondary).accessibilityLabel("Selected note count").accessibilityValue("\(selection.count)")
-                        Button("Copy") { _ = ensemble.copyClipNotes(part: part.id, clip: clipID, indices: selection) }
-                            .accessibilityLabel("Copy selected clip notes").disabled(selection.isEmpty)
-                        field("Paste @", value: $pasteBeat, label: "Note paste beat")
-                        Button("Paste") {
+                        Toggle("複数選択", isOn: $multiSelect).toggleStyle(.button).accessibilityIdentifier("Multiple note selection").accessibilityLabel("音符の複数選択")
+                        Button("すべて") { selection = Set(clip.performance.notes.indices) }.accessibilityIdentifier("Select all clip notes").accessibilityLabel("すべての音符を選択")
+                        Button("解除") { selection = [] }.accessibilityIdentifier("Clear note selection").accessibilityLabel("音符の選択を解除")
+                        Text("\(selection.count) 選択中").foregroundStyle(.secondary).accessibilityIdentifier("Selected note count").accessibilityLabel("選択した音符数").accessibilityValue("\(selection.count)")
+                        Button("コピー") { _ = ensemble.copyClipNotes(part: part.id, clip: clipID, indices: selection) }
+                            .accessibilityIdentifier("Copy selected clip notes").accessibilityLabel("選択音符をコピー").disabled(selection.isEmpty)
+                        field("貼付位置", value: $pasteBeat, label: "音符の貼り付け開始拍")
+                        Button("貼り付け") {
                             guard let at = Double(pasteBeat) else { ensemble.error = "貼り付け位置を拍数で入力してください。"; return }
                             if let result = ensemble.pasteClipNotes(part: part.id, clip: clipID, at: at) {
                                 selection = result
                                 if let only = selected { select(only) }
                             }
-                        }.accessibilityLabel("Paste copied clip notes").disabled(ensemble.copiedNotes.isEmpty)
-                        Text("\(ensemble.copiedNotes.count) copied").foregroundStyle(.secondary)
-                            .accessibilityLabel("Copied note count").accessibilityValue("\(ensemble.copiedNotes.count)")
+                        }.accessibilityIdentifier("Paste copied clip notes").accessibilityLabel("コピーした音符を貼り付け").disabled(ensemble.copiedNotes.isEmpty)
+                        Text("\(ensemble.copiedNotes.count) コピー済み").foregroundStyle(.secondary)
+                            .accessibilityIdentifier("Copied note count").accessibilityLabel("コピーした音符数").accessibilityValue("\(ensemble.copiedNotes.count)")
                         Divider().frame(height: 16)
-                        field("Δ beats", value: $moveBeats, label: "Selected notes beat offset")
-                        field("Δ pitch", value: $movePitch, label: "Selected notes pitch offset")
-                        Button("Move") { offsetAction(duplicate: false) }.accessibilityLabel("Move selected clip notes").disabled(selection.isEmpty)
-                        Button("Duplicate") { offsetAction(duplicate: true) }.accessibilityLabel("Duplicate selected clip notes").disabled(selection.isEmpty)
+                        field("移動拍", value: $moveBeats, label: "音符の移動量・拍")
+                        field("移動音程", value: $movePitch, label: "音符の移動量・半音")
+                        Button("移動") { offsetAction(duplicate: false) }.accessibilityIdentifier("Move selected clip notes").accessibilityLabel("選択音符を移動").disabled(selection.isEmpty)
+                        Button("複製") { offsetAction(duplicate: true) }.accessibilityIdentifier("Duplicate selected clip notes").accessibilityLabel("選択音符を複製").disabled(selection.isEmpty)
                         Divider().frame(height: 16)
-                        Picker("Grid", selection: $quantizeGrid) {
+                        Picker("刻み", selection: $quantizeGrid) {
                             ForEach(NoteQuantizeGrid.allCases) { grid in Text(grid.rawValue).tag(grid) }
-                        }.frame(width: 112).accessibilityLabel("Note quantize grid")
-                        Button("Quantize") { group(.quantize(quantizeGrid)) }
-                            .accessibilityLabel("Quantize selected clip notes").disabled(selection.isEmpty)
-                            .help("Align selected note starts; lengths and velocities stay unchanged. T = triplet.")
+                        }.frame(width: 112).accessibilityIdentifier("Note quantize grid").accessibilityLabel("拍に揃える細かさ")
+                        Button("拍に揃える") { group(.quantize(quantizeGrid)) }
+                            .accessibilityIdentifier("Quantize selected clip notes").accessibilityLabel("選択音符の開始を拍に揃える").disabled(selection.isEmpty)
+                            .help("音符の開始だけを指定した刻みに揃えます。長さと強弱は保ちます。Tは3連符です。")
                         Divider().frame(height: 16)
-                        Picker("Velocity", selection: $relativeVelocity) {
-                            Text("Set").tag(false)
-                            Text("Offset").tag(true)
-                        }.frame(width: 135).accessibilityLabel("Selected notes velocity mode")
+                        Picker("強弱", selection: $relativeVelocity) {
+                            Text("指定値").tag(false)
+                            Text("増減").tag(true)
+                        }.frame(width: 135).accessibilityIdentifier("Selected notes velocity mode").accessibilityLabel("音符の強弱の変更方法")
                             .onChange(of: relativeVelocity) { _, relative in groupVelocity = relative ? "0" : "90" }
-                        TextField("Value", text: $groupVelocity).textFieldStyle(.roundedBorder).frame(width: 48)
-                            .accessibilityLabel("Selected notes velocity value")
-                        Button("Apply velocity") {
+                        TextField("値", text: $groupVelocity).textFieldStyle(.roundedBorder).frame(width: 48)
+                            .accessibilityIdentifier("Selected notes velocity value").accessibilityLabel("音符の強弱の値")
+                        Button("強弱を適用") {
                             guard let value = Int(groupVelocity) else {
                                 ensemble.error = "ベロシティは整数で入力してください。"; return
                             }
                             group(relativeVelocity ? .velocityOffset(value) : .velocity(value))
-                        }.accessibilityLabel("Apply velocity to selected notes").disabled(selection.isEmpty)
-                            .help("Set: 1–127. Offset: −126…126, limited to 1–127. Before clip velocity %. Only selected notes change.")
+                        }.accessibilityIdentifier("Apply velocity to selected notes").accessibilityLabel("選択音符の強弱をまとめて変更").disabled(selection.isEmpty)
+                            .help("指定値は1〜127、増減は−126〜126。結果は1〜127に収めます。クリップ全体の強弱倍率を掛ける前の値です。")
                         Divider().frame(height: 16)
-                        Picker("Length", selection: $scaleLengths) {
-                            Text("Set beats").tag(false)
-                            Text("Scale %").tag(true)
-                        }.frame(width: 150).accessibilityLabel("Selected notes length mode")
+                        Picker("長さ", selection: $scaleLengths) {
+                            Text("拍で指定").tag(false)
+                            Text("比率で伸縮").tag(true)
+                        }.frame(width: 150).accessibilityIdentifier("Selected notes length mode").accessibilityLabel("音符の長さの変更方法")
                             .onChange(of: scaleLengths) { _, scale in groupLength = scale ? "100" : "1" }
-                        TextField(scaleLengths ? "%" : "Beats", text: $groupLength).textFieldStyle(.roundedBorder).frame(width: 48)
-                            .accessibilityLabel("Selected notes length value")
-                        Button("Apply length") {
+                        TextField(scaleLengths ? "%" : "拍", text: $groupLength).textFieldStyle(.roundedBorder).frame(width: 48)
+                            .accessibilityIdentifier("Selected notes length value").accessibilityLabel("音符の長さの値")
+                        Button("長さを適用") {
                             guard let value = Double(groupLength) else {
                                 ensemble.error = "長さは数値で入力してください。"; return
                             }
                             group(scaleLengths ? .durationScale(value / 100) : .duration(value))
-                        }.accessibilityLabel("Apply length to selected notes").disabled(selection.isEmpty)
-                            .help("Set beats: positive quarter-note beats. Scale %: 50 halves lengths, 200 doubles them. Starts stay fixed; overlaps are rejected.")
+                        }.accessibilityIdentifier("Apply length to selected notes").accessibilityLabel("選択音符の長さをまとめて変更").disabled(selection.isEmpty)
+                            .help("拍で指定すると同じ長さに揃えます。比率50%で半分、200%で2倍。開始位置を保ち、同音の重なりは拒否します。")
                     }.font(.system(size: 10)).padding(.horizontal, 10).padding(.vertical, 4)
                 }.fixedSize(horizontal: false, vertical: true)
                 Divider()
@@ -166,12 +166,12 @@ struct SelectedClipNotes: View {
                 Divider()
                 ScrollView(.horizontal) {
                     HStack(spacing: 10) {
-                        Text(selected.map { "NOTE \($0 + 1)" } ?? "Select a note").foregroundStyle(.secondary)
-                        field("Pitch", value: $pitch, label: "Selected note pitch")
-                        field("Start", value: $beat, label: "Selected note start")
-                        field("Length", value: $duration, label: "Selected note length")
-                        field("Velocity", value: $velocity, label: "Selected note velocity")
-                        Button("Apply") {
+                        Text(selected.map { "音符 \($0 + 1)" } ?? "音符を選択").foregroundStyle(.secondary)
+                        field("音程", value: $pitch, label: "音符の音程・MIDI番号")
+                        field("開始", value: $beat, label: "音符の開始拍")
+                        field("長さ", value: $duration, label: "音符の長さ・拍")
+                        field("強弱", value: $velocity, label: "音符の強弱")
+                        Button("適用") {
                             guard let selected else { return }
                             guard let pitch = Int(pitch), let beat = Double(beat),
                                   let duration = Double(duration), let velocity = Int(velocity),
@@ -182,11 +182,11 @@ struct SelectedClipNotes: View {
                                 note.pitch = pitch - clip.performance.transpose; note.beat = beat
                                 note.duration = duration; note.velocity = velocity
                             }
-                        }.accessibilityLabel("Apply selected note").disabled(selected == nil)
-                        Text("\(clip.performance.notes.count) notes · MIDI pitch · Velocity before clip %").foregroundStyle(.secondary)
+                        }.accessibilityIdentifier("Apply selected note").accessibilityLabel("選択音符の変更を適用").disabled(selected == nil)
+                        Text("\(clip.performance.notes.count) 音符・音程はMIDI番号・強弱は倍率適用前").foregroundStyle(.secondary)
                     }.font(.system(size: 10)).padding(.horizontal, 10).padding(.vertical, 5)
                 }.fixedSize(horizontal: false, vertical: true).disabled(selected == nil)
-                Text("Shift-click or Multi to select · Drag empty grid to select a range · Drag selected notes to move · Snap ¼ beat")
+                Text("Shiftクリックか複数選択で選ぶ · 空白ドラッグで範囲選択 · 音符ドラッグで移動 · ¼拍刻み")
                     .font(.system(size: 9)).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 10).frame(height: 20)
             }.background(Color(red: 0.105, green: 0.13, blue: 0.095))
                 .overlay { Rectangle().stroke(.black.opacity(0.4), lineWidth: 1).allowsHitTesting(false) }
@@ -204,7 +204,7 @@ struct SelectedClipNotes: View {
         HStack(spacing: 4) {
             Text(title)
             TextField(title, text: value)
-                .textFieldStyle(.roundedBorder).frame(width: 54).accessibilityLabel(label)
+                .textFieldStyle(.roundedBorder).frame(width: 54).accessibilityLabel(label).help(JapaneseUI.fieldHelp(title))
         }
     }
 }
@@ -274,7 +274,7 @@ private struct ClipNoteGrid: View {
                                                               width: max(9, note.duration * scale), height: row))
                             })
                             onSelectRange(NSEvent.modifierFlags.contains(.shift) ? selected.union(found) : found)
-                        }).accessibilityLabel("Clip note grid").accessibilityValue("\(performance.notes.count) notes; one cycle; quarter beat snap")
+                        }).accessibilityIdentifier("Clip note grid").accessibilityLabel("音符の編集グリッド").accessibilityValue("\(performance.notes.count) 音符・1周分・¼拍刻み")
                         ForEach(performance.notes.indices, id: \.self) { index in
                             let note = performance.notes[index]
                             let noteWidth = max(9, note.duration * scale)
@@ -282,8 +282,8 @@ private struct ClipNoteGrid: View {
                                 Button { onSelect(index) } label: {
                                     Rectangle().fill(Color.clear).contentShape(Rectangle())
                                 }.buttonStyle(.plain)
-                                    .accessibilityLabel("Clip note \(index + 1)")
-                                    .accessibilityValue("Pitch \(note.pitch + performance.transpose), start \(note.beat), length \(note.duration), velocity \(note.velocity), channel \(note.channel + 1), \(selected.contains(index) ? "selected" : "unselected")")
+                                    .accessibilityIdentifier("Clip note \(index + 1)").accessibilityLabel("音符 \(index + 1)")
+                                    .accessibilityValue("音程 \(note.pitch + performance.transpose)・開始 \(note.beat)拍・長さ \(note.duration)拍・強弱 \(note.velocity)・チャンネル \(note.channel + 1)・\(selected.contains(index) ? "選択中" : "未選択")")
                                     .highPriorityGesture(DragGesture(minimumDistance: 3)
                                         .exclusively(before: TapGesture().modifiers(.shift))
                                         .onEnded { result in
@@ -296,7 +296,7 @@ private struct ClipNoteGrid: View {
                                     .contentShape(Rectangle()).gesture(DragGesture(minimumDistance: 2).onEnded { drag in
                                         guard selected.count <= 1 else { return }
                                         onChange(index) { $0.duration = max(0.25, snap(note.duration + drag.translation.width / scale)) }
-                                    }).help("Drag to resize note")
+                                    }).help("ドラッグで音符の長さを変更")
                             }.frame(width: noteWidth, height: max(8, row - 2))
                                 .background(Color(red: 0.88, green: 0.77, blue: 0.53).opacity(0.45 + Double(note.velocity) / 250))
                                 .clipShape(RoundedRectangle(cornerRadius: 2))

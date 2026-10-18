@@ -78,3 +78,5 @@ Date: YYYY-MM-DD
 - [2026-10-17: Ensembleメインワークスペース](2026-10-17-ensemble-workspace.md)
 
 - [2026-10-17: 開発経緯と人向け案内の整理](2026-10-17-development-journey.md)
+
+- [2026-10-17: 主要画面の日本語化と用語ヘルプ](2026-10-17-japanese-ui.md)

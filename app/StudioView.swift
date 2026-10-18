@@ -20,17 +20,17 @@ struct StudioView: View {
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 12) {
-                        Text(model.instrumentFileURL?.deletingPathExtension().lastPathComponent ?? asset.map { $0.isDemo ? "Metal Hit — Demo" : $0.url.deletingPathExtension().lastPathComponent } ?? "Sample Studio")
+                        Text(model.instrumentFileURL?.deletingPathExtension().lastPathComponent ?? asset.map { $0.isDemo ? "金属音・デモ" : $0.url.deletingPathExtension().lastPathComponent } ?? "素材・楽器編集")
                             .font(.system(size: 22, weight: .medium)).lineLimit(1).truncationMode(.middle)
                         if asset?.isDemo == true {
-                            Text("DEMO").font(.system(size: 10, weight: .semibold)).foregroundStyle(amber)
+                            Text("デモ").font(.system(size: 10, weight: .semibold)).foregroundStyle(amber)
                                 .padding(.horizontal, 9).padding(.vertical, 5).background(amber.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 3))
                         }
                         Spacer()
                         if model.busy { ProgressView().controlSize(.small) }
                     }
                     .padding(.bottom, 8)
-                    Text(asset.map { "WAV · \($0.channels == 1 ? "Mono" : "Stereo") · \(($0.sampleRate / 1000).formatted(.number.precision(.fractionLength(0...2)))) kHz · \($0.bitDepth)-bit" } ?? "Open a WAV file, or load the built-in demo to begin.")
+                    Text(asset.map { "WAV · \($0.channels == 1 ? "モノラル" : "ステレオ") · \(($0.sampleRate / 1000).formatted(.number.precision(.fractionLength(0...2)))) kHz · \($0.bitDepth)-bit" } ?? "WAVを開くか、デモ音源から始められます。")
                         .font(.system(size: 12)).foregroundStyle(muted)
                 }.padding(20).frame(height: 94).background(panel)
                 .overlay(alignment: .bottom) { Rectangle().fill(line).frame(height: 1) }
@@ -46,15 +46,15 @@ struct StudioView: View {
                                    seek: model.pan)
                             .frame(height: 42).background(panel).overlay { Rectangle().stroke(line) }
                             .contentShape(Rectangle())
-                            .accessibilityLabel("Full file overview. Click or drag to move the zoomed view.")
+                            .accessibilityIdentifier("Full file overview. Click or drag to move the zoomed view.").accessibilityLabel("音源全体の概要。クリックかドラッグで表示位置を移動します。")
                         InstrumentKeyboard(model: model)
                     } else {
                         VStack(spacing: 18) {
                             Image(systemName: "waveform").font(.system(size: 40, weight: .ultraLight)).foregroundStyle(amber)
-                            Text("Your sound starts here").font(.system(size: 20, weight: .medium))
-                            Text("Open a WAV file or explore with a synthesized demo.")
+                            Text("音を取り込んで始める").font(.system(size: 20, weight: .medium))
+                            Text("お手持ちのWAVか、合成デモ音源で試せます。")
                                 .foregroundStyle(muted)
-                            Button("Load Demo") { Task { await model.loadDemo() } }.buttonStyle(StudioButton(primary: true)).disabled(model.busy)
+                            Button("デモを開く") { Task { await model.loadDemo() } }.buttonStyle(StudioButton(primary: true)).disabled(model.busy)
                         }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }.padding(20).frame(maxWidth: .infinity, maxHeight: .infinity).disabled(model.busy)
@@ -66,9 +66,9 @@ struct StudioView: View {
             Rectangle().fill(line).frame(height: 1)
             HStack {
                 Circle().fill(model.playing ? amber : muted).frame(width: 5, height: 5)
-                Text(model.preparingInstrument ? "Preparing instrument…" : model.exporting ? "Exporting selection…" : model.exportMessage ?? (model.loading ? "Loading audio…" : asset == nil ? "No audio file loaded" : asset!.isDemo ? "Synthesized demo · Ready to play" : "WAV loaded · \(asset!.url.lastPathComponent)")).lineLimit(1)
+                Text(model.preparingInstrument ? "楽器を準備中…" : model.exporting ? "選択範囲を書き出し中…" : model.exportMessage.map(JapaneseUI.status) ?? (model.loading ? "音源を読み込み中…" : asset == nil ? "音源がありません" : asset!.isDemo ? "合成デモ・再生できます" : "WAV読み込み済み・\(asset!.url.lastPathComponent)")).lineLimit(1)
                 Spacer()
-                Text("System output").foregroundStyle(muted)
+                Text("システム出力").foregroundStyle(muted)
                 Text("•").foregroundStyle(muted)
                 Text("SonicForge 0.1").foregroundStyle(muted)
             }.font(.system(size: 10)).foregroundStyle(muted).padding(.horizontal, 20).frame(height: 32)
@@ -86,39 +86,40 @@ struct StudioView: View {
     }
     private var fraction: Double { guard let asset, asset.duration > 0 else { return 0 }; return model.position / asset.duration }
     private var toolbar: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 10) {
             Text("SonicForge").font(.system(size: 18, weight: .semibold))
             Rectangle().fill(line).frame(width: 1, height: 20)
-            Text("Sample Studio").font(.system(size: 12)).foregroundStyle(muted)
+            Text("素材・楽器編集").font(.system(size: 12)).foregroundStyle(muted)
             Spacer()
-            Button("Arrangement") { model.stop(); onShowEnsemble() }.buttonStyle(StudioButton())
-            Button("Compose…") { model.stop(); composing = true }.buttonStyle(StudioButton())
+            StudioHelpButton()
+            Button("曲の構成へ") { model.stop(); onShowEnsemble() }.buttonStyle(StudioButton())
+            Button("AI演奏…") { model.stop(); composing = true }.buttonStyle(StudioButton())
                 .disabled(model.instrumentSample == nil)
-            Button("Library…") { model.stop(); showingLibrary = true }.buttonStyle(StudioButton())
+            Button("楽器一覧…") { model.stop(); showingLibrary = true }.buttonStyle(StudioButton())
             Button { model.exportSelection() } label: {
-                Label("Export WAV…", systemImage: "square.and.arrow.up")
+                Label("WAV書き出し…", systemImage: "square.and.arrow.up")
             }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
-                .help("Export selected range as 32-bit Float WAV · ⇧⌘E")
-            Button("Load Demo") { Task { await model.loadDemo() } }.buttonStyle(StudioButton())
-                .help("Generate an original 8-second stereo demo; no audio file needed")
-            Button("Open WAV…") { model.open() }.buttonStyle(StudioButton()).keyboardShortcut("o", modifiers: .command)
+                .help("選択した素材を32-bit Float WAVへ書き出します。楽器の音色設定は含みません。⇧⌘E")
+            Button("デモを開く") { Task { await model.loadDemo() } }.buttonStyle(StudioButton())
+                .help("8秒の合成デモ音源を用意します。音源ファイルがなくても試せます。")
+            Button("WAVを開く…") { model.open() }.buttonStyle(StudioButton()).keyboardShortcut("o", modifiers: .command)
         }.padding(.horizontal, 20).frame(height: 56).background(panel).disabled(model.busy)
     }
     private var inspectorHeader: some View {
-        HStack { Text("SOURCE").font(.system(size: 11, weight: .semibold)).tracking(1.4); Spacer() }
+        HStack { Text("元の音源").font(.system(size: 11, weight: .semibold)).tracking(1.4); Spacer() }
             .padding(22).frame(width: 269, height: 94).background(panel)
             .overlay(alignment: .leading) { Rectangle().fill(line).frame(width: 1) }
             .overlay(alignment: .bottom) { Rectangle().fill(line).frame(height: 1) }
     }
     private var inspector: some View {
         VStack(alignment: .leading, spacing: 0) {
-            info("Filename", asset?.url.lastPathComponent ?? "—")
-            info("Duration", asset.map { timeLabel($0.duration) } ?? "—")
-            info("Sample Rate", asset.map { "\(Int($0.sampleRate).formatted()) Hz" } ?? "—")
-            info("Channels", asset.map { $0.channels == 1 ? "Mono" : "Stereo" } ?? "—")
-            info("Bit Depth", asset.map { "\($0.bitDepth)-bit" } ?? "—")
-            info("File Size", asset.map { ByteCountFormatter.string(fromByteCount: $0.byteCount, countStyle: .file) } ?? "—")
-            Text("OUTPUT").font(.system(size: 11, weight: .semibold)).tracking(1.4).padding(.top, 24)
+            info("ファイル名", asset?.url.lastPathComponent ?? "—")
+            info("長さ", asset.map { timeLabel($0.duration) } ?? "—")
+            info("サンプルレート", asset.map { "\(Int($0.sampleRate).formatted()) Hz" } ?? "—")
+            info("チャンネル", asset.map { $0.channels == 1 ? "モノラル" : "ステレオ" } ?? "—")
+            info("ビット深度", asset.map { "\($0.bitDepth)-bit" } ?? "—")
+            info("ファイル容量", asset.map { ByteCountFormatter.string(fromByteCount: $0.byteCount, countStyle: .file) } ?? "—")
+            Text("出力").font(.system(size: 11, weight: .semibold)).tracking(1.4).padding(.top, 24)
             HStack(spacing: 18) {
                 VStack(alignment: .trailing, spacing: 0) {
                     ForEach([0, -12, -24, -36, -48, -60], id: \.self) { value in
@@ -131,12 +132,12 @@ struct StudioView: View {
             }.padding(.top, 18).padding(.leading, 28).frame(minHeight: 100, maxHeight: 240)
             Spacer(minLength: 20)
             HStack {
-                Text("Master Gain").foregroundStyle(muted)
+                Text("全体音量").foregroundStyle(muted)
                 Spacer()
                 Text(String(format: "%.1f dB", model.gainDB)).monospacedDigit()
             }.font(.system(size: 11))
-            Slider(value: $model.gainDB, in: -60...0).tint(amber).accessibilityLabel("Master gain in decibels")
-            Text("Output follows macOS sound settings.").font(.system(size: 9)).foregroundStyle(muted).padding(.top, 6)
+            Slider(value: $model.gainDB, in: -60...0).tint(amber).accessibilityIdentifier("Master gain in decibels").accessibilityLabel("全体音量・デシベル")
+            Text("出力先はmacOSのサウンド設定に従います。").font(.system(size: 9)).foregroundStyle(muted).padding(.top, 6)
         }.padding(.horizontal, 22).padding(.bottom, 22)
     }
     private func info(_ label: String, _ value: String) -> some View {
@@ -149,15 +150,15 @@ struct StudioView: View {
     private func waveform(asset: AudioAsset) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text("WAVEFORM").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(muted)
+                Text("波形").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(muted)
                 Spacer()
                 Button { model.zoom(by: 0.5) } label: { Image(systemName: "minus.magnifyingglass") }
-                    .buttonStyle(StudioButton()).disabled(model.editor.zoom <= 1.001).accessibilityLabel("Zoom out")
+                    .buttonStyle(StudioButton()).disabled(model.editor.zoom <= 1.001).accessibilityIdentifier("Zoom out").accessibilityLabel("波形を縮小")
                 Text(model.editor.zoom.formatted(.number.precision(.fractionLength(0...1))) + "×").font(.system(size: 11, design: .monospaced)).frame(width: 38)
                 Button { model.zoom(by: 2) } label: { Image(systemName: "plus.magnifyingglass") }
-                    .buttonStyle(StudioButton()).disabled(model.editor.zoom >= 31.999).accessibilityLabel("Zoom in")
-                Button("Fit All") { model.fitAll() }.buttonStyle(StudioButton())
-                Button("Fit Selection") { model.fitSelection() }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
+                    .buttonStyle(StudioButton()).disabled(model.editor.zoom >= 31.999).accessibilityIdentifier("Zoom in").accessibilityLabel("波形を拡大")
+                Button("全体表示") { model.fitAll() }.buttonStyle(StudioButton())
+                Button("選択を拡大") { model.fitSelection() }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
             }.padding(.bottom, 10)
             HStack(spacing: 0) {
                 ForEach(0..<9) { index in
@@ -170,41 +171,41 @@ struct StudioView: View {
                        viewport: model.editor.visibleRange, selection: model.editor.selectionRange,
                        seek: model.seek, select: model.select)
                 .background(base).overlay { Rectangle().stroke(line) }
-                .accessibilityLabel("Audio waveform. Click to seek, drag to select a range. Drag selection edges to adjust.")
+                .accessibilityIdentifier("Audio waveform. Click to seek, drag to select a range. Drag selection edges to adjust.").accessibilityLabel("波形。クリックで再生位置を移動、ドラッグで範囲選択。選択範囲の端をドラッグして調整できます。")
             HStack(spacing: 12) {
                 if model.editor.selection != nil {
-                    Text("IN  " + timeLabel(model.editor.selectionStart))
-                    Text("OUT  " + timeLabel(model.editor.selectionEnd))
-                    Text("LENGTH  " + timeLabel(model.editor.selectionEnd - model.editor.selectionStart)).foregroundStyle(amber)
+                    Text("始端  " + timeLabel(model.editor.selectionStart))
+                    Text("終端  " + timeLabel(model.editor.selectionEnd))
+                    Text("長さ  " + timeLabel(model.editor.selectionEnd - model.editor.selectionStart)).foregroundStyle(amber)
                     Spacer(minLength: 0)
-                    Button("Clear") { model.clearSelection() }.buttonStyle(.plain).foregroundStyle(muted)
-                        .accessibilityLabel("Clear selection")
+                    Button("解除") { model.clearSelection() }.buttonStyle(.plain).foregroundStyle(muted)
+                        .accessibilityIdentifier("Clear selection").accessibilityLabel("範囲選択を解除")
                 } else {
-                    Text("Drag to select · Click to seek").foregroundStyle(muted)
+                    Text("ドラッグで範囲選択・クリックで再生位置を移動").foregroundStyle(muted)
                     Spacer()
                 }
             }.font(.system(size: 10, design: .monospaced)).lineLimit(1).frame(height: 32)
             Slider(value: Binding(get: { model.position }, set: { model.seek($0 / asset.duration) }), in: 0...asset.duration)
-                .tint(amber).accessibilityLabel("Playback position")
+                .tint(amber).accessibilityIdentifier("Playback position").accessibilityLabel("再生位置")
         }
     }
     private var transport: some View {
         HStack(spacing: 0) {
             Spacer()
             Button { model.seek(0) } label: { Image(systemName: "backward.end.fill").frame(width: 42, height: 34) }
-                .buttonStyle(StudioButton()).help("Return to start").accessibilityLabel("Return to start")
+                .buttonStyle(StudioButton()).help("先頭へ戻る").accessibilityIdentifier("Return to start").accessibilityLabel("先頭へ戻る")
             Button { model.stop() } label: { Image(systemName: "stop.fill").frame(width: 42, height: 34) }
-                .buttonStyle(StudioButton()).help("Stop and return to start").accessibilityLabel("Stop")
+                .buttonStyle(StudioButton()).help("停止して先頭へ戻る").accessibilityIdentifier("Stop").accessibilityLabel("停止")
             Button { model.toggle() } label: { Image(systemName: model.playing ? "pause.fill" : "play.fill").frame(width: 42, height: 34) }
-                .buttonStyle(StudioButton(primary: true)).help("Play / Pause · Space").accessibilityLabel(model.playing ? "Pause" : "Play")
+                .buttonStyle(StudioButton(primary: true)).help("再生・一時停止・Space").accessibilityLabel(model.playing ? "一時停止" : "再生")
             Button { Task { await model.playSelection() } } label: {
-                Label("Play Selection", systemImage: "play.rectangle")
+                Label("選択範囲を再生", systemImage: "play.rectangle")
             }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
-                .help("Play selected range · Shift-Space").padding(.leading, 12)
+                .help("選択範囲を再生・Shift-Space").padding(.leading, 12)
             Text("\(timeLabel(model.position)) / \(timeLabel(asset?.duration ?? 0))")
                 .font(.system(size: 16, weight: .medium, design: .monospaced)).padding(.horizontal, 22).padding(.vertical, 13)
                 .background(Color.black.opacity(0.18)).clipShape(RoundedRectangle(cornerRadius: 4)).padding(.leading, 24)
-            Text(model.playingSelection ? "SELECTION" : "Space  Play / Pause").font(.system(size: 10)).foregroundStyle(muted).padding(.leading, 24)
+            Text(model.playingSelection ? "選択範囲" : "Spaceで再生・一時停止").font(.system(size: 10)).foregroundStyle(muted).padding(.leading, 24)
             Spacer()
         }.padding(.vertical, 20).background(panel).disabled(asset == nil || model.busy)
     }
@@ -274,7 +275,7 @@ struct WaveCanvas: View {
                     }
                     context.stroke(wave, with: .color(overview ? muted.opacity(0.65) : amber), lineWidth: 0.8)
                     if !overview {
-                        context.draw(Text(channel == 0 ? (peaks.count == 1 ? "MONO" : "L") : "R").font(.system(size: 10)).foregroundColor(muted), at: CGPoint(x: 22, y: CGFloat(channel) * lane + 16))
+                        context.draw(Text(channel == 0 ? (peaks.count == 1 ? "モノラル" : "L") : "R").font(.system(size: 10)).foregroundColor(muted), at: CGPoint(x: 22, y: CGFloat(channel) * lane + 16))
                     }
                 }
                 if let selection, !overview {
@@ -344,6 +345,6 @@ private struct OutputMeterColumn: View {
                     }
                 }
             }.frame(width: 20)
-        }.accessibilityLabel("\(name) output \(Int(state.levels[channel])) decibels")
+        }.accessibilityIdentifier("\(name) output \(Int(state.levels[channel])) decibels").accessibilityLabel("\(name) の出力 \(Int(state.levels[channel])) デシベル")
     }
 }

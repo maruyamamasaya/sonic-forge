@@ -22,26 +22,26 @@ struct EnsembleTimelineView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("ARRANGEMENT").font(.system(size: 10, weight: .medium)).tracking(1.5)
+                Text("タイムライン").font(.system(size: 10, weight: .medium)).tracking(1.5)
                 Spacer()
                 if expanded {
-                    Text("Beats · Snap ¼").font(.system(size: 10)).foregroundStyle(.secondary)
-                    Button { zoom = max(1, zoom / 1.5) } label: { Image(systemName: "minus.magnifyingglass") }.disabled(zoom <= 1).accessibilityLabel("Timeline zoom out")
-                    Button { zoom = min(16, zoom * 1.5) } label: { Image(systemName: "plus.magnifyingglass") }.disabled(zoom >= 16).accessibilityLabel("Timeline zoom in")
-                    Button("Fit") { zoom = 1 }.accessibilityLabel("Fit arrangement")
+                    Text("拍・¼拍刻み").font(.system(size: 10)).foregroundStyle(.secondary)
+                    Button { zoom = max(1, zoom / 1.5) } label: { Image(systemName: "minus.magnifyingglass") }.disabled(zoom <= 1).accessibilityIdentifier("Timeline zoom out").accessibilityLabel("タイムラインを縮小")
+                    Button { zoom = min(16, zoom * 1.5) } label: { Image(systemName: "plus.magnifyingglass") }.disabled(zoom >= 16).accessibilityIdentifier("Timeline zoom in").accessibilityLabel("タイムラインを拡大")
+                    Button("全体表示") { zoom = 1 }.accessibilityIdentifier("Fit arrangement").accessibilityLabel("曲全体を表示")
                 } else {
-                    Text("Beats · Drag to move · Snap ¼ · Scroll horizontally").font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text("ドラッグで移動・¼拍刻み・左右スクロール").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
             }
             HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(expanded ? "PART / MIX" : "PART").font(.system(size: 10)).foregroundStyle(.secondary).frame(height: ensemble.sections.isEmpty && !expanded ? 22 : expanded ? 50 : 42)
+                    Text(expanded ? "パート・音量" : "パート").font(.system(size: 10)).foregroundStyle(.secondary).frame(height: ensemble.sections.isEmpty && !expanded ? 22 : expanded ? 50 : 42)
                     ForEach(ensemble.parts) { part in
                         Button { onSelect(part.id, part.primaryClipID) } label: {
                             TimelinePartLabel(part: part, expanded: expanded)
                                 .frame(width: 116, height: rowHeight, alignment: .leading)
                                 .background(selectedPart == part.id ? accent.opacity(0.08) : Color.clear)
-                        }.buttonStyle(.plain).accessibilityLabel("Select part \(part.name)")
+                        }.buttonStyle(.plain).accessibilityIdentifier("Select part \(part.name)").accessibilityLabel("パートを選択 \(part.name)")
                     }
                 }
                 ScrollView(.horizontal) {
@@ -57,9 +57,9 @@ struct EnsembleTimelineView: View {
                                             .overlay(alignment: .bottom) { if selectedSection == section.id { Rectangle().fill(accent).frame(height: 2) } }
                                             .overlay { Rectangle().stroke(Color.white.opacity(0.12), lineWidth: 0.5) }
                                     }.buttonStyle(.plain)
-                                        .accessibilityLabel("Select section \(section.name) \(section.id)")
-                                        .accessibilityValue("Start \(EnsembleSections.offset(section.id, in: ensemble.sections)) beats, length \(section.beats) beats")
-                                        .help("Select to edit section name, length, order or duplicate")
+                                        .accessibilityIdentifier("Select section \(section.name) \(section.id)").accessibilityLabel("セクションを選択 \(section.name) \(section.id)")
+                                        .accessibilityValue("開始 \(EnsembleSections.offset(section.id, in: ensemble.sections))拍・長さ \(section.beats)拍")
+                                        .help("クリックすると右側で名前・長さ・順序・複製を操作できます。")
                                         .offset(x: EnsembleSections.offset(section.id, in: ensemble.sections) * scale)
                                 }
                             }.frame(width: extent * scale, height: expanded ? 28 : 20, alignment: .topLeading)
@@ -82,7 +82,7 @@ struct EnsembleTimelineView: View {
                     }
                 }
             }
-            Text("Clip length includes rests and pedal events; Release tails continue beyond the clip.")
+            Text("クリップの幅は休符・ペダルを含む演奏の長さ。離鍵後の余韻は外へ続きます。")
                 .font(.system(size: 9)).foregroundStyle(.secondary)
         }.padding(expanded ? 8 : 12).background(Color.black.opacity(0.16))
             .background { GeometryReader { geometry in
@@ -101,7 +101,7 @@ private struct TimelinePartLabel: View {
             Text(part.name + (part.muted ? " · M" : "")).font(.system(size: 11))
                 .foregroundStyle(part.muted ? .secondary : .primary).lineLimit(1).help(part.name)
             if expanded {
-                Text(part.instrument?.name ?? "No instrument").font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
+                Text(part.instrument?.name ?? "楽器未割り当て").font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
                 Text(String(format: "%.0f dB · %d/8", part.gainDB, part.voices)).font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
             }
         }.padding(.horizontal, expanded ? 5 : 0)
@@ -185,15 +185,15 @@ private struct TimelineClipBar: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { onSelect(part.id, clip.id) }
-                .accessibilityLabel("Timeline clip for \(part.name), \(clip.performance.name), \(clip.id)")
-                .accessibilityValue(String(format: "Start %.2f, length %.2f, end %.2f beats, repeat %d, %d notes", start, length, start + length, clip.repeatCount, clip.performance.notes.count * clip.repeatCount))
+                .accessibilityIdentifier("Timeline clip for \(part.name), \(clip.performance.name), \(clip.id)").accessibilityLabel("タイムラインのクリップ \(part.name), \(clip.performance.name), \(clip.id)")
+                .accessibilityValue(String(format: "開始 %.2f拍・長さ %.2f拍・終端 %.2f拍・%d回・%d音符", start, length, start + length, clip.repeatCount, clip.performance.notes.count * clip.repeatCount))
                 .accessibilityAdjustableAction { direction in
                     ensemble.movePart(part.id, to: min(256, max(0, clip.startBeat + (direction == .increment ? 0.25 : -0.25))), clip: clip.id)
                 }
-                .help("Drag this clip to move in ¼ beats. Notes show pitch, key-down length and velocity; the instrument is shared.")
+                .help("¼拍刻みでドラッグ移動。中の音符は音程・押鍵の長さ・強弱を表します。同じ行は共通の楽器です。")
                 .offset(x: start * scale)
         } else {
-            Text("Invalid performance").font(.system(size: 10)).foregroundStyle(.orange)
+            Text("演奏データが無効です").font(.system(size: 10)).foregroundStyle(.orange)
         }
     }
 }

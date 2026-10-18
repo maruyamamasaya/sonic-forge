@@ -44,11 +44,11 @@ struct PerformanceNoteView: View, Equatable {
                     }
                 }.clipped()
             }.accessibilityElement(children: .ignore)
-                .accessibilityLabel(detail ? "Selected clip note detail" : "Performance note preview")
-                .accessibilityValue("\(layout.notes.count) notes, \(layout.length.formatted()) beats, \(NotePitch.name(layout.pitchRange.lowerBound)) to \(NotePitch.name(layout.pitchRange.upperBound))")
-                .help("Key-down durations; pedal sustain and Release tails are not shown as longer notes.")
+                .accessibilityLabel(detail ? "選択クリップの音符詳細" : "演奏音符のプレビュー")
+                .accessibilityValue("\(layout.notes.count)音符・\(layout.length.formatted())拍・\(NotePitch.name(layout.pitchRange.lowerBound))から\(NotePitch.name(layout.pitchRange.upperBound))")
+                .help("表示するのは鍵盤を押している長さです。ペダル保持と離鍵後の余韻は含みません。")
         } else {
-            Text("Invalid performance").font(.system(size: 11)).foregroundStyle(.orange)
+            Text("演奏データが無効です").font(.system(size: 11)).foregroundStyle(.orange)
         }
     }
 }

@@ -8,30 +8,30 @@ struct InstrumentKeyboard: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 10) {
-                Text("INSTRUMENT").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary)
-                Text("Root").font(.system(size: 11)).foregroundStyle(.secondary)
-                Picker("Root note", selection: $model.rootNote) {
+                Text("楽器").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary)
+                Text("基準音").font(.system(size: 11)).foregroundStyle(.secondary)
+                Picker("基準音", selection: $model.rootNote) {
                     ForEach(48...72, id: \.self) { note in Text(NotePitch.name(note)).tag(note) }
-                }.labelsHidden().frame(width: 76).controlSize(.small)
+                }.help(StudioHelpTopic.root.explanation).labelsHidden().frame(width: 76).controlSize(.small)
                 Spacer(minLength: 0)
-                Button("Open…") { model.openInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small).help("Open Instrument · ⇧⌘O")
-                Button("Save…") { model.saveInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small)
-                    .disabled(model.instrumentSample == nil).help("Save Instrument · ⌘S")
-                Button(model.editor.selection == nil ? "Use Full Sample" : "Use Selection") {
+                Button("開く…") { model.openInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small).help("楽器を開く・⇧⌘O")
+                Button("保存…") { model.saveInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small)
+                    .disabled(model.instrumentSample == nil).help("楽器を保存・⌘S")
+                Button(model.editor.selection == nil ? "全体を楽器に" : "選択を楽器に") {
                     Task { await model.prepareInstrument() }
                 }.buttonStyle(.bordered).controlSize(.small)
-                Text(model.activeNotes.isEmpty ? "—" : "\(model.activeNotes.count) held")
+                Text(model.activeNotes.isEmpty ? "—" : "\(model.activeNotes.count)音を保持中")
                     .foregroundStyle(accent).font(.system(size: 12, weight: .medium, design: .monospaced)).frame(width: 90)
             }
             HStack(spacing: 12) {
-                Toggle("Hold keys", isOn: $model.holdKeys).toggleStyle(.checkbox)
+                Toggle("鍵盤を保持", isOn: $model.holdKeys).toggleStyle(.checkbox)
                     .help("ONで画面鍵盤をクリックして音を保持。もう一度クリックして離鍵。")
-                Button(model.demoChordActive ? "Release chord" : "Demo chord") { model.toggleDemoChord() }
+                Button(model.demoChordActive ? "和音を離す" : "デモ和音") { model.toggleDemoChord() }
                     .controlSize(.small).disabled(model.instrumentSample == nil)
-                    .help("基準音から長三和音を演奏。もう一度押すとRelease。")
-                Button("All Notes Off") { model.stopInstrument() }.controlSize(.small)
+                    .help("基準音から長三和音を演奏。もう一度押すと離鍵し、余韻へ移ります。")
+                Button("全音停止") { model.stopInstrument() }.controlSize(.small)
                 Spacer(minLength: 0)
-                Text("\(model.soundingVoices)/8 voices · A–K: C4–C5").foregroundStyle(.secondary)
+                Text("\(model.soundingVoices)/8音・A〜Kキー: C4〜C5").foregroundStyle(.secondary)
             }.font(.system(size: 10))
             MIDIControls(model: model, midi: model.midi)
             EnvelopeControls(model: model)
@@ -52,9 +52,9 @@ struct InstrumentKeyboard: View {
                 }
             }.frame(height: 82)
             HStack {
-                Text((model.instrumentDirty ? "● " : "") + (model.instrumentSample.map { "\($0.name) · \(String(format: "%.3f", Double($0.selection.startFrame) / $0.buffer.format.sampleRate))–\(String(format: "%.3f", Double($0.selection.endFrame) / $0.buffer.format.sampleRate)) s" } ?? "Choose a range, then Use Selection to load your instrument."))
+                Text((model.instrumentDirty ? "● " : "") + (model.instrumentSample.map { "\($0.name) · \(String(format: "%.3f", Double($0.selection.startFrame) / $0.buffer.format.sampleRate))–\(String(format: "%.3f", Double($0.selection.endFrame) / $0.buffer.format.sampleRate)) s" } ?? "範囲を選び「選択を楽器に」で取り込んでください。"))
                 Spacer()
-                Text("8 voices · Speed changes with pitch")
+                Text("最大8音・音程とともに再生速度も変化")
             }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
         }
         .disabled(model.busy || model.asset == nil)
@@ -88,7 +88,7 @@ struct InstrumentKeyboard: View {
                 if pressedScreenNote != note { pressedScreenNote = note; model.screenKeyDown(note) }
             }
             .onEnded { _ in pressedScreenNote = nil; model.screenKeyUp(note) })
-        .accessibilityLabel("Play " + NotePitch.name(note))
+        .accessibilityLabel("発音 " + NotePitch.name(note))
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { model.screenKeyDown(note); model.screenKeyUp(note) }
         .disabled(model.instrumentSample == nil)
@@ -100,10 +100,10 @@ struct EnvelopeControls: View {
     @ObservedObject var model: PlayerModel
     var body: some View {
         HStack(spacing: 16) {
-            parameter("ATTACK", keyPath: \.attack, seconds: true, help: "押鍵から最大音量になるまで。次の発音から反映。")
-            parameter("DECAY", keyPath: \.decay, seconds: true, help: "最大音量からSustainまで下がる時間。")
-            parameter("SUSTAIN", keyPath: \.sustain, seconds: false, help: "押している間の音量。元音源の自然な減衰は維持します。")
-            parameter("RELEASE", keyPath: \.release, seconds: true, help: "離鍵後に消えるまで。ループOFF時は音源の末尾で先に停止します。")
+            parameter("立ち上がり", keyPath: \.attack, seconds: true, help: "押鍵から最大音量になるまで。次の発音から反映。")
+            parameter("減衰時間", keyPath: \.decay, seconds: true, help: "最大音量から保持音量へ下がる時間。")
+            parameter("保持音量", keyPath: \.sustain, seconds: false, help: "押している間の音量。元音源の自然な減衰は維持します。")
+            parameter("余韻時間", keyPath: \.release, seconds: true, help: "離鍵後に消えるまで。ループOFF時は音源の末尾で先に停止します。")
         }.padding(.vertical, 4)
     }
     private func parameter(_ name: String, keyPath: WritableKeyPath<ADSRParameters, Double>, seconds: Bool, help: String) -> some View {
@@ -122,7 +122,7 @@ struct EnvelopeControls: View {
             }), in: 0...1)
                 .controlSize(.small).tint(Color(red: 0.96, green: 0.72, blue: 0.33))
                 .accessibilityLabel(name)
-                .accessibilityValue(seconds ? String(format: "%.3f seconds", value) : String(format: "%.0f percent", value * 100))
+                .accessibilityValue(seconds ? String(format: "%.3f 秒", value) : String(format: "%.0f パーセント", value * 100))
         }.help(help)
     }
 }
@@ -132,18 +132,18 @@ struct LoopControls: View {
     var body: some View {
         VStack(spacing: 5) {
             HStack(spacing: 12) {
-                Toggle("LOOP", isOn: Binding(get: { model.sampleLoop.enabled }, set: {
+                Toggle("ループ", isOn: Binding(get: { model.sampleLoop.enabled }, set: {
                     var loop = model.sampleLoop; loop.enabled = $0; model.setLoop(loop)
                 })).toggleStyle(.checkbox).font(.system(size: 10, weight: .medium))
-                    .help("次の発音から反映。離鍵後はループしながらReleaseで減衰します。")
-                boundary("START", start: true)
-                boundary("END", start: false)
-                Button("From Selection") { model.loopFromSelection() }
+                    .help("次の発音から反映。離鍵後はループしながら余韻の設定で減衰します。")
+                boundary("開始", start: true)
+                boundary("終了", start: false)
+                Button("選択範囲から") { model.loopFromSelection() }
                     .controlSize(.small).disabled(!model.canSetLoopFromSelection)
                     .help("波形の選択範囲をループに設定。取り込み済みサンプルの範囲内で選択してください。")
             }
             HStack(spacing: 10) {
-                Text("CROSSFADE").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
+                Text("継ぎ目").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
                 let rate = model.instrumentSample?.buffer.format.sampleRate ?? 1
                 let limit = max(1, min(Int64(rate * 0.1), (model.sampleLoop.endFrame - model.sampleLoop.startFrame) / 2))
                 Slider(value: Binding(get: { Double(model.sampleLoop.crossfadeFrames) }, set: { value in
@@ -152,9 +152,9 @@ struct LoopControls: View {
                     model.setLoop(loop)
                 }), in: 0...Double(limit)).controlSize(.small)
                     .tint(Color(red: 0.96, green: 0.72, blue: 0.33))
-                    .accessibilityLabel("Loop crossfade")
-                    .accessibilityValue(String(format: "%.2f milliseconds", Double(model.sampleLoop.crossfadeFrames) / rate * 1000))
-                Text(model.sampleLoop.crossfadeFrames == 0 ? "OFF" : String(format: "%.2f ms", Double(model.sampleLoop.crossfadeFrames) / rate * 1000))
+                    .accessibilityIdentifier("Loop crossfade").accessibilityLabel("ループの継ぎ目")
+                    .accessibilityValue(String(format: "%.2f ミリ秒", Double(model.sampleLoop.crossfadeFrames) / rate * 1000))
+                Text(model.sampleLoop.crossfadeFrames == 0 ? "なし" : String(format: "%.2f ms", Double(model.sampleLoop.crossfadeFrames) / rate * 1000))
                     .font(.system(size: 10, design: .monospaced)).frame(width: 72, alignment: .trailing)
             }.disabled(!model.sampleLoop.enabled)
                 .help("ループ末尾と先頭を重ねて継ぎ目を滑らかにします。0でOFF。最大100 msまたはループの半分。次の発音から反映。")
@@ -177,7 +177,7 @@ struct LoopControls: View {
                 model.setLoop(updated)
             }), in: start ? 0...Double(max(1, count - 2)) : 2...Double(max(3, count)))
                 .controlSize(.small).tint(Color(red: 0.96, green: 0.72, blue: 0.33))
-                .accessibilityLabel("Loop " + label)
+                .accessibilityLabel("ループ " + label)
             Text(String(format: "%.3f s", Double(start ? loop.startFrame : loop.endFrame) / rate))
                 .monospacedDigit().frame(width: 63, alignment: .trailing)
         }.font(.system(size: 9))
@@ -191,45 +191,45 @@ struct MIDIControls: View {
     var body: some View {
         VStack(spacing: 5) {
             HStack(spacing: 10) {
-                Text("MIDI IN").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
-                Picker("MIDI input", selection: Binding(get: { midi.selected }, set: { model.suspendMIDI(false); midi.select($0) })) {
-                    Text("None").tag(UInt32(0))
+                Text("MIDI入力").font(.system(size: 9, weight: .medium)).foregroundStyle(.secondary)
+                Picker("MIDI入力", selection: Binding(get: { midi.selected }, set: { model.suspendMIDI(false); midi.select($0) })) {
+                    Text("なし").tag(UInt32(0))
                     ForEach(midi.sources) { source in Text(source.name).tag(source.id) }
                 }.labelsHidden().controlSize(.small).frame(minWidth: 120, maxWidth: 230)
-                Button("Refresh") { midi.start(); midi.refresh() }.controlSize(.small)
-                Button("Test input") { model.suspendMIDI(false); midi.createTestInput() }.controlSize(.small)
+                Button("再検索") { midi.start(); midi.refresh() }.controlSize(.small)
+                Button("テスト入力") { model.suspendMIDI(false); midi.createTestInput() }.controlSize(.small)
                     .help("仮想MIDI送信元を作成して選択します。実機なしで同じ受信経路を確認できます。")
                 if midi.testSource != 0 && midi.selected == midi.testSource {
-                    Button(midi.testingChord ? "Release MIDI" : "MIDI chord") { midi.toggleTestChord() }
+                    Button(midi.testingChord ? "MIDIを離す" : "MIDI和音") { midi.toggleTestChord() }
                         .controlSize(.small).disabled(model.instrumentSample == nil)
                 }
                 Spacer(minLength: 0)
-                Text(midi.error ?? (midi.selected == 0 ? "Not connected" : model.midiSuspended ? "Paused" : "Omni · Root ±24 st"))
+                Text(midi.error ?? (midi.selected == 0 ? "未接続" : model.midiSuspended ? "停止中" : "全チャンネル・基準音±24半音"))
                     .foregroundStyle(midi.error == nil ? Color.secondary : Color.orange).lineLimit(1).help(midi.error ?? "MIDI 1.0 · 全チャンネル受信 · ベロシティ対応")
             }.font(.system(size: 9))
             HStack(spacing: 8) {
                 if midi.testSource != 0 && midi.selected == midi.testSource {
-                    Text("VELOCITY").foregroundStyle(.secondary)
+                    Text("強弱").foregroundStyle(.secondary)
                     Slider(value: Binding(get: { Double(midi.testVelocity) }, set: { midi.testVelocity = Int($0.rounded()) }), in: 1...127)
-                        .controlSize(.small).frame(width: 90).accessibilityLabel("Test velocity")
+                        .controlSize(.small).frame(width: 90).accessibilityIdentifier("Test velocity").accessibilityLabel("テスト演奏の強弱")
                     Text("\(midi.testVelocity)").monospacedDigit().frame(width: 23)
-                    Toggle("Test pedal", isOn: Binding(get: { model.sustainChannels.contains(0) }, set: { midi.stopPerformance(); midi.sendTest([0xB0, 64, $0 ? 127 : 0]) }))
+                    Toggle("ペダルを試す", isOn: Binding(get: { model.sustainChannels.contains(0) }, set: { midi.stopPerformance(); midi.sendTest([0xB0, 64, $0 ? 127 : 0]) }))
                         .toggleStyle(.checkbox)
                     Divider().frame(height: 12)
                 }
-                Picker("Performance preset", selection: Binding<MIDIPerformancePreset?>(get: { midi.customPerformance ? nil : midi.performancePreset }, set: { if let preset = $0 { midi.performancePreset = preset } })) {
+                Picker("演奏プリセット", selection: Binding<MIDIPerformancePreset?>(get: { midi.customPerformance ? nil : midi.performancePreset }, set: { if let preset = $0 { midi.performancePreset = preset } })) {
                     if midi.customPerformance { Text((midi.performanceDirty ? "● " : "") + midi.performance.name).tag(Optional<MIDIPerformancePreset>.none) }
-                    ForEach(MIDIPerformancePreset.allCases) { preset in Text(preset.rawValue).tag(Optional(preset)) }
+                    ForEach(MIDIPerformancePreset.allCases) { preset in Text(JapaneseUI.preset(preset)).tag(Optional(preset)) }
                 }.labelsHidden().controlSize(.small).frame(width: 125).disabled(midi.performing)
-                Button(midi.performing ? "Stop auto" : "Auto play") {
+                Button(midi.performing ? "自動演奏停止" : "自動演奏") {
                     model.suspendMIDI(false)
                     if midi.performing { midi.stopPerformance() } else { midi.playPerformance() }
                 }.controlSize(.small).disabled(model.instrumentSample == nil)
                     .help("演奏できなくてもプリセットで試聴できます。仮想MIDI入力へ切り替えて演奏します。")
-                Button(midi.performanceDirty ? "Edit ●" : "Edit…") { editingPerformance = true }
+                Button(midi.performanceDirty ? "演奏編集 ●" : "演奏編集…") { editingPerformance = true }
                     .controlSize(.small).disabled(midi.performing)
                 Spacer(minLength: 0)
-                Text(model.sustainChannels.isEmpty ? "PEDAL OFF" : "PEDAL CH " + model.sustainChannels.sorted().map { String(Int($0) + 1) }.joined(separator: ","))
+                Text(model.sustainChannels.isEmpty ? "ペダル解除" : "保持ペダル CH " + model.sustainChannels.sorted().map { String(Int($0) + 1) }.joined(separator: ","))
                     .foregroundStyle(model.sustainChannels.isEmpty ? Color.secondary : Color.orange).lineLimit(1)
             }.font(.system(size: 9))
         }.sheet(isPresented: $editingPerformance) { PerformanceEditor(midi: midi) }

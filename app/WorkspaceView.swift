@@ -48,10 +48,10 @@ struct WorkspaceView: View {
             ArrangementComposerView(ensemble: ensemble, connection: model.composer, composer: arranger, wood: wood)
         }
         .sheet(isPresented: $allParts) { EnsembleView(model: model, ensemble: ensemble, library: library) }
-        .confirmationDialog("Replace unsaved ensemble changes?", isPresented: $confirmOpen) {
-            Button("Choose Ensemble…", role: .destructive) { ensemble.openPanel() }
-            Button("Cancel", role: .cancel) { }
-        } message: { Text("Cancel and save this ensemble first to keep your changes. A failed read keeps the current ensemble.") }
+        .confirmationDialog("未保存の構成を置き換えますか？", isPresented: $confirmOpen) {
+            Button("構成を選ぶ…", role: .destructive) { ensemble.openPanel() }
+            Button("キャンセル", role: .cancel) { }
+        } message: { Text("変更を残す場合はキャンセルして先に保存してください。読み込みに失敗した場合は元の構成を保ちます。") }
     }
     private var workspace: some View {
         VStack(spacing: 0) {
@@ -66,9 +66,9 @@ struct WorkspaceView: View {
                     if ensemble.parts.isEmpty && ensemble.sections.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "pianokeys").font(.system(size: 38)).foregroundStyle(accent)
-                            Text("Build your arrangement").font(.system(size: 21, weight: .medium))
-                            Text("Choose an instrument from the library, or start with Demo Song.").foregroundStyle(.secondary)
-                            Button("Demo Song") { Task { await ensemble.addSharedSongDemo() } }
+                            Text("曲の構成を作る").font(.system(size: 21, weight: .medium))
+                            Text("左の楽器を選ぶか、デモ曲から始められます。").foregroundStyle(.secondary)
+                            Button("デモ曲") { Task { await ensemble.addSharedSongDemo() } }
                                 .disabled(!ensemble.sections.isEmpty || !ensemble.canEdit)
                         }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
@@ -87,15 +87,15 @@ struct WorkspaceView: View {
                         }
                     }
                     HStack {
-                        Button("Add Part") { if let added = ensemble.addPart() { select(added.id, added.primaryClipID) } }
-                        Button("Add Current") { if let instrument = currentInstrument, let added = ensemble.addPart(instrument: instrument, performance: model.midi.performance) { select(added.id, added.primaryClipID) } }
+                        Button("パート追加") { if let added = ensemble.addPart() { select(added.id, added.primaryClipID) } }
+                        Button("編集中の楽器を追加") { if let instrument = currentInstrument, let added = ensemble.addPart(instrument: instrument, performance: model.midi.performance) { select(added.id, added.primaryClipID) } }
                             .disabled(currentInstrument == nil || model.busy)
                         Spacer()
-                        Menu("Demos") {
-                            Button("Demo Song") { Task { await ensemble.addSharedSongDemo() } }.disabled(!ensemble.parts.isEmpty || !ensemble.sections.isEmpty)
-                            Button("Add Demo Duo") { Task { await ensemble.addDemos() } }
-                            Button("Demo Entry +4") { Task { await ensemble.addDemos(staggered: true) } }
-                            Button("Demo Repeat") { Task { await ensemble.addDemos(staggered: true, repeating: true) } }
+                        Menu("デモ") {
+                            Button("デモ曲") { Task { await ensemble.addSharedSongDemo() } }.disabled(!ensemble.parts.isEmpty || !ensemble.sections.isEmpty)
+                            Button("デモ2パート") { Task { await ensemble.addDemos() } }
+                            Button("4拍遅れて入るデモ") { Task { await ensemble.addDemos(staggered: true) } }
+                            Button("繰り返しデモ") { Task { await ensemble.addDemos(staggered: true, repeating: true) } }
                         }.frame(width: 85).disabled(ensemble.parts.count > 2)
                     }.disabled(!ensemble.canEdit || ensemble.parts.count >= 4).padding(.horizontal, 10).padding(.vertical, 8)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -104,7 +104,7 @@ struct WorkspaceView: View {
                     .shadow(color: .black.opacity(0.5), radius: 4, x: 1, y: 1)
                 Divider()
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("INSPECTOR").font(.system(size: 10, weight: .medium)).tracking(1.5).foregroundStyle(.secondary).padding(16)
+                    Text("選択対象の設定").font(.system(size: 10, weight: .medium)).tracking(1.5).foregroundStyle(.secondary).padding(16)
                     if let selectedSection, ensemble.sections.contains(where: { $0.id == selectedSection }) {
                         WorkspaceSectionInspector(ensemble: ensemble, sectionID: selectedSection, onSelect: { self.selectedSection = $0 })
                     } else if let part {
@@ -112,7 +112,7 @@ struct WorkspaceView: View {
                                            clipID: activeClip ?? part.primaryClipID)
                             .id(part.id)
                     } else {
-                        Text("Select a part or clip").foregroundStyle(.secondary).padding(16)
+                        Text("パートやクリップを選んでください").foregroundStyle(.secondary).padding(16)
                         Spacer()
                     }
                 }.frame(width: 250).foregroundStyle(wood.ink).environment(\.colorScheme, wood.scheme)
@@ -123,16 +123,16 @@ struct WorkspaceView: View {
             if ensemble.exporting {
                 HStack {
                     ProgressView(value: ensemble.exportProgress).tint(accent)
-                    Text("Rendering \(Int(ensemble.exportProgress * 100))%")
-                    Button("Cancel Export") { ensemble.cancelExport() }
+                    Text("書き出し中 \(Int(ensemble.exportProgress * 100))%")
+                    Button("書き出しを中止") { ensemble.cancelExport() }
                 }.font(.system(size: 11)).padding(.horizontal, 20).padding(.bottom, 10)
             }
             HStack {
-                Text(ensemble.error ?? library.error ?? ensemble.fileMessage ?? "Select a clip · Space to play / stop")
+                Text(ensemble.error ?? library.error ?? JapaneseUI.status(ensemble.fileMessage ?? "クリップを選択 · Spaceで再生・停止"))
                     .foregroundStyle(ensemble.error == nil && library.error == nil ? Color.secondary : .orange).lineLimit(2)
                     .help(ensemble.error ?? library.error ?? "")
                 Spacer()
-                Text("\(ensemble.parts.count)/4 parts · \(ensemble.sections.count)/8 sections").foregroundStyle(.secondary)
+                Text("\(ensemble.parts.count)/4 パート・\(ensemble.sections.count)/8 セクション").foregroundStyle(.secondary)
             }.font(.system(size: 10)).padding(.horizontal, 16).padding(.vertical, 7)
         }.background(Color(red: 0.075, green: 0.085, blue: 0.10))
             .padding(7).background(WoodSurface(wood: wood))
@@ -144,19 +144,20 @@ struct WorkspaceView: View {
         HStack(spacing: 14) {
             Image(systemName: "square.stack.3d.up.fill").foregroundStyle(accent)
             Text("SonicForge").font(.custom("Georgia", size: 20)).shadow(color: .black.opacity(0.25), radius: 0, y: 1)
-            Text("Ensemble").font(.system(size: 12)).foregroundStyle(.secondary)
+            Text("曲の構成").font(.system(size: 12)).foregroundStyle(.secondary)
             Divider().frame(height: 20)
-            Text(ensemble.fileURL?.deletingPathExtension().lastPathComponent ?? "Untitled ensemble").lineLimit(1).truncationMode(.middle)
-            Text(ensemble.dirty ? "● Unsaved" : ensemble.fileURL == nil ? "New" : "Saved").foregroundStyle(ensemble.dirty ? accent : .secondary)
+            Text(ensemble.fileURL?.deletingPathExtension().lastPathComponent ?? "無題の構成").lineLimit(1).truncationMode(.middle)
+            Text(ensemble.dirty ? "● 未保存" : ensemble.fileURL == nil ? "新規" : "保存済み").foregroundStyle(ensemble.dirty ? accent : .secondary)
             Spacer()
             if ensemble.busy { ProgressView().controlSize(.small) }
-            Picker("Wood theme", selection: $wood) {
-                ForEach(WorkspaceWood.allCases) { Text($0.title).tag($0) }
-            }.labelsHidden().frame(width: 118).accessibilityLabel("Wood theme")
-            Button("All Parts…") { library.stopPreview(); ensemble.stop(); allParts = true }.disabled(ensemble.busy)
-            Button("Open…") { requestOpen() }.disabled(!ensemble.canEdit).accessibilityLabel("Open ensemble")
-            Button("Save…") { ensemble.savePanel() }.disabled(!ensemble.canEdit || ensemble.parts.isEmpty).accessibilityLabel("Save ensemble")
-            Button("Export WAV…") { library.stopPreview(); ensemble.exportPanel(protecting: model.asset.map { [$0.url] } ?? []) }
+            Picker("木材の種類", selection: $wood) {
+                ForEach(WorkspaceWood.allCases) { Text(JapaneseUI.wood($0.rawValue)).tag($0) }
+            }.labelsHidden().frame(width: 118).accessibilityIdentifier("Wood theme").accessibilityLabel("木材の種類")
+            StudioHelpButton(wood: wood)
+            Button("全パート…") { library.stopPreview(); ensemble.stop(); allParts = true }.disabled(ensemble.busy)
+            Button("開く…") { requestOpen() }.disabled(!ensemble.canEdit).accessibilityIdentifier("Open ensemble").accessibilityLabel("構成を開く")
+            Button("保存…") { ensemble.savePanel() }.disabled(!ensemble.canEdit || ensemble.parts.isEmpty).accessibilityIdentifier("Save ensemble").accessibilityLabel("構成を保存").help(StudioHelpTopic.save.explanation)
+            Button("WAV書き出し…") { library.stopPreview(); ensemble.exportPanel(protecting: model.asset.map { [$0.url] } ?? []) }
                 .disabled(!ensemble.canEdit || ensemble.parts.isEmpty)
         }.font(.system(size: 11)).padding(.horizontal, 16).frame(height: 52)
             .foregroundStyle(wood.ink).environment(\.colorScheme, wood.scheme).background(WoodSurface(wood: wood, horizontalGrain: true))
@@ -164,13 +165,13 @@ struct WorkspaceView: View {
     }
     private var sectionToolbar: some View {
         HStack(spacing: 10) {
-            Text("SONG").font(.system(size: 10)).tracking(1.2).foregroundStyle(.secondary)
-            Text("Select a section band to edit").font(.system(size: 10)).foregroundStyle(.secondary)
+            Text("曲の構成").font(.system(size: 10)).tracking(1.2).foregroundStyle(.secondary)
+            Text("上の帯で曲の区切りを選択").font(.system(size: 10)).foregroundStyle(.secondary)
             Spacer()
-            Button("Arrange…") { library.stopPreview(); model.stop(); arranging = true }
+            Button("AI編曲…") { library.stopPreview(); model.stop(); arranging = true }
                 .disabled(!ensemble.canEdit || ensemble.parts.isEmpty)
-                .accessibilityLabel("Arrange ensemble with AI")
-            Button("Add Section") {
+                .accessibilityIdentifier("Arrange ensemble with AI").accessibilityLabel("AIで編曲案を作る").help(StudioHelpTopic.ai.explanation)
+            Button("セクション追加") {
                 ensemble.addSection()
                 selectedSection = ensemble.sections.last?.id
             }.disabled(!ensemble.canEdit || ensemble.sections.count >= 8)
@@ -178,46 +179,46 @@ struct WorkspaceView: View {
     }
     private var libraryPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("INSTRUMENT LIBRARY").font(.system(size: 10, weight: .medium)).tracking(1.2)
-            TextField("Search instruments", text: $library.query).textFieldStyle(.roundedBorder)
+            Text("楽器ライブラリ").font(.system(size: 10, weight: .medium)).tracking(1.2)
+            TextField("楽器を検索", text: $library.query).textFieldStyle(.roundedBorder)
             HStack {
-                Button("Files…") { library.addPanel() }.accessibilityLabel("Add Files…")
-                Button("Add Demos") { Task { await library.addDemos() } }
+                Button("ファイル…") { library.addPanel() }.accessibilityIdentifier("Add Files…").accessibilityLabel("楽器ファイルを追加")
+                Button("デモ追加") { Task { await library.addDemos() } }
             }.disabled(library.busy)
             List(library.filtered, selection: $librarySelection) { value in
                 VStack(alignment: .leading, spacing: 4) {
                     Label(value.name, systemImage: "waveform").lineLimit(2)
-                    Text(value.available ? "Saved instrument" : "Missing").font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text(value.available ? "保存された楽器" : "見つかりません").font(.system(size: 10)).foregroundStyle(.secondary)
                 }.padding(.vertical, 5).tag(value.id).help(value.url.path)
             }.listStyle(.plain).scrollContentBackground(.hidden).onChange(of: librarySelection) { _, _ in library.stopPreview() }
-            Text(library.previewDescription ?? "\(library.filtered.count) instruments").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+            Text(library.previewDescription.map(JapaneseUI.preview) ?? "\(library.filtered.count) 楽器").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
             HStack {
-                Button(library.previewing == nil ? "Preview" : "Stop Preview") {
+                Button(library.previewing == nil ? "試聴" : "試聴停止") {
                     if library.previewing != nil { library.stopPreview() }
                     else if let entry { ensemble.stop(); model.stop(); Task { await library.preview(entry) } }
                 }.disabled(library.busy || ensemble.busy || model.busy || (library.previewing == nil && entry?.available != true))
-                Button("Assign") { if let entry, let part { library.stopPreview(); Task { await ensemble.loadInstrument(entry.url, part: part.id) } } }
+                Button("割り当て") { if let entry, let part { library.stopPreview(); Task { await ensemble.loadInstrument(entry.url, part: part.id) } } }
                     .disabled(!ensemble.canEdit || library.busy || entry?.available != true || part == nil)
             }
-            Button("Add as Part") {
+            Button("新規パートに追加") {
                 guard let entry, let added = ensemble.addPart() else { return }
                 select(added.id, added.primaryClipID)
                 library.stopPreview(); Task { await ensemble.loadInstrument(entry.url, part: added.id) }
             }.disabled(!ensemble.canEdit || library.busy || entry?.available != true || ensemble.parts.count >= 4)
             if let entry {
-                Button("Remove from List") { library.remove(entry); librarySelection = nil }.font(.system(size: 10)).disabled(library.busy)
+                Button("一覧から外す") { library.remove(entry); librarySelection = nil }.font(.system(size: 10)).disabled(library.busy)
             }
             Divider()
-            Text("SAMPLE STUDIO").font(.system(size: 10)).tracking(1.2).foregroundStyle(.secondary)
-            Button("Waveform & Instrument…") { openStudio() }.disabled(ensemble.busy || model.busy)
-                .accessibilityLabel("Open Sample Studio")
-            Text("WAV · Sampling · Keyboard · MIDI · AI").font(.system(size: 10)).foregroundStyle(.secondary)
+            Text("素材・楽器編集").font(.system(size: 10)).tracking(1.2).foregroundStyle(.secondary)
+            Button("波形・楽器を編集…") { openStudio() }.disabled(ensemble.busy || model.busy)
+                .accessibilityIdentifier("Open Sample Studio").accessibilityLabel("素材・楽器編集を開く")
+            Text("切り出し・鍵盤・MIDI・AI演奏").font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(11).frame(maxHeight: .infinity)
     }
     private var transport: some View {
         HStack(spacing: 20) {
-            Button("Stop All") { ensemble.stop(); library.stopPreview(); model.stop() }.accessibilityLabel("Stop all workspace audio")
-            Button(ensemble.playing ? "Stop" : "Play All") {
+            Button("全停止") { ensemble.stop(); library.stopPreview(); model.stop() }.accessibilityIdentifier("Stop all workspace audio").accessibilityLabel("すべての音を止める")
+            Button(ensemble.playing ? "停止" : "全体を再生") {
                 if ensemble.playing { ensemble.stop() }
                 else { model.stop(); library.stopPreview(); ensemble.play() }
             }.buttonStyle(CabinetButton(primary: true)).disabled(ensemble.busy || ensemble.parts.isEmpty)
@@ -225,15 +226,15 @@ struct WorkspaceView: View {
                 Text(String(format: "%06.2f / %.2f", ensemble.positionBeats, arrangementBeats)).font(.system(size: 18, design: .monospaced))
                     .padding(.horizontal, 9).padding(.vertical, 4).background(Color.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 5))
                     .overlay { RoundedRectangle(cornerRadius: 5).stroke(.white.opacity(0.1)) }
-                Text(ensemble.releasing ? "RELEASE TAILS" : "POSITION · BEATS").font(.system(size: 9)).foregroundStyle(.secondary)
+                Text(ensemble.releasing ? "余韻を再生中" : "再生位置・拍").font(.system(size: 9)).foregroundStyle(.secondary)
             }.frame(width: 200, alignment: .leading)
-            TextField("Ensemble tempo", value: $ensemble.tempo, format: .number).textFieldStyle(.roundedBorder).frame(width: 58).disabled(!ensemble.canEdit)
-            Text("BPM").foregroundStyle(.secondary)
+            TextField("曲全体のテンポ", value: $ensemble.tempo, format: .number).textFieldStyle(.roundedBorder).frame(width: 58).disabled(!ensemble.canEdit)
+            Text("BPM").foregroundStyle(.secondary).help(StudioHelpTopic.beat.explanation)
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
-                Text(String(format: "MASTER · %.0f dB", ensemble.masterDB)).font(.system(size: 10))
-                Slider(value: $ensemble.masterDB, in: -60...0).frame(width: 145).tint(accent).accessibilityLabel("Ensemble master volume").disabled(ensemble.busy)
-                Text("Output \(Int(ensemble.level)) dB").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
+                Text(String(format: "全体音量・%.0f dB", ensemble.masterDB)).font(.system(size: 10))
+                Slider(value: $ensemble.masterDB, in: -60...0).frame(width: 145).tint(accent).accessibilityIdentifier("Ensemble master volume").accessibilityLabel("曲全体の音量").disabled(ensemble.busy)
+                Text("出力 \(Int(ensemble.level)) dB").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
             }
         }.padding(.horizontal, 18).padding(.vertical, 9).background(LinearGradient(colors: [Color(red: 0.16, green: 0.18, blue: 0.14), Color(red: 0.11, green: 0.13, blue: 0.095)], startPoint: .top, endPoint: .bottom))
             .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.1)).frame(height: 1) }

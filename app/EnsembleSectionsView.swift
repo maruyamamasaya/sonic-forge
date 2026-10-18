@@ -5,12 +5,12 @@ struct EnsembleSectionsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("SONG SECTIONS").font(.system(size: 10, weight: .medium)).tracking(1.5)
-                Text("Ordered left to right · START is relative to the assigned section")
+                Text("曲のセクション").font(.system(size: 10, weight: .medium)).tracking(1.5)
+                Text("左から順に再生・開始拍は各セクション内の位置")
                     .font(.system(size: 9)).foregroundStyle(.secondary)
                 Spacer()
-                Button("Add Section") { ensemble.addSection() }.disabled(ensemble.sections.count >= 8)
-                Button("Demo Song") { Task { await ensemble.addSharedSongDemo() } }
+                Button("セクション追加") { ensemble.addSection() }.disabled(ensemble.sections.count >= 8)
+                Button("デモ曲") { Task { await ensemble.addSharedSongDemo() } }
                     .disabled(!ensemble.parts.isEmpty || !ensemble.sections.isEmpty)
             }
             if !ensemble.sections.isEmpty {
@@ -19,23 +19,23 @@ struct EnsembleSectionsView: View {
                         ForEach($ensemble.sections) { $section in
                             VStack(alignment: .leading, spacing: 5) {
                                 HStack {
-                                    TextField("Section name", text: $section.name).font(.system(size: 11, weight: .medium))
-                                        .accessibilityLabel("Section name \(section.id)")
+                                    TextField("セクション名", text: $section.name).font(.system(size: 11, weight: .medium))
+                                        .accessibilityIdentifier("Section name \(section.id)").accessibilityLabel("セクション名 \(section.id)")
                                     Button { ensemble.duplicateSection(section.id) } label: { Image(systemName: "plus.square.on.square") }
-                                        .accessibilityLabel("Duplicate section \(section.name) \(section.id)")
-                                        .help("Duplicate this section and all assigned clips immediately after it")
+                                        .accessibilityIdentifier("Duplicate section \(section.name) \(section.id)").accessibilityLabel("セクションを複製 \(section.name) \(section.id)")
+                                        .help("このセクションと中の全演奏を、すぐ後ろへまとめて複製します。")
                                         .disabled(ensemble.sections.count >= 8)
                                 }
                                 HStack(spacing: 5) {
-                                    TextField("Beats", value: $section.beats, format: .number).frame(width: 42)
-                                        .accessibilityLabel("Section length for \(section.name)")
-                                    Text("beats").foregroundStyle(.secondary)
+                                    TextField("拍", value: $section.beats, format: .number).frame(width: 42)
+                                        .accessibilityIdentifier("Section length for \(section.name)").accessibilityLabel("セクションの長さ \(section.name)")
+                                    Text("拍").foregroundStyle(.secondary)
                                     Button { ensemble.reorderSection(section.id, by: -1) } label: { Image(systemName: "chevron.left") }
-                                        .accessibilityLabel("Move section earlier \(section.name)")
+                                        .accessibilityIdentifier("Move section earlier \(section.name)").accessibilityLabel("セクションを前へ \(section.name)")
                                     Button { ensemble.reorderSection(section.id, by: 1) } label: { Image(systemName: "chevron.right") }
-                                        .accessibilityLabel("Move section later \(section.name)")
+                                        .accessibilityIdentifier("Move section later \(section.name)").accessibilityLabel("セクションを後へ \(section.name)")
                                     Button { ensemble.removeSection(section.id) } label: { Image(systemName: "xmark") }
-                                        .accessibilityLabel("Remove section \(section.name)")
+                                        .accessibilityIdentifier("Remove section \(section.name)").accessibilityLabel("セクションを削除 \(section.name)")
                                 }.font(.system(size: 10))
                             }.textFieldStyle(.plain).padding(9).frame(width: 230)
                                 .background(Color.white.opacity(0.04)).clipShape(RoundedRectangle(cornerRadius: 4))

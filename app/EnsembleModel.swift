@@ -231,7 +231,7 @@ final class EnsembleModel: ObservableObject {
     func savePanel() {
         guard canEdit else { return }
         let panel = NSSavePanel(); panel.allowedContentTypes = [.sonicForgeEnsemble]; panel.canCreateDirectories = true
-        panel.title = "Save Ensemble"
+        panel.title = "曲の構成を保存"
         panel.nameFieldStringValue = fileURL?.lastPathComponent ?? "My Ensemble.sfensemble"
         panel.directoryURL = fileURL?.deletingLastPathComponent()
         panel.message = "全パートの音源・設定・演奏・音量・ミュートと共通テンポをまとめて保存します。"
@@ -240,15 +240,15 @@ final class EnsembleModel: ObservableObject {
     func openPanel() {
         guard canEdit else { return }
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.sonicForgeEnsemble]; panel.canChooseDirectories = false
-        panel.title = "Open Ensemble"
+        panel.title = "曲の構成を開く"
         if panel.runModal() == .OK, let url = panel.url { Task { await load(url) } }
     }
 
     func exportPanel(protecting sources: [URL] = []) {
         guard canEdit else { return }
-        let panel = NSSavePanel(); panel.allowedContentTypes = [.wav]; panel.title = "Export Ensemble WAV"
+        let panel = NSSavePanel(); panel.allowedContentTypes = [.wav]; panel.title = "曲全体をWAVに書き出す"
         panel.nameFieldStringValue = "Ensemble.wav"
-        panel.message = "48 kHz · Stereo · 32-bit Float · 開始位置・音量・Mute・Releaseを反映"
+        panel.message = "48 kHz・ステレオ・32-bit Float・開始位置・音量・消音・余韻を反映"
         if panel.runModal() == .OK, let url = panel.url {
             exportTask = Task { await exportWAV(to: url, protecting: sources) }
         }

@@ -12,68 +12,68 @@ struct PerformanceComposerView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Image(systemName: "sparkles").foregroundStyle(accent)
-                Text("Compose Performance").font(.system(size: 22, weight: .medium))
+                Text("AIで演奏案を作る").font(.system(size: 22, weight: .medium))
                 Spacer()
-                Button("Done") { composer.cancel(); dismiss() }.buttonStyle(StudioButton())
+                Button("閉じる") { composer.cancel(); dismiss() }.buttonStyle(StudioButton())
             }
             HStack {
-                Picker("Generator", selection: $composer.provider) {
-                    ForEach(PerformanceComposer.Provider.allCases) { Text($0.rawValue).tag($0) }
+                Picker("生成方式", selection: $composer.provider) {
+                    ForEach(PerformanceComposer.Provider.allCases) { Text(JapaneseUI.provider($0.rawValue)).tag($0) }
                 }.frame(width: 245).disabled(composer.generating)
                 Spacer()
-                Text("4 bars · \(NotePitch.name(model.rootNote)) · Up to 8 voices").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("4小節・\(NotePitch.name(model.rootNote))・最大8音").font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Group {
                 switch composer.provider {
                 case .codex:
                     HStack {
-                        TextField("Codex executable", text: $composer.executable).textFieldStyle(.roundedBorder)
-                        Button("Choose…") { composer.browseCodex() }
+                        TextField("Codexの実行ファイル", text: $composer.executable).textFieldStyle(.roundedBorder)
+                        Button("選択…") { composer.browseCodex() }
                     }
-                    Text("Uses your Codex CLI login. Instructions and root note are sent through Codex; no audio is attached.")
+                    Text("ログイン済みCodexへ指示と基準音を送信します。音声は添付しません。")
                 case .openai:
                     HStack {
-                        SecureField("OpenAI API key · session only", text: $composer.apiKey).textFieldStyle(.roundedBorder)
-                        TextField("Model", text: $composer.model).textFieldStyle(.roundedBorder).frame(width: 170)
+                        SecureField("OpenAI APIキー・終了までメモリ内のみ", text: $composer.apiKey).textFieldStyle(.roundedBorder)
+                        TextField("モデル", text: $composer.model).textFieldStyle(.roundedBorder).frame(width: 170)
                     }
-                    Text("Sends instructions and root note to OpenAI. API usage is billed separately. Key stays in memory until quit.")
+                    Text("OpenAIへ指示と基準音を送信します。API利用料は別途発生し、キーは終了までメモリ内だけで保持します。")
                 case .external:
                     HStack {
-                        Text("Copy the brief into another AI, then paste its performance JSON below.")
+                        Text("他のAIへ指示を渡し、返ってきた演奏JSONを貼り付けてください。")
                         Spacer()
-                        Button("Copy Brief") { composer.copyBrief(root: model.rootNote) }
+                        Button("指示をコピー") { composer.copyBrief(root: model.rootNote) }
                     }
                 case .demo:
-                    Text("Offline demo · Two programmed examples, not AI generation. Try calm chords or a bouncy phrase.")
+                    Text("接続不要の固定デモ2種類です。「落ち着いた和音」「跳ねたフレーズ」を試せます。AI生成ではありません。")
                 }
             }.font(.system(size: 11)).foregroundStyle(.secondary).disabled(composer.generating)
-            Text("DESCRIBE YOUR PERFORMANCE").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary)
+            Text("作りたい演奏を言葉で入力").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary)
             TextEditor(text: $composer.prompt).font(.system(size: 14)).scrollContentBackground(.hidden)
                 .padding(8).frame(height: 75).background(.black.opacity(0.2)).clipShape(RoundedRectangle(cornerRadius: 5))
-                .accessibilityLabel("Performance instruction").disabled(composer.generating)
+                .accessibilityIdentifier("Performance instruction").accessibilityLabel("演奏の指示").disabled(composer.generating)
             HStack {
                 Button("落ち着いた和音") { composer.prompt = "落ち着いた和音。ゆっくり、柔らかい強弱で。" }
                 Button("少し跳ねたフレーズ") { composer.prompt = "少し跳ねたフレーズ。軽いスウィングと強弱をつけて。" }
                 Spacer()
                 if composer.generating {
                     ProgressView().controlSize(.small)
-                    Button("Cancel Generation") { composer.cancel() }
+                    Button("生成を中止") { composer.cancel() }
                 } else {
-                    Button(composer.provider == .external ? "Validate JSON" : composer.provider == .demo ? "Generate Demo" : "Generate") {
+                    Button(composer.provider == .external ? "JSONを検証" : composer.provider == .demo ? "デモ案を作る" : "候補を生成") {
                         composer.generate(root: model.rootNote)
                     }.buttonStyle(StudioButton(primary: true)).disabled(model.instrumentSample == nil || model.busy)
                 }
             }.controlSize(.small)
             if composer.provider == .external {
                 TextEditor(text: $composer.externalJSON).font(.system(size: 10, design: .monospaced)).scrollContentBackground(.hidden)
-                    .padding(8).frame(height: 110).background(.black.opacity(0.2)).accessibilityLabel("Generated performance JSON")
+                    .padding(8).frame(height: 110).background(.black.opacity(0.2)).accessibilityIdentifier("Generated performance JSON").accessibilityLabel("演奏案のJSON")
                     .disabled(composer.generating)
             } else if let candidate = composer.candidate {
                 PerformanceRoll(document: candidate, accent: accent).frame(height: 130)
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: composer.generating ? "waveform" : "pianokeys").font(.system(size: 24)).foregroundStyle(accent)
-                    Text(composer.generating ? "Creating your performance…" : "Describe a mood, rhythm, or phrase")
+                    Text(composer.generating ? "演奏案を作成中…" : "雰囲気・リズム・フレーズを入力してください")
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity).frame(height: 130).background(.black.opacity(0.12))
             }
@@ -81,26 +81,26 @@ struct PerformanceComposerView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(candidate.name).font(.system(size: 15, weight: .medium)).lineLimit(1)
-                        Text("\(composer.source ?? "") · \(candidate.notes.count) notes · \(Int(candidate.tempo)) BPM · Validated")
+                        Text("\(JapaneseUI.provider(composer.source ?? "")) · \(candidate.notes.count) 音符・\(candidate.tempo.formatted()) BPM・検証済み")
                             .font(.system(size: 11)).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Use & Play") {
+                    Button("採用して再生") {
                         if midi.performanceDirty { confirmReplace = true } else { useCandidate() }
                     }.buttonStyle(StudioButton(primary: true)).disabled(model.busy || midi.performing)
                 }
             }
             if let error = composer.error { Text(error).font(.system(size: 11)).foregroundStyle(.orange).lineLimit(3).help(error) }
             Spacer(minLength: 0)
-            Text("Review the result, then Use & Play. Adjust or save it with Edit… afterward. Your instrument stays unchanged.")
+            Text("候補を確認して採用できます。採用後は「演奏編集…」で調整・保存できます。楽器は保ちます。")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(24).frame(width: 780, height: 640)
             .background(Color(red: 0.075, green: 0.09, blue: 0.105)).preferredColorScheme(.dark)
             .onDisappear { composer.cancel() }
-            .confirmationDialog("Replace unsaved performance?", isPresented: $confirmReplace) {
-                Button("Replace & Play", role: .destructive) { useCandidate() }
-                Button("Cancel", role: .cancel) { }
-            } message: { Text("Cancel and save the current performance with Edit… → Save… if you want to keep it.") }
+            .confirmationDialog("未保存の演奏を置き換えますか？", isPresented: $confirmReplace) {
+                Button("置き換えて再生", role: .destructive) { useCandidate() }
+                Button("キャンセル", role: .cancel) { }
+            } message: { Text("元の演奏を残す場合はキャンセルし、「演奏編集…」→「保存…」で先に保存してください。") }
     }
     private func useCandidate() {
         guard let candidate = composer.candidate, composer.candidateRoot == model.rootNote else {
@@ -130,6 +130,6 @@ private struct PerformanceRoll: View {
                                   width: max(2, size.width * note.duration / 16 - 1), height: max(2, row - 1))
                 context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(accent.opacity(0.3 + Double(note.velocity) / 180)))
             }
-        }.background(.black.opacity(0.2)).accessibilityLabel("Generated performance piano roll, \(document.notes.count) notes across four bars")
+        }.background(.black.opacity(0.2)).accessibilityIdentifier("Generated performance piano roll, \(document.notes.count) notes across four bars").accessibilityLabel("生成した演奏の音符表示、\(document.notes.count)音符・4小節")
     }
 }

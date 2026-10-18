@@ -179,3 +179,7 @@ WorkspaceTestsでPerformanceNoteLayoutの全繰り返し音符をproduction MIDI
 ## AI Arrangement Proposals
 ArrangementGenerationTestsは通常Fullで外部AIを呼ばず、薄いIntro/全パートChorusと均一Demo、入力から音声/原本パスを除くこと、共通strict schema/模擬HTTP/ローカルCLI、未知/重複/欠落パート・セクション境界・重複クリップ・無効演奏の原子的拒否、取消/編集後の遅い応答破棄、採用後の楽器保持/dirty/保存/復元/WAV再読み込みを検証する。--playbackでIntroのパート発音差・再生中採用拒否・停止も確認する。実AI接続の成功とは区別する。
 実UIはDemo Song→Arrange…→Demo→Generate Demoで元構成保持/候補のセクションと音符/方式/音量/Muteを確認。均一指示との違い、取消、未保存置換Cancel、先にSave Current…→Use Arrangement→メインの配置→Play All/Stop All→保存/Exportを確認。1920基準と最小1100×760でシート/スクロール/操作ボタンを確認する。実接続は利用者が選択した方式で別途確認し、DemoをAI応答と報告しない。
+
+## Japanese UI and Contextual Help
+Fullと--playbackで既存の保存/復元/演奏/レンダーを回帰検証する。モデルの状態値・enum rawValue・JSONキー・保存済みの楽器/演奏名を変更しない。実UIは保存済みデモ構成の復元、日本語ヘッダー/タイムライン/右設定/音符編集、選択→数値変更→適用→取り消し→やり直し、全体再生/停止、セクション設定、楽器の基準音/ADSR/ループを確認する。
+上部「使い方」→用語検索（強弱/ADSR/保存）→該当説明/空結果→閉じる、音符欄や基準音のhelp表示、AI編曲のデモ生成/候補破棄、素材画面のデモ/自動演奏/停止を確認する。1920基準と1100×760（素材画面は高さ880）で日本語の欠け・検索結果スクロール・操作ボタンを確認する。OS標準ダイアログのボタン、外部モデル名、利用者のデータ名の言語はアプリ独自の文言と区別する。

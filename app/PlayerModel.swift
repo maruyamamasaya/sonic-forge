@@ -152,7 +152,7 @@ final class PlayerModel: ObservableObject {
         panel.allowedContentTypes = [.wav]
         panel.canCreateDirectories = true
         panel.nameFieldStringValue = asset.url.deletingPathExtension().lastPathComponent + "-selection.wav"
-        panel.title = "Export Selection"
+        panel.title = "選択範囲を書き出す"
         panel.message = "選択範囲を32-bit Float WAVで保存します。サンプルレート・チャンネルを維持し、Master Gainは反映しません。"
         guard let window = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.title == "SonicForge" && $0.isVisible }) else { return }
         panel.beginSheetModal(for: window) { [weak self] response in
@@ -195,7 +195,7 @@ final class PlayerModel: ObservableObject {
         panel.allowedContentTypes = [.sonicForgeInstrument]
         panel.canCreateDirectories = true
         panel.nameFieldStringValue = instrumentFileURL?.lastPathComponent ?? URL(fileURLWithPath: sample.name).deletingPathExtension().lastPathComponent + ".sfinstrument"
-        panel.title = "Save Instrument"
+        panel.title = "楽器を保存"
         panel.message = "サンプル音源・基準音・ADSR・ループをまとめて保存します。元のWAVがなくても開けます。"
         guard let window = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.title == "SonicForge" && $0.isVisible }) else { return }
         panel.beginSheetModal(for: window) { [weak self] response in
@@ -229,7 +229,7 @@ final class PlayerModel: ObservableObject {
         panel.allowedContentTypes = [.sonicForgeInstrument]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.title = "Open Instrument"
+        panel.title = "楽器を開く"
         panel.begin { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
             Task { @MainActor in _ = await self?.loadInstrument(url) }

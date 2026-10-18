@@ -190,3 +190,6 @@ WoodSurfaceは面のサイズへ明示的にクリップする。ヘッダーは
 ## Arrangement Proposals
 WorkspaceViewのArrange…がArrangementComposerViewを開き、既存PerformanceComposerの接続設定を共有する。ArrangementComposerは候補/音声込みのローカルpreview/brief/revisionを保持し、取消世代で遅い応答を捨てる。ArrangementBriefが現在の音楽データだけをJSON化して送信する。API/CLIのJSON境界は既存クライアントで共通化し、短い演奏と編曲でschema/出力枠/業務検証だけを変える。
 ArrangementGeneration.materializeが既存partIDと新sectionIndexを解決し、値上のEnsembleSnapshotを全検証する。applyArrangementはrevision照合と再検証の後に既存パートへ一括反映し、楽器/パートID/名前/Master/保存先を保持、配置/tempo/mixを変更してdirty化する。音符履歴はクリア。生成候補は保存せず、採用結果は既存v5/タイムライン/ライブ/WAV経路へ流れる。上限・送信内容・操作仕様は[AI_ARRANGEMENT.md](AI_ARRANGEMENT.md)。
+
+## Japanese Presentation and Help
+主要SwiftUIビューの表示とアクセシビリティ名を日本語化。既存の明示ラベルはaccessibilityIdentifierとして保持し、JapaneseUI.swiftがプリセット/生成方式/木材名/状態接頭辞の表示変換を担当する。enum rawValue・モデルの状態メッセージ・保存データ名/キーは変更しない。StudioHelpButtonは両主要画面に共通の検索付きポップオーバーを開き、StudioHelpTopicが短い用語説明を保持する。設定のhelp属性にも説明を付ける。ヘルプと検索は表示状態のみで保存/発音/編集へ接続しない。
