@@ -98,7 +98,7 @@ struct ArrangementComposerView: View {
             .confirmationDialog("未保存の構成を置き換えますか？", isPresented: $confirmReplace) {
                 Button("編曲案で置き換える", role: .destructive) { adopt() }
                 Button("キャンセル", role: .cancel) { }
-            } message: { Text("全セクション・クリップ配置・テンポ・パート音量を置き換え、音符編集の履歴を消去します。元を残す場合はキャンセルして「現在の構成を保存…」を使ってください。") }
+            } message: { Text("全セクション・クリップ配置・テンポ・パート音量を置き換えます。採用後は上段の「曲の編集を取り消す」で戻せます。再起動後も元を残す場合は先に保存してください。") }
     }
     @ViewBuilder private var connectionSettings: some View {
         Group {

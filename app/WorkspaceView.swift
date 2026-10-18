@@ -166,7 +166,13 @@ struct WorkspaceView: View {
     private var sectionToolbar: some View {
         HStack(spacing: 10) {
             Text("曲の構成").font(.system(size: 10)).tracking(1.2).foregroundStyle(.secondary)
-            Text("上の帯で曲の区切りを選択").font(.system(size: 10)).foregroundStyle(.secondary)
+            Button { ensemble.restoreSongEdit() } label: { Image(systemName: "arrow.uturn.backward") }
+                .disabled(!ensemble.canUndoSong).accessibilityIdentifier("Undo song edit").accessibilityLabel("曲の編集を取り消す")
+                .help("取り消す：" + ensemble.undoSongLabel + "。曲全体の直近50操作が対象です。")
+            Button { ensemble.restoreSongEdit(redo: true) } label: { Image(systemName: "arrow.uturn.forward") }
+                .disabled(!ensemble.canRedoSong).accessibilityIdentifier("Redo song edit").accessibilityLabel("曲の編集をやり直す")
+                .help("やり直す：" + ensemble.redoSongLabel)
+
             Spacer()
             Button("AI編曲…") { library.stopPreview(); model.stop(); arranging = true }
                 .disabled(!ensemble.canEdit || ensemble.parts.isEmpty)

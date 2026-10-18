@@ -94,3 +94,5 @@ Status: proposed / accepted / superseded
 - [0035: AI編曲提案と採用](0035-ai-arrangement-proposals.md)
 
 - [0036: 人が操作できる日本語の制作画面と説明](0036-human-operated-japanese-ui.md)
+
+- [0037: 曲全体の編集履歴](0037-song-edit-history.md)

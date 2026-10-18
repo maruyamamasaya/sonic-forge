@@ -19,16 +19,17 @@ struct EnsembleInstrument {
 @MainActor
 final class EnsemblePart: ObservableObject, Identifiable {
     let id = UUID()
-    @Published var name: String
-    @Published fileprivate(set) var instrument: EnsembleInstrument?
-    @Published fileprivate(set) var instrumentURL: URL?
-    @Published fileprivate(set) var performance: PerformanceDocument
-    @Published var gainDB = 0.0
-    @Published var muted = false
-    @Published var startBeat = 0.0
-    @Published var repeatCount = 1
-    @Published var sectionID: UUID?
-    @Published fileprivate(set) var additionalClips: [EnsembleClip] = []
+    @Published var name: String { didSet { changed?() } }
+    @Published fileprivate(set) var instrument: EnsembleInstrument? { didSet { changed?() } }
+    @Published fileprivate(set) var instrumentURL: URL? { didSet { changed?() } }
+    @Published fileprivate(set) var performance: PerformanceDocument { didSet { changed?() } }
+    @Published var gainDB = 0.0 { didSet { changed?() } }
+    @Published var muted = false { didSet { changed?() } }
+    @Published var startBeat = 0.0 { didSet { changed?() } }
+    @Published var repeatCount = 1 { didSet { changed?() } }
+    @Published var sectionID: UUID? { didSet { changed?() } }
+    @Published fileprivate(set) var additionalClips: [EnsembleClip] = [] { didSet { changed?() } }
+    fileprivate var changed: (() -> Void)?
     let primaryClipID = UUID()
     var allClips: [EnsembleClip] {
         [EnsembleClip(id: primaryClipID, performance: performance, startBeat: startBeat, repeatCount: repeatCount, sectionID: sectionID)] + additionalClips
@@ -91,7 +92,7 @@ final class EnsembleVoice {
 final class EnsembleModel: ObservableObject {
     static let maximumParts = 4
     @Published var sections: [EnsembleSection] = [] { didSet { markDirty() } }
-    @Published private(set) var parts: [EnsemblePart] = [] { didSet { observeParts(); markDirty() } }
+    @Published private(set) var parts: [EnsemblePart] = [] { didSet { oldValue.forEach { $0.changed = nil }; observeParts(); markDirty() } }
     @Published var tempo = 100.0 { didSet { if tempo != oldValue { markDirty() } } }
     @Published var masterDB = -12.0 { didSet { if masterDB != oldValue { markDirty() } } }
     @Published private(set) var playing = false
@@ -117,7 +118,6 @@ final class EnsembleModel: ObservableObject {
     private func noteKey(_ part: UUID, _ clip: UUID) -> String { part.uuidString + ":" + clip.uuidString }
     private var applyingSnapshot = false
     private var revision = UUID()
-    private var partChanges: Set<AnyCancellable> = []
     private var attemptedRestore = false
     private var engine: AVAudioEngine?
     private var voices: [UUID: EnsembleVoice] = [:]
@@ -130,27 +130,109 @@ final class EnsembleModel: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        historyState = songState()
         timer = Timer.publish(every: 1.0 / 30, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.refresh() }
     }
     var canEdit: Bool { !playing && !busy }
     private func markDirty() {
-        guard !applyingSnapshot else { return }
-        revision = UUID(); dirty = true; fileMessage = nil
+        guard !applyingSnapshot, historyDepth == 0 else { return }
+        recordSongEdit()
     }
     private func observeParts() {
         let keys = Set(parts.flatMap { part in part.allClips.map { noteKey(part.id, $0.id) } })
         noteHistories = noteHistories.filter { keys.contains($0.key) }
-        partChanges.removeAll()
-        for part in parts {
-            Publishers.Merge3(part.$name.dropFirst().removeDuplicates().map { _ in () },
-                              part.$gainDB.dropFirst().removeDuplicates().map { _ in () },
-                              part.$muted.dropFirst().removeDuplicates().map { _ in () })
-                .sink { [weak self] in self?.markDirty() }.store(in: &partChanges)
-            part.$additionalClips.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
-            part.$sectionID.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
-            part.$repeatCount.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
-            part.$startBeat.dropFirst().removeDuplicates().sink { [weak self] _ in self?.markDirty() }.store(in: &partChanges)
+        for part in parts { part.changed = { [weak self] in self?.markDirty() } }
+    }
+    // Value snapshots retain immutable PCM buffers, never engines or playback state.
+    private struct SongPartState {
+        let part: EnsemblePart
+        let name: String
+        let instrument: EnsembleInstrument?
+        let instrumentURL: URL?
+        let clips: [EnsembleClip]
+        let gain: Double
+        let muted: Bool
+    }
+    private struct SongState {
+        let sections: [EnsembleSection]
+        let parts: [SongPartState]
+        let tempo: Double
+        let master: Double
+        func matches(_ other: Self) -> Bool {
+            guard sections == other.sections, tempo == other.tempo, master == other.master,
+                  parts.count == other.parts.count else { return false }
+            return zip(parts, other.parts).allSatisfy { a, b in
+                let sameInstrument: Bool
+                switch (a.instrument, b.instrument) {
+                case (nil, nil): sameInstrument = true
+                case let (a?, b?):
+                    sameInstrument = a.sample.buffer === b.sample.buffer && a.root == b.root &&
+                        a.envelope == b.envelope && a.loop == b.loop && a.name == b.name
+                default: sameInstrument = false
+                }
+                return a.part.id == b.part.id && a.name == b.name && sameInstrument &&
+                    a.instrumentURL == b.instrumentURL && a.clips == b.clips && a.gain == b.gain && a.muted == b.muted
+            }
         }
+    }
+    private struct SongEdit { let before: SongState; let after: SongState; let label: String }
+    @Published private var songUndo: [SongEdit] = []
+    @Published private var songRedo: [SongEdit] = []
+    private var historyState: SongState?
+    private var historyDepth = 0
+    private var historyLabel = "曲の構成を編集"
+    private func songState() -> SongState {
+        SongState(sections: sections, parts: parts.map {
+            SongPartState(part: $0, name: $0.name, instrument: $0.instrument, instrumentURL: $0.instrumentURL,
+                          clips: $0.allClips, gain: $0.gainDB, muted: $0.muted)
+        }, tempo: tempo, master: masterDB)
+    }
+    private func beginSongEdit(_ label: String) {
+        if historyDepth == 0 { historyLabel = label }
+        historyDepth += 1
+    }
+    private func endSongEdit() {
+        historyDepth -= 1
+        if historyDepth == 0 { recordSongEdit(); historyLabel = "曲の構成を編集" }
+    }
+    private func recordSongEdit() {
+        let after = songState()
+        guard let before = historyState else { historyState = after; return }
+        guard !before.matches(after) else { return }
+        songUndo.append(SongEdit(before: before, after: after, label: historyLabel))
+        if songUndo.count > 50 { songUndo.removeFirst() }
+        songRedo.removeAll(); historyState = after
+        revision = UUID(); dirty = true; fileMessage = nil
+    }
+    private func resetSongHistory() {
+        songUndo.removeAll(); songRedo.removeAll(); historyState = songState()
+    }
+    var canUndoSong: Bool { canEdit && !songUndo.isEmpty && historyDepth == 0 }
+    var canRedoSong: Bool { canEdit && !songRedo.isEmpty && historyDepth == 0 }
+    var undoSongLabel: String { songUndo.last?.label ?? "曲の編集" }
+    var redoSongLabel: String { songRedo.last?.label ?? "曲の編集" }
+    @discardableResult func restoreSongEdit(redo: Bool = false) -> Bool {
+        guard redo ? canRedoSong : canUndoSong, let edit = redo ? songRedo.last : songUndo.last else { return false }
+        let state = redo ? edit.after : edit.before
+        stop()
+        applyingSnapshot = true
+        // Detach removed parts as well, so retained references cannot create ghost edits.
+        parts.forEach { $0.changed = nil }
+        for value in state.parts {
+            let part = value.part, first = value.clips[0]
+            part.name = value.name; part.instrument = value.instrument; part.instrumentURL = value.instrumentURL
+            part.performance = first.performance; part.startBeat = first.startBeat
+            part.repeatCount = first.repeatCount; part.sectionID = first.sectionID
+            part.additionalClips = Array(value.clips.dropFirst()); part.gainDB = value.gain; part.muted = value.muted
+        }
+        sections = state.sections; parts = state.parts.map(\.part); tempo = state.tempo; masterDB = state.master
+        applyingSnapshot = false
+        if redo { songRedo.removeLast(); songUndo.append(edit) }
+        else { songUndo.removeLast(); songRedo.append(edit) }
+        historyState = songState(); noteHistories.removeAll()
+        revision = UUID(); dirty = true; fileMessage = nil; error = nil
+        durationBeats = 0; positionBeats = 0
+        return true
     }
     var arrangementRevision: UUID { revision }
     func arrangementBrief(prompt: String) throws -> ArrangementBrief {
@@ -159,6 +241,7 @@ final class EnsembleModel: ObservableObject {
         try brief.validate(); return brief
     }
     @discardableResult func applyArrangement(_ proposal: ArrangementProposal, brief: ArrangementBrief) -> Bool {
+        beginSongEdit("AI編曲を採用"); defer { endSongEdit() }
         guard canEdit else { error = "Stop All後、保存や書き出しの完了を待ってから採用してください。"; return false }
         do {
             guard revision == brief.revision, parts.map(\.id) == brief.partIDs else {
@@ -212,7 +295,7 @@ final class EnsembleModel: ObservableObject {
             stop(); durationBeats = 0
             applyingSnapshot = true
             sections = loaded.sections; parts = replacements; tempo = loaded.tempo; masterDB = loaded.masterDB
-            applyingSnapshot = false; noteHistories.removeAll(); revision = UUID(); dirty = false; fileURL = url
+            applyingSnapshot = false; noteHistories.removeAll(); resetSongHistory(); revision = UUID(); dirty = false; fileURL = url
             if remember { defaults.set(url.path, forKey: Self.lastFileKey) }
             fileMessage = "Opened · " + url.lastPathComponent; error = nil
             return true
@@ -278,6 +361,7 @@ final class EnsembleModel: ObservableObject {
         sections.append(EnsembleSection(name: "Section \(sections.count + 1)", beats: 16))
     }
     @discardableResult func duplicateSection(_ id: UUID) -> UUID? {
+        beginSongEdit("セクションを複製"); defer { endSongEdit() }
         guard canEdit else { return nil }
         do {
             guard let index = sections.firstIndex(where: { $0.id == id }) else {
@@ -321,6 +405,7 @@ final class EnsembleModel: ObservableObject {
         return max(0, min(256, section.beats - (EnsembleTimeline.repeatedLength(part.performance, count: part.repeatCount) ?? 0)))
     }
     func addSongDemo() async {
+        beginSongEdit("デモ曲を追加"); defer { endSongEdit() }
         guard canEdit else { return }
         guard parts.isEmpty && sections.isEmpty else { error = "Demo Songはパートとセクションが空のときに追加できます。既存構成は先に保存してください。"; return }
         await addDemos()
@@ -355,6 +440,7 @@ final class EnsembleModel: ObservableObject {
         } catch { self.error = "クリップを複製できませんでした。\n" + error.localizedDescription; return nil }
     }
     func editClip(part id: UUID, clip clipID: UUID, change: (inout EnsembleClip) -> Void) {
+        beginSongEdit("クリップを編集"); defer { endSongEdit() }
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
         let before = part.allClips.first { $0.id == clipID }?.performance
         if clipID == part.primaryClipID {
@@ -369,6 +455,7 @@ final class EnsembleModel: ObservableObject {
         }
     }
     func setInstrumentSettings(part id: UUID, root: Int, envelope: ADSRParameters, loop: SampleLoop) {
+        beginSongEdit("楽器設定を変更"); defer { endSongEdit() }
         guard canEdit, let part = parts.first(where: { $0.id == id }), let old = part.instrument else { return }
         guard (48...72).contains(root), envelope.isValid,
               loop.isValid(frameCount: Int64(old.sample.buffer.frameLength), sampleRate: old.sample.buffer.format.sampleRate) else {
@@ -475,6 +562,7 @@ final class EnsembleModel: ObservableObject {
     /// Atomic note edits validate the complete part, including repeated placement and siblings.
     @discardableResult
     func editClipNotes(part id: UUID, clip clipID: UUID, change: (inout [PerformanceNote]) -> Void) -> Bool {
+        beginSongEdit("音符を編集"); defer { endSongEdit() }
         guard canEdit, let part = parts.first(where: { $0.id == id }),
               let index = part.allClips.firstIndex(where: { $0.id == clipID }) else { return false }
         var clips = part.allClips
@@ -509,6 +597,7 @@ final class EnsembleModel: ObservableObject {
     }
     @discardableResult
     func restoreNoteEdit(part id: UUID, clip clipID: UUID, redo: Bool = false) -> Bool {
+        beginSongEdit("音符の履歴を適用"); defer { endSongEdit() }
         guard redo ? canRedoNotes(part: id, clip: clipID) : canUndoNotes(part: id, clip: clipID),
               let part = parts.first(where: { $0.id == id }),
               let index = part.allClips.firstIndex(where: { $0.id == clipID }) else { return false }
@@ -547,6 +636,7 @@ final class EnsembleModel: ObservableObject {
         } else { part.startBeat = min(beat, maximumStart(for: part)) }
     }
     func addSharedSongDemo() async {
+        beginSongEdit("デモ曲を追加"); defer { endSongEdit() }
         await addSongDemo()
         guard error == nil, parts.count == 3, sections.count == 3 else { return }
         let pad = parts[0], chorus = parts[2], pluck = parts[1]
@@ -562,6 +652,7 @@ final class EnsembleModel: ObservableObject {
         catch { self.error = error.localizedDescription }
     }
     func loadInstrument(_ url: URL, part id: UUID) async {
+        beginSongEdit("楽器を読み込み"); defer { endSongEdit() }
         guard canEdit, let part = parts.first(where: { $0.id == id }) else { return }
         busy = true; defer { busy = false }
         do {
@@ -583,6 +674,7 @@ final class EnsembleModel: ObservableObject {
         catch { self.error = "パートの演奏を読み込めませんでした。\n" + error.localizedDescription }
     }
     func addDemos(staggered: Bool = false, repeating: Bool = false) async {
+        beginSongEdit("デモを追加"); defer { endSongEdit() }
         guard canEdit else { return }
         guard parts.count <= Self.maximumParts - 2 else { error = "デモ2パートを追加するには空きを2つ用意してください。"; return }
         busy = true; defer { busy = false }

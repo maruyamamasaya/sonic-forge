@@ -193,3 +193,7 @@ ArrangementGeneration.materializeが既存partIDと新sectionIndexを解決し�
 
 ## Japanese Presentation and Help
 主要SwiftUIビューの表示とアクセシビリティ名を日本語化。既存の明示ラベルはaccessibilityIdentifierとして保持し、JapaneseUI.swiftがプリセット/生成方式/木材名/状態接頭辞の表示変換を担当する。enum rawValue・モデルの状態メッセージ・保存データ名/キーは変更しない。StudioHelpButtonは両主要画面に共通の検索付きポップオーバーを開き、StudioHelpTopicが短い用語説明を保持する。設定のhelp属性にも説明を付ける。ヘルプと検索は表示状態のみで保存/発音/編集へ接続しない。
+
+## Song Edit History
+EnsembleModelのSongState/SongEditが全体の値スナップショットを直近50操作保持する。音源PCMは共有しコピー/再デコードしない。EnsemblePartは変更後のdidSetコールバックを親へ通知する（PublishedのwillSet時点を履歴に使わない）。モデルの複合操作はbeginSongEdit/endSongEditでネストをまとめ、差分がある確定状態だけを記録。パート参照と値を保持してUUIDを復元し、削除したパートの通知は切り離す。
+restoreSongEditは再生/処理中を拒否し、既存音声を停止して一括復元、noteHistoriesを破棄、revision更新とdirty化を行う。未割当/入力途中の値も戻せるよう保存用snapshotとは分離し、再生/保存/WAV時の検証は維持。保存先/表示選択/ライブラリ/clipboard/接続設定/履歴自体は巻き戻さない。構成読込成功時のみ履歴をクリアし、形式v5を維持する。操作仕様は[ENSEMBLE](ENSEMBLE.md#曲全体の取り消しやり直し)。

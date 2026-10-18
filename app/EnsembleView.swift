@@ -39,6 +39,12 @@ struct EnsembleView: View {
             }.buttonStyle(StudioButton()).disabled(!ensemble.canEdit || ensemble.parts.count >= 4)
             Text(JapaneseUI.status(ensemble.fileMessage ?? ensemble.fileURL?.lastPathComponent ?? "無題の構成・制作を続けるために保存してください"))
                 .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            HStack {
+                Button("曲の編集を取り消す") { ensemble.restoreSongEdit() }.disabled(!ensemble.canUndoSong)
+                    .accessibilityIdentifier("Undo song edit").help(ensemble.undoSongLabel)
+                Button("曲の編集をやり直す") { ensemble.restoreSongEdit(redo: true) }.disabled(!ensemble.canRedoSong)
+                    .accessibilityIdentifier("Redo song edit").help(ensemble.redoSongLabel)
+            }.buttonStyle(StudioButton())
             EnsembleSectionsView(ensemble: ensemble)
             if ensemble.parts.isEmpty {
                 VStack(spacing: 14) {

@@ -36,6 +36,7 @@ enum WorkspaceTests {
             precondition(restored.parts[0].performance == before && restored.parts[0].instrument!.root == 58)
             restored.stop(); precondition(restored.parts.allSatisfy { $0.voices == 0 })
         }
+        try await songHistory()
         try await noteEditing()
         try await noteHistory()
         try await multipleNotes()
@@ -457,6 +458,91 @@ enum WorkspaceTests {
         try await EnsembleExport.write(model.snapshot(), to: wav)
         let audio = try AudioAsset.load(wav); precondition(audio.duration > 0)
         print("PASS: cross-clip note clipboard preserves sounding pitch/velocity/rhythm/channels, copy stays clean, one-step history, atomic failures, additional clips, save/restore and WAV")
+    }
+
+    @MainActor private static func songHistory() async throws {
+        let model = EnsembleModel()
+        await model.addSharedSongDemo()
+        let part = model.parts[0], ids = model.parts.map(\.id), original = part.allClips
+        let sections = model.sections, buffer = part.instrument!.sample.buffer
+        // A whole demo is one operation, including all nested construction.
+        precondition(model.restoreSongEdit() && model.parts.isEmpty && model.sections.isEmpty)
+        precondition(model.restoreSongEdit(redo: true) && model.parts.map(\.id) == ids)
+        precondition(model.parts[0] === part && part.allClips == original)
+        // Local note history remains usable; global restoration invalidates it safely.
+        precondition(model.editClipNotes(part: part.id, clip: part.primaryClipID) { $0[0].velocity = 33 })
+        precondition(model.canUndoNotes(part: part.id, clip: part.primaryClipID))
+        let changedNotes = part.performance
+        precondition(model.restoreNoteEdit(part: part.id, clip: part.primaryClipID))
+        precondition(part.allClips == original && model.restoreSongEdit())
+        precondition(part.performance == changedNotes && !model.canUndoNotes(part: part.id, clip: part.primaryClipID))
+        precondition(model.restoreSongEdit() && part.allClips == original)
+        let oldRoot = part.instrument!.root
+        model.setInstrumentSettings(part: part.id, root: oldRoot + 1, envelope: part.instrument!.envelope, loop: part.instrument!.loop)
+        precondition(model.restoreSongEdit() && part.instrument!.root == oldRoot && part.instrument!.sample.buffer === buffer)
+        part.gainDB = -9
+        precondition(model.restoreSongEdit() && part.gainDB == 0)
+        part.muted = true
+        precondition(model.restoreSongEdit() && !part.muted)
+        model.remove(part.id)
+        precondition(model.restoreSongEdit() && model.parts[0] === part && part.allClips == original)
+        model.movePart(part.id, to: 0.25)
+        precondition(part.startBeat == 0.25 && model.restoreSongEdit() && part.startBeat == 0)
+        model.movePart(part.id, to: 0) // no-op preserves redo
+        precondition(model.canRedoSong && model.restoreSongEdit(redo: true) && part.startBeat == 0.25)
+        precondition(model.restoreSongEdit())
+        let copied = model.duplicateSection(sections[2].id)!
+        let copiedClips = model.parts.map(\.allClips)
+        precondition(model.sections.count == 4 && model.restoreSongEdit())
+        precondition(model.sections == sections && part.allClips == original)
+        precondition(model.restoreSongEdit(redo: true) && model.sections.last!.id == copied)
+        precondition(model.parts.map(\.allClips) == copiedClips)
+        precondition(model.restoreSongEdit())
+        model.sections[0].name = "導入"
+        precondition(model.restoreSongEdit() && model.sections == sections)
+        model.sections[0].beats = 12
+        precondition(!model.canRedoSong && model.restoreSongEdit() && model.sections == sections)
+        model.reorderSection(sections[1].id, by: 1)
+        precondition(model.restoreSongEdit() && model.sections == sections)
+        let brief = try model.arrangementBrief(prompt: "イントロは薄く、サビで厚く")
+        let proposal = try ArrangementGeneration.demo(brief)
+        precondition(model.applyArrangement(proposal, brief: brief))
+        let adopted = model.parts.map(\.allClips), adoptedSections = model.sections
+        precondition(model.undoSongLabel == "AI編曲を採用" && model.restoreSongEdit())
+        precondition(model.parts.map(\.id) == ids && model.sections == sections && part.allClips == original)
+        precondition(part.instrument!.sample.buffer === buffer && model.dirty)
+        precondition(!model.applyArrangement(proposal, brief: brief)) // undo still invalidates stale proposals
+        precondition(model.canRedoSong && model.restoreSongEdit(redo: true))
+        precondition(model.sections == adoptedSections && model.parts.map(\.allClips) == adopted)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("history.sfensemble")
+        let saved = await model.save(to: file, remember: false)
+        precondition(saved && !model.dirty && model.canUndoSong)
+        precondition(model.restoreSongEdit() && model.dirty && part.allClips == original)
+        let wav = dir.appendingPathComponent("undone.wav")
+        try await EnsembleExport.write(model.snapshot(), to: wav)
+        let audio = try AudioAsset.load(wav); precondition(audio.duration > 0)
+        let failed = await model.load(dir.appendingPathComponent("missing"), remember: false)
+        precondition(!failed && model.canRedoSong)
+        let loaded = await model.load(file, remember: false)
+        precondition(loaded && !model.canUndoSong && !model.canRedoSong && !model.dirty)
+        precondition(model.parts.map(\.allClips).map { $0.map(\.performance) } == adopted.map { $0.map(\.performance) })
+        let empty = EnsembleModel()
+        empty.addPart(); empty.parts[0].name = "Edited"
+        precondition(empty.restoreSongEdit() && empty.parts[0].name == "Part 1")
+        precondition(empty.restoreSongEdit() && empty.parts.isEmpty)
+        for n in 0..<60 { empty.tempo = Double(101 + n) }
+        var count = 0
+        while empty.restoreSongEdit() { count += 1 }
+        precondition(count == 50)
+        if CommandLine.arguments.contains("--playback") {
+            model.tempo = 180; model.play()
+            precondition(model.playing && !model.canUndoSong && !model.restoreSongEdit())
+            model.stop(); precondition(model.restoreSongEdit() && model.parts.allSatisfy { $0.voices == 0 })
+        }
+        print("PASS: song history atomic demo/section/AI undo-redo, UUID/PCM preservation, no-op/branch/limit, save/load/WAV and stale proposal guard")
     }
 
 }

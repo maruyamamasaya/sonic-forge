@@ -59,6 +59,8 @@ app配下の追加ルールは [app/AGENTS.md](app/AGENTS.md)。外部操作API�
 
 今後の機能もFeature / Primary paths / Search keywords / Key entry points / Related testsを短く追記する。
 
+曲全体の履歴: `app/EnsembleModel.swift` のSongState/recordSongEdit/restoreSongEdit、UIはWorkspaceView/EnsembleView、回帰は `tests/WorkspaceTests.swift` のsongHistory。
+
 ## 検索方法
 | 分かっていること | 優先する探索 |
 | --- | --- |
