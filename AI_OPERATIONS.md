@@ -149,7 +149,7 @@ EnsemblePart.additionalClips/allClips、EnsembleModel.addClip/editClip/setClipPe
 起動入口はWorkspaceView。EnsembleModel/InstrumentLibrary/PlayerModelは同じインスタンスを共有する。左楽器を検索→一覧選択→試聴/試聴停止、割り当て（選択パート）、新規パートに追加。選択したファイルのavailableとpartを確認し、失敗はlibrary/ensemble.errorで判定する。
 中央Select part 名前またはTimeline clip for パート名/演奏名/UUIDをクリック→右Inspector。Selected clip section/start/repeat/transpose/velocityを読み、編集が対象IDだけへ反映することを確認する。ドラッグ/増減は従来movePart。古いID/削除済みIDは使わず、再読込後は最新のUUIDを再取得。選択状態は未保存変更にならない。
 Inspector modeをInstrumentへ切り替え、Selected instrument root/Attack/Decay/Sustain/Release/loopを操作する。setInstrumentSettingsは共有PCMを維持し基準音/ADSR/Loopだけを変更、無効値/再生中は保持する。値は構成へ保存し、ライブラリ原本を変更しない。最初のクリップもeditClip/setClipPerformance/openClipPerformanceで編集できる。
-全行を一覧で操作したい場合は全パート…（旧Ensembleシート）。素材・楽器編集を開くで従来の波形/鍵盤/MIDI/Composeへ切り替え、曲の構成へで戻る。画面移動は音を止める。main表示中はStudioのPC鍵盤・MIDIを抑制、Spaceは構成、⌘Sは構成保存。Studioでは従来のキー操作へ戻る。ファイルメニューのOpen WAV/Open Instrument/デモを開くはStudioを表示する。
+全行を一覧で操作したい場合は全パート…（旧Ensembleシート）。素材・楽器編集を開くで従来の波形/鍵盤/MIDI/Composeへ切り替え、曲の構成へで戻る。画面移動は音を止める。main表示中はStudioのPC鍵盤・MIDIを抑制、Spaceは構成の再生/一時停止、⌘Sは構成保存。Studioでは従来のキー操作へ戻る。ファイルメニューのOpen WAV/Open Instrument/デモを開くはStudioを表示する。
 メインのStop all workspace audioで構成・ライブラリ試聴・Studioを停止。再生/書き出し中は割り当て・配置・音色編集不可。Stop後playing=false/全voices=0/previewing=nilを確認する。書き出しは上部WAV書き出し…、進捗とキャンセル Exportは下部。構成Openはdirty時の確認と失敗保持を継続する。
 
 ## Natural Studio: セクション帯と音符表示
@@ -222,3 +222,12 @@ Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32
 再生/保存/読込/出力中は無効。Stop all workspace audioで停止し、busy=falseを確認して操作する。上段の履歴適用は音声を止め、再生を始めない。AI編曲の採用も戻せるが、履歴操作でrevisionは更新されるため以前の生成候補は再採用できず、現在の構成から再生成する。保存後も履歴は使用可能、読込成功/再起動で空、読込失敗で保持。履歴はファイルに含めず、適用結果を構成保存/再生/WAVへ渡す。ライブラリの登録やSample Studio単体の編集は対象外。
 
 デモ確認: デモ曲→クリップを¼拍移動→上段Undo/Redoで開始拍を確認→サビを所属クリップごと複製→上段Undo/Redoで帯と全クリップを確認→AI編曲をデモ生成して採用→上段Undoで元構成・Redoで採用構成へ戻る→保存/再読込/WAV出力。元ファイルを残す場合は別名保存する。
+
+## 途中再生と範囲ループの試聴
+入口はEnsembleModel.seek(to:)/pause()/play()、setPlaybackRange(start:end:enabled:)/setRangeLoopEnabled/loopSection。UIはSong timeline ruler（曲の再生位置・拍目盛り）をクリック/Increment/Decrementするか、Song seek beat→Seek song。範囲はSong loop start / Song loop end→Apply song loop range。セクション帯選択→Loop selected sectionでも設定できる。Song range loopで有効/無効を切り替える。設定は停止中・busy=falseのみ。開始/終了は曲内の有限数・¼拍以上。失敗はfalseとensemble.errorで判定、以前の範囲を保持する。
+
+成功はpositionBeats、playbackRange、rangeLoopEnabledとタイムラインのハイライトで確認。範囲内からplayするとそこから最初の周回を開始し、以後は範囲先頭へ戻る。再生中のシークは音声を止めて再スケジュールする。playing=true、playbackPassの増加、範囲内positionBeats、各パートvoices/出力で実行を判定する。単なる候補表示やループONだけを演奏成功と扱わない。途中の保持音は先頭/Attackから再発音し、Release途中の音声位相は復元しない。
+
+一時停止（またはメインのSpace）→playing=false/voices=0で編集→再生で同じ範囲へ戻れる。停止入口Stop all workspace audio（全停止）は全音・ペダル・予約イベントを止め拍0へ戻す。範囲自体は保持する。曲全体へ戻る場合は停止後にSong range loopをOFF、seek(to:0)して再生。非アクティブ/画面移動でも停止する。
+
+試聴状態はdirty/revision/Undo履歴/構成保存/WAVに含めない。WAVは常に曲全体を出力する。読込成功/再起動で範囲OFF・拍0。構成短縮で範囲が曲外なら解除され、全体Undoでも試聴範囲は復元しない。デモ確認はサビ帯→選択区切り→範囲を再生→2周以上→一時停止して音符の強弱変更→再生→全停止。保存済みの元構成を変えた場合は別名保存する。

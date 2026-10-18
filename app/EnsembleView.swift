@@ -73,9 +73,10 @@ struct EnsembleView: View {
                         Text("BPM").foregroundStyle(.secondary)
                     }.font(.system(size: 12)).disabled(!ensemble.canEdit)
                 }
-                Button(ensemble.playing ? "全停止" : "全体を再生") {
-                    if ensemble.playing { ensemble.stop() }
-                    else { model.stop(); ensemble.play() }
+                Button("全停止") { ensemble.stop() }.buttonStyle(StudioButton())
+                Button(ensemble.playing ? "一時停止" : "再生") {
+                    if ensemble.playing { ensemble.pause() }
+                    else { model.prepareEnsemblePlayback(); ensemble.play() }
                 }.buttonStyle(StudioButton(primary: true)).disabled(ensemble.busy || ensemble.parts.isEmpty)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(ensemble.playing ? (ensemble.releasing ? "余韻を再生中…" : String(format: "再生位置 %.1f / %.1f 拍", ensemble.positionBeats, ensemble.durationBeats)) : "準備完了・共通テンポ")
@@ -88,6 +89,7 @@ struct EnsembleView: View {
                     Text("出力 \(Int(ensemble.level)) dB").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
                 }
             }
+            EnsembleTransportControls(ensemble: ensemble)
             if ensemble.exporting {
                 HStack {
                     ProgressView(value: ensemble.exportProgress).tint(accent)

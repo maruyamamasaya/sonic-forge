@@ -6,6 +6,7 @@ struct AudioTests {
     @MainActor static func main() async throws {
         try PerformanceTests.run()
         try await EnsembleTests.run()
+        try await EnsemblePlaybackTests.run()
         try await EnsemblePersistenceTests.run()
         try await EnsembleExportTests.run()
         try await EnsembleSectionTests.run()

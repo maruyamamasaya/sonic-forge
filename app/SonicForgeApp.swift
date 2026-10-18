@@ -16,8 +16,8 @@ struct SonicForgeApp: App {
             CommandMenu("再生") {
                 Button("再生・一時停止") {
                     if model.ensembleWorkspaceActive {
-                        if model.ensemble.playing { model.ensemble.stop() }
-                        else { model.stop(); model.library.stopPreview(); model.ensemble.play() }
+                        if model.ensemble.playing { model.ensemble.pause() }
+                        else { model.prepareEnsemblePlayback(); model.library.stopPreview(); model.ensemble.play() }
                     } else { model.toggle() }
                 }
                     .keyboardShortcut(.space, modifiers: [])

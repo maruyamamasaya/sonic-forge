@@ -112,8 +112,8 @@ final class PlayerModel: ObservableObject {
             if self.ensembleWorkspaceActive {
                 guard event.type == .keyDown, event.keyCode == 49, modifiers.isEmpty else { return event }
                 if !event.isARepeat && !self.ensemble.busy {
-                    if self.ensemble.playing { self.ensemble.stop() }
-                    else { self.stop(); self.library.stopPreview(); self.ensemble.play() }
+                    if self.ensemble.playing { self.ensemble.pause() }
+                    else { self.prepareEnsemblePlayback(); self.library.stopPreview(); self.ensemble.play() }
                 }
                 return nil
             }
@@ -543,6 +543,13 @@ final class PlayerModel: ObservableObject {
     func fitAll() { editor.setZoom(1, around: 0.5) }
     func fitSelection() { editor.fitSelection() }
     func pan(to center: Double) { editor.pan(to: center) }
+
+    /// Stop Sample Studio audio without losing the ensemble audition cursor.
+    func prepareEnsemblePlayback() {
+        let beat = ensemble.positionBeats
+        stop()
+        ensemble.seek(to: beat)
+    }
 
     func stop() {
         stopInstrument()

@@ -96,3 +96,5 @@ Status: proposed / accepted / superseded
 - [0036: 人が操作できる日本語の制作画面と説明](0036-human-operated-japanese-ui.md)
 
 - [0037: 曲全体の編集履歴](0037-song-edit-history.md)
+
+- [0038: 曲の途中再生と範囲ループ試聴](0038-ensemble-audition-transport.md)

@@ -127,6 +127,55 @@ final class EnsembleModel: ObservableObject {
     private var generation = UUID()
     private var startedAt = 0.0
     private var playbackTempo = 100.0
+    private var playbackStart = 0.0
+    private var playbackEnd = 0.0
+    @Published private(set) var playbackRange: Range<Double>?
+    @Published private(set) var rangeLoopEnabled = false
+    @Published private(set) var playbackPass = 0
+    var arrangementLength: Double {
+        max(EnsembleSections.end(sections), parts.flatMap(\.allClips).map {
+            EnsembleSections.offset($0.sectionID, in: sections) + ($0.startBeat.isFinite ? max(0, $0.startBeat) : 0)
+                + (EnsembleTimeline.repeatedLength($0.performance, count: $0.repeatCount) ?? 0)
+        }.max() ?? 0)
+    }
+    @discardableResult func setPlaybackRange(start: Double, end: Double, enabled: Bool = true) -> Bool {
+        guard canEdit else { return false }
+        guard start.isFinite, end.isFinite, start >= 0, end - start >= 0.25, end <= arrangementLength else {
+            error = "再生範囲は曲の中で、開始から終了まで¼拍以上を指定してください。"; return false
+        }
+        playbackRange = start..<end; rangeLoopEnabled = enabled; error = nil
+        if enabled { positionBeats = start }
+        return true
+    }
+    func loopSection(_ id: UUID) {
+        guard let section = sections.first(where: { $0.id == id }) else { return }
+        let start = EnsembleSections.offset(id, in: sections)
+        _ = setPlaybackRange(start: start, end: start + section.beats)
+    }
+    func setRangeLoopEnabled(_ enabled: Bool) {
+        guard canEdit else { return }
+        if enabled {
+            if let range = playbackRange { _ = setPlaybackRange(start: range.lowerBound, end: range.upperBound) }
+            else { _ = setPlaybackRange(start: 0, end: arrangementLength) }
+        } else { rangeLoopEnabled = false }
+    }
+    func seek(to beat: Double) {
+        guard !busy, beat.isFinite, beat >= 0, beat <= arrangementLength else { return }
+        let resume = playing
+        if resume { stop(resetPosition: false) }
+        positionBeats = rangeLoopEnabled && playbackRange != nil ? min(max(beat, playbackRange!.lowerBound), playbackRange!.upperBound) : beat
+        if resume { play() }
+    }
+    func pause() {
+        guard playing else { return }
+        refresh(); stop(resetPosition: false)
+    }
+    private func reconcilePlaybackRange() {
+        if let range = playbackRange, range.upperBound > arrangementLength {
+            playbackRange = nil; rangeLoopEnabled = false
+        }
+        positionBeats = min(positionBeats, arrangementLength)
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -203,6 +252,7 @@ final class EnsembleModel: ObservableObject {
         if songUndo.count > 50 { songUndo.removeFirst() }
         songRedo.removeAll(); historyState = after
         revision = UUID(); dirty = true; fileMessage = nil
+        reconcilePlaybackRange()
     }
     private func resetSongHistory() {
         songUndo.removeAll(); songRedo.removeAll(); historyState = songState()
@@ -229,7 +279,7 @@ final class EnsembleModel: ObservableObject {
         applyingSnapshot = false
         if redo { songRedo.removeLast(); songUndo.append(edit) }
         else { songUndo.removeLast(); songRedo.append(edit) }
-        historyState = songState(); noteHistories.removeAll()
+        historyState = songState(); noteHistories.removeAll(); reconcilePlaybackRange()
         revision = UUID(); dirty = true; fileMessage = nil; error = nil
         durationBeats = 0; positionBeats = 0
         return true
@@ -292,7 +342,7 @@ final class EnsembleModel: ObservableObject {
                 part.gainDB = item.gainDB; part.muted = item.muted; part.startBeat = item.startBeat; part.repeatCount = item.repeatCount; part.sectionID = item.sectionID; part.additionalClips = item.additionalClips
                 return part
             }
-            stop(); durationBeats = 0
+            stop(); durationBeats = 0; playbackRange = nil; rangeLoopEnabled = false
             applyingSnapshot = true
             sections = loaded.sections; parts = replacements; tempo = loaded.tempo; masterDB = loaded.masterDB
             applyingSnapshot = false; noteHistories.removeAll(); resetSongHistory(); revision = UUID(); dirty = false; fileURL = url
@@ -727,7 +777,16 @@ final class EnsembleModel: ObservableObject {
         guard canEdit else { return }
         do {
             let events = try timeline() // Validate every part before starting any audio.
-            stop()
+            reconcilePlaybackRange()
+            let total = arrangementLength
+            let range = rangeLoopEnabled ? playbackRange : nil
+            let begin = range.map { $0.contains(positionBeats) ? positionBeats : $0.lowerBound }
+                ?? (positionBeats < total ? positionBeats : 0)
+            let end = range?.upperBound ?? total
+            let firstPlan = try EnsemblePlayback.plan(events: events, start: begin, end: end, tempo: tempo)
+            // Full-song playback includes terminal note-offs/pedal-up at the song end.
+            let terminal = range == nil ? events.filter { abs($0.time - total * 60 / tempo) < 1e-9 } : []
+            stop(resetPosition: false)
             let engine = AVAudioEngine(); self.engine = engine
             engine.mainMixerNode.installTap(onBus: 0, bufferSize: 512, format: nil) { [meter] buffer, _ in meter.update(buffer) }
             for (index, part) in parts.enumerated() {
@@ -737,35 +796,47 @@ final class EnsembleModel: ObservableObject {
             }
             updateGains()
             engine.prepare(); try engine.start()
-            durationBeats = max((events.last?.time ?? 0) * tempo / 60, EnsembleSections.end(sections))
+            durationBeats = total; playbackStart = begin; playbackEnd = end; positionBeats = begin
             playbackTempo = tempo; startedAt = ProcessInfo.processInfo.systemUptime
-            playing = true; releasing = false; error = nil
-            let token = generation
+            playing = true; releasing = false; playbackPass = 1; error = nil
+            let token = generation, fixedTempo = playbackTempo
             task = Task { [weak self] in
-                for event in events {
-                    guard let self else { return }
-                    do {
-                        let delay = max(0, self.startedAt + event.time - ProcessInfo.processInfo.systemUptime)
-                        if delay > 0 { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
-                        guard !Task.isCancelled, self.generation == token else { return }
-                        try self.voices[event.part]?.receive(event.bytes)
-                    } catch is CancellationError { return }
-                    catch { self.stop(); self.error = "演奏を停止しました。\n" + error.localizedDescription; return }
-                }
-                guard let self, self.generation == token else { return }
-                let remaining = self.startedAt + self.durationBeats * 60 / self.playbackTempo - ProcessInfo.processInfo.systemUptime
-                if remaining > 0 {
-                    do { try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) } catch { return }
-                    guard self.generation == token, !Task.isCancelled else { return }
-                }
-                self.releasing = true
-                // Retain each part's Release tail before completing the session.
-                let tailDeadline = ProcessInfo.processInfo.systemUptime + 6
-                while self.voices.values.contains(where: { $0.sampler.isSounding }) && ProcessInfo.processInfo.systemUptime < tailDeadline {
-                    do { try await Task.sleep(nanoseconds: 33_000_000) } catch { return }
+                guard let self else { return }
+                do {
+                    var plan = firstPlan
+                    while true {
+                        for event in plan.initial { try self.voices[event.part]?.receive(event.bytes) }
+                        for event in plan.events {
+                            let delay = max(0, self.startedAt + event.time - ProcessInfo.processInfo.systemUptime)
+                            if delay > 0 { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
+                            guard !Task.isCancelled, self.generation == token else { return }
+                            try self.voices[event.part]?.receive(event.bytes)
+                        }
+                        let deadline = self.startedAt + (plan.end - plan.start) * 60 / fixedTempo
+                        let remaining = deadline - ProcessInfo.processInfo.systemUptime
+                        if remaining > 0 { try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) }
+                        guard self.generation == token, !Task.isCancelled else { return }
+                        if let range {
+                            self.voices.values.forEach { $0.stop() }
+                            plan = try EnsemblePlayback.plan(events: events, start: range.lowerBound, end: range.upperBound, tempo: fixedTempo)
+                            self.startedAt = max(deadline, ProcessInfo.processInfo.systemUptime)
+                            self.playbackStart = range.lowerBound; self.positionBeats = range.lowerBound
+                            self.playbackPass += 1
+                        } else { break }
+                    }
+                    for event in terminal { try self.voices[event.part]?.receive(event.bytes) }
+                    self.positionBeats = end; self.releasing = true
+                    let tailDeadline = ProcessInfo.processInfo.systemUptime + 6
+                    while self.voices.values.contains(where: { $0.sampler.isSounding }) && ProcessInfo.processInfo.systemUptime < tailDeadline {
+                        try await Task.sleep(nanoseconds: 33_000_000)
+                        guard self.generation == token, !Task.isCancelled else { return }
+                    }
+                    self.stop(resetPosition: false)
+                } catch is CancellationError { return }
+                catch {
                     guard self.generation == token else { return }
+                    self.stop(); self.error = "演奏を停止しました。\n" + error.localizedDescription
                 }
-                self.stop(resetPosition: false)
             }
         } catch { stop(); self.error = "同時再生を開始できませんでした。\n" + error.localizedDescription }
     }
@@ -777,7 +848,7 @@ final class EnsembleModel: ObservableObject {
     private func refresh() {
         guard playing else { return }
         updateGains()
-        positionBeats = min(durationBeats, max(0, (ProcessInfo.processInfo.systemUptime - startedAt) * playbackTempo / 60))
+        positionBeats = min(playbackEnd, max(playbackStart, playbackStart + (ProcessInfo.processInfo.systemUptime - startedAt) * playbackTempo / 60))
         level = meter.read().max() ?? -60
         for part in parts {
             guard let voice = voices[part.id] else { continue }

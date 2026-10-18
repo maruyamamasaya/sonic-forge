@@ -70,8 +70,25 @@ struct EnsembleTimelineView: View {
                                     .offset(x: Double(index * 4) * scale + 3, y: 2)
                             }
                         }.frame(width: extent * scale, height: 22, alignment: .topLeading)
+                            .contentShape(Rectangle())
+                            .gesture(DragGesture(minimumDistance: 0).onEnded { value in
+                                ensemble.seek(to: min(ensemble.arrangementLength, max(0, (value.location.x / scale * 4).rounded() / 4)))
+                            })
+                            .accessibilityElement(children: .ignore).accessibilityLabel("曲の再生位置・拍目盛り")
+                            .accessibilityIdentifier("Song timeline ruler")
+                            .accessibilityValue(String(format: "%.2f拍", ensemble.positionBeats))
+                            .accessibilityAdjustableAction { direction in
+                                ensemble.seek(to: min(ensemble.arrangementLength, max(0, ensemble.positionBeats + (direction == .increment ? 0.25 : -0.25))))
+                            }.help("クリックした拍へ移動。再生中ならその位置から再開します。範囲ループ中は範囲内へ移動します。")
                         ForEach(ensemble.parts) { part in
                             TimelineClipRow(part: part, ensemble: ensemble, extent: extent, scale: scale, rowHeight: rowHeight, expanded: expanded, selectedClip: selectedPart == part.id ? selectedClip : nil, onSelect: onSelect)
+                        }
+                    }
+                    .background(alignment: .topLeading) {
+                        if ensemble.rangeLoopEnabled, let range = ensemble.playbackRange {
+                            Rectangle().fill(accent.opacity(0.12))
+                                .frame(width: (range.upperBound - range.lowerBound) * scale)
+                                .offset(x: range.lowerBound * scale).allowsHitTesting(false)
                         }
                     }
                     .overlay(alignment: .topLeading) {

@@ -119,6 +119,8 @@ struct WorkspaceView: View {
                     .background(WoodSurface(wood: wood)).overlay(alignment: .leading) { Rectangle().fill(.black.opacity(0.45)).frame(width: 3).allowsHitTesting(false) }
             }.frame(maxHeight: .infinity)
             Divider()
+            EnsembleTransportControls(ensemble: ensemble, selectedSection: selectedSection)
+                .padding(.horizontal, 18).padding(.vertical, 6)
             transport
             if ensemble.exporting {
                 HStack {
@@ -224,15 +226,15 @@ struct WorkspaceView: View {
     private var transport: some View {
         HStack(spacing: 20) {
             Button("全停止") { ensemble.stop(); library.stopPreview(); model.stop() }.accessibilityIdentifier("Stop all workspace audio").accessibilityLabel("すべての音を止める")
-            Button(ensemble.playing ? "停止" : "全体を再生") {
-                if ensemble.playing { ensemble.stop() }
-                else { model.stop(); library.stopPreview(); ensemble.play() }
+            Button(ensemble.playing ? "一時停止" : ensemble.rangeLoopEnabled ? "範囲を再生" : ensemble.positionBeats > 0 ? "ここから再生" : "全体を再生") {
+                if ensemble.playing { ensemble.pause() }
+                else { model.prepareEnsemblePlayback(); library.stopPreview(); ensemble.play() }
             }.buttonStyle(CabinetButton(primary: true)).disabled(ensemble.busy || ensemble.parts.isEmpty)
             VStack(alignment: .leading, spacing: 5) {
                 Text(String(format: "%06.2f / %.2f", ensemble.positionBeats, arrangementBeats)).font(.system(size: 18, design: .monospaced))
                     .padding(.horizontal, 9).padding(.vertical, 4).background(Color.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 5))
                     .overlay { RoundedRectangle(cornerRadius: 5).stroke(.white.opacity(0.1)) }
-                Text(ensemble.releasing ? "余韻を再生中" : "再生位置・拍").font(.system(size: 9)).foregroundStyle(.secondary)
+                Text(ensemble.releasing ? "余韻を再生中" : ensemble.rangeLoopEnabled && ensemble.playing ? "再生位置・拍・ループ\(ensemble.playbackPass)周目" : "再生位置・拍").font(.system(size: 9)).foregroundStyle(.secondary)
             }.frame(width: 200, alignment: .leading)
             TextField("曲全体のテンポ", value: $ensemble.tempo, format: .number).textFieldStyle(.roundedBorder).frame(width: 58).disabled(!ensemble.canEdit)
             Text("BPM").foregroundStyle(.secondary).help(StudioHelpTopic.beat.explanation)
