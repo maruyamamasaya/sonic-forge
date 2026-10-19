@@ -124,3 +124,5 @@ Date: YYYY-MM-DD
 - [2026-10-19: ゴミ箱素材の一括完全削除](2026-10-19-material-batch-deletion.md)
 
 - [2026-10-19: 素材ライブラリのコミット準備](2026-10-19-material-library-checkpoint.md)
+
+- [2026-10-19: 実音源の楽器化評価](2026-10-19-real-audio-evaluation.md)

@@ -70,6 +70,8 @@ app配下の追加ルールは [app/AGENTS.md](app/AGENTS.md)。外部操作API�
 
 パートのパン: EnsemblePart.pan / SampleInstrument.pan / EnsemblePartSnapshot.pan、EnsemblePanControl（WorkspaceInspector/EnsembleView）、addDemos(panned:)。検証は `tests/EnsemblePanTests.swift`、保存形式は `ENSEMBLE_FORMAT.md`。
 
+実音源の楽器化評価: `scripts/real_audio_evaluation.py` → `scripts/real_audio_evaluation.swift` → 本番MaterialStore/InstrumentDocument/EnsembleExport。結果と評価の限界は[実音源評価](REAL_AUDIO_EVALUATION.md)。音声/DB/詳細測定は無視対象のbuild配下へ出力する。
+
 ## 検索方法
 | 分かっていること | 優先する探索 |
 | --- | --- |

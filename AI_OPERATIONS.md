@@ -297,3 +297,6 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 素材参照の入口はmaterials.protection.review、削除済み保護対象はmaterials.protection.deletedメニュー。materials.protection.prepare→materials.protection.capacityで選択素材と削除済み祖先の新規回収可能容量を確認する。materials.protection.confirmは使用中/登録ファイルの同一保護があると無効。成功は一覧から記録が消えることとstatusで判定し、音声回収済みとは扱わない。materials.protection.closeまたは「解除せず戻る」で取消。開く前に試聴停止、閉じる/取消でも発音しない。変更があれば解除を停止して再確認する。
 
 一括完全削除はmaterials.batch.item.素材UUIDのチェック、materials.batch.selectPage/clearで対象を選ぶ。materials.batch.countの件数とmaterials.batch.review→materials.delete.targetsの全対象/容量/参照を確認する。取消/確定は既存materials.delete.cancel/confirm。状態変化は全件拒否。成功はstatusの完全削除済み件数と実回収容量/未回収件数で判定し、確認画面の表示と区別する。検索・ページ・表示変更でチェック解除。試聴停止は既存の停止、処理取消はmaterials.cancel、commit後の取消で素材が戻ったと扱わない。
+
+## 実音源の評価
+[評価記録と再実行](REAL_AUDIO_EVALUATION.md)を参照。入口はscripts/real_audio_evaluation.py（この曲向けの開発用評価で、外部操作APIではない）。既存出力を上書きせず新しいbuild配下へ保存し、元曲のhashと分離manifestを照合する。成功は3候補のPASS・measurements.json・楽器/構成/WAVの再読込で判定する。音声再生の完走や周期性を、聴感上の品質合格と扱わない。取消は評価プロセスのCtrl-C、afplayで試す場合もCtrl-Cで停止。途中出力は成功扱いにせず残し、再試行は別の出力先にする。評価用DBは本番ライブラリと分離する。
