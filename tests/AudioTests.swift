@@ -4,6 +4,8 @@ import AVFoundation
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        if CommandLine.arguments.contains("--pitch-only") { try await PitchEstimationTests.run(); return }
+        try await PitchEstimationTests.run()
         if CommandLine.arguments.contains("--roots-only") { try await RootRangeTests.run(); return }
         try await RootRangeTests.run()
         try await MaterialDeletionTests.run()

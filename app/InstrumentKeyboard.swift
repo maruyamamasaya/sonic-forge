@@ -13,6 +13,13 @@ struct InstrumentKeyboard: View {
                 Picker("基準音", selection: $model.rootNote) {
                     ForEach(NotePitch.rootRange, id: \.self) { note in Text(NotePitch.name(note)).tag(note) }
                 }.accessibilityIdentifier("Instrument root").help(StudioHelpTopic.root.explanation).labelsHidden().frame(width: 76).controlSize(.small)
+                if let sample = model.instrumentSample {
+                    PitchEstimateControl(sample: sample, root: model.rootNote, canApply: !model.busy,
+                                         beforeAnalysis: { model.stopInstrument() }) { note in
+                        guard !model.busy, model.instrumentSample?.buffer === sample.buffer else { return }
+                        model.rootNote = note
+                    }
+                }
                 Spacer(minLength: 0)
                 Button("開く…") { model.openInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small).help("楽器を開く・⇧⌘O")
                 Button("保存…") { model.saveInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small)

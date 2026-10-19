@@ -136,3 +136,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 素材の一括完全削除: app/MaterialDeletion.swift（prepareBatchDeletion/集合単位のdeletionPlan/deletePermanently）、app/MaterialLibraryModel.swift（deletionSelection/reviewBatchDeletion）、app/MaterialLibraryView.swift（ゴミ箱のチェック/対象一覧/共通確認）。
 
 低音の基準音: NotePitch.rootRange/keyboardRange/computerBase、PlayerModel.computerNote、MIDIInput.resetPerformance、InstrumentKeyboard/WorkspaceInspector。保存はInstrumentDocument/EnsembleDocument、検証はtests/RootRangeTests.swift（--roots-only / --playback）。[仕様](ROOT_NOTE_RANGE.md)。
+
+音高推定: app/PitchEstimation.swift（PitchEstimator/PitchAnalysis）、app/PitchEstimateControl.swift（Studio/Inspector共通）。tests/PitchEstimationTests.swift / --pitch-only、実音源はscripts/evaluate_pitch.sh → scripts/pitch_evaluation.swift。[仕様](PITCH_ESTIMATION.md)。

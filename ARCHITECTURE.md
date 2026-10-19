@@ -253,3 +253,6 @@ MaterialDeletionのprotectionReview/prepareRelease/releaseProtectionが保護一
 完全削除計画はrecordsのID集合で単体/複数を共通処理する。prepareBatchDeletionは最大50件のゴミ箱素材を検証し、対象/削除済み祖先のhash集合から選択外の参照を除く。全件のDB変更と重複のない回収journalを同じtransactionで確定する。部分回収失敗は辞書順先頭IDに集約し既存の単体再確認経路で復旧する。
 
 基準音の共通範囲はNotePitch.rootRange（24〜96）。画面/PC鍵盤はkeyboardRange/computerBaseで音域を決め、InstrumentDocument/EnsembleDocument/EnsembleModel/PerformanceBriefが同じ範囲を検証する。MIDIInputは未編集内蔵プリセットのみ新音域に追従。保存構造/版は維持。[判断0056](decisions/0056-expanded-root-range.md)。
+
+## 基準音の候補推定
+PitchEstimateControl/Panel → PitchAnalysis（MainActorの状態・音源ID/世代・Task取消）→ PitchEstimator（バックグラウンドのFIR/周期解析）。取り込み済みInstrumentSampleは解析中も参照保持し、PCMを変更しない。StudioはrootNote、InspectorはsetInstrumentSettingsへ明示採用だけ渡す。保存構造は維持。[仕様](PITCH_ESTIMATION.md)。

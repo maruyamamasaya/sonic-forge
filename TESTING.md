@@ -253,3 +253,6 @@ MaterialDeletionTestsは専用一時Storeだけで実削除を行う。親/子/�
 
 ## 基準音C1〜C7
 RootRangeTestsは境界24/96と実曲相当39・旧範囲の保存往復、23/97等の拒否、鍵盤/PC音域、内蔵プリセット/AI生成の代表root試行、カスタム演奏の不変、履歴を検証。合成D♯2を実EnsembleExportで27/39/51としてレンダーし、ゼロ交差で絶対音高を確認する。--roots-onlyで単独実行、--playbackで低音和音/基準音変更による停止も確認。実曲の来歴・楽器/構成/WAV確認は[低音域](ROOT_NOTE_RANGE.md)、結果はsessionsへ記録する。
+
+## 基準音候補の推定
+PitchEstimationTestsは正解付き正弦C1〜C7/44.1・48k、セント差、基音なし倍音/逆相stereo、無音/短音/雑音/非有限、変化する音高と範囲外候補、取消/再解析/古い音源適用拒否を確認。--pitch-onlyで単独実行。実素材はevaluate_pitch.shでベース/その他/打楽器を解析し、入力hash不変と候補/保留を記録。UIは推定だけでroot/dirtyを変えないこと、修正/採用/閉じる、InspectorのUndo/Redo、保存/再起動、縮小表示を確認。[条件と限界](PITCH_ESTIMATION.md)。

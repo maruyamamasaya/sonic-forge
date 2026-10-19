@@ -303,3 +303,8 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 
 ## 低音の基準音
 正本は[基準音と低音域](ROOT_NOTE_RANGE.md)。StudioのInstrument root / InspectorのSelected instrument rootはC1〜C7（24〜96）。D♯2=39を選び、画面鍵盤C1〜C3・PC表示C2〜C3と、基準音変更時の全停止/未保存を確認する。演奏可能範囲は±24半音を維持。既存/編集済みの演奏は自動移調しない。内蔵プリセットを選び直すか、新しい基準音でAI候補を生成する。保存成功はファイルのrootNote=39と、再読込後のrootNote/来歴/ADSR/loop、構成内のinstrument.rootNote=39で判定する。停止は全音停止/Stop All。旧アプリは新音域の保存ファイルを拒否する。実音の入口はbuild/real-audio-low-root/bass.sfinstrumentとbass_phrase.sfensemble。
+
+## 音高推定と基準音候補
+[仕様](PITCH_ESTIMATION.md)。入口はStudio/Inspectorのpitch.estimate。対象は取り込み済み楽器PCMで、波形の選択を変更しただけでは対象は変わらない。PitchAnalysis.analyze/ result / running / canApplyが内部入口と判定。pitch.statusの状態、pitch.candidate.MIDI番号の音名/Hz/セントを確認し、pitch.rootで修正、pitch.applyで明示採用する。候補完成を適用済みと扱わない。適用後のInstrument root / Selected instrument root、未保存状態、保存後rootNoteを確認する。停止はpitch.cancel、閉じるはpitch.close、再解析はpitch.retry。閉じるだけでは設定変更なし。解析開始は発音を止め、音源変更時の古い結果を拒否する。結果は正解確率ではなく、候補なしや複数候補では人の確認を優先。AIへの音声送信や自動調律は行わない。
+
+音程推定の静的テキストはmacOSのアクセシビリティツリー上で一つにまとめられる場合がある。pitch.status / pitch.candidateの個別IDが見えない場合は、ポップオーバーに表示された状態・音名・Hz・セントのまとまったテキストを確認する。ボタンとpitch.rootの操作IDを使用する。

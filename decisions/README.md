@@ -134,3 +134,5 @@ Status: proposed / accepted / superseded
 - [0055: 複数素材を集合単位で完全削除](0055-material-batch-deletion.md)
 
 - [0056: 基準音をC1〜C7へ拡張](0056-expanded-root-range.md)
+
+- [0057: ローカル音高推定を候補として提示する](0057-pitch-suggestions.md)

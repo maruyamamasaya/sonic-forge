@@ -128,3 +128,5 @@ Date: YYYY-MM-DD
 - [2026-10-19: 実音源の楽器化評価](2026-10-19-real-audio-evaluation.md)
 
 - [2026-10-19: 低音の基準音対応](2026-10-19-expanded-root-range.md)
+
+- [2026-10-19: 素材の音高推定と基準音候補](2026-10-19-pitch-estimation.md)
