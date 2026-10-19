@@ -315,3 +315,6 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 比較の代表: piano-mf-C4→C4、bass-mf-G1→G2（既知のオクターブ違い）、guitar-pp-B3→候補なし、chord-C-major→C2/C3要確認、chord-C-octave→C2安定、percussion-5.5wb.mf→G6要確認。この固定デモの観測を一般化しない。波形試聴は既存の再生/停止、鍵盤は全音停止、解析はpitch.cancel/close。デモ選択で再生を止め、音源交換により古い推定結果を無効化する。
 
 自動評価はscripts/evaluate_pitch_corpus.shの新規JSON出力を使う。単音の第一候補一致・上位3候補・オクターブ違い・候補なしと、和音/打楽器の安定表示を別集計する。候補の安定性を正解確率にしない。同梱音源はオフラインで使用でき、原録音の再取得はprepare_pitch_corpus.py --downloadの明示時のみ。
+
+## 公開楽譜の制作例
+[制作例](SCORE_DEMO.md)。scripts/create_score_demo.pyはSatieの特定版MIDIを固定変換し、既存InstrumentDocument/EnsembleDocument/EnsembleExportで音声と構成を作る例。任意MIDIのアプリ読込ではない。生成は新規build/出力先だけで、普段の素材DBへ登録しない。SonicForgeでは構成を開く→生成.sfensemble→3パート/テンポ72/4区切り→再生/全停止を確認する。原曲の先頭39小節だけで繰り返しなし。元構成に未保存編集がある場合は先に保存する。WAVの作成成功は存在だけでなく、再読込・有限/非無音・ピーク測定とrender-report.jsonで判定する。

@@ -140,3 +140,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 音高推定: app/PitchEstimation.swift（PitchEstimator/PitchAnalysis）、app/PitchEstimateControl.swift（Studio/Inspector共通）。tests/PitchEstimationTests.swift / --pitch-only、実音源はscripts/evaluate_pitch.sh → scripts/pitch_evaluation.swift。[仕様](PITCH_ESTIMATION.md)。
 
 音程評価デモ: app/PitchCorpus.swift / app/PitchDemoMenu.swift、PlayerModel.loadPitchDemo。データはapp/Resources/PitchCorpus、検証はtests/PitchCorpusTests.swift、再作成scripts/prepare_pitch_corpus.py、評価scripts/evaluate_pitch_corpus.sh → scripts/pitch_corpus_evaluation.swift。[評価記録](PITCH_EVALUATION.md)。
+
+公開楽譜の制作例: scripts/create_score_demo.py（Satieの固定版MIDI/声部分配）→ scripts/score_demo.swift（音源コピーの準備・既存保存/レンダーAPI）。[仕様と出典](SCORE_DEMO.md)。
