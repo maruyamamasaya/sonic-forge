@@ -142,3 +142,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 音程評価デモ: app/PitchCorpus.swift / app/PitchDemoMenu.swift、PlayerModel.loadPitchDemo。データはapp/Resources/PitchCorpus、検証はtests/PitchCorpusTests.swift、再作成scripts/prepare_pitch_corpus.py、評価scripts/evaluate_pitch_corpus.sh → scripts/pitch_corpus_evaluation.swift。[評価記録](PITCH_EVALUATION.md)。
 
 公開楽譜の制作例: scripts/create_score_demo.py（Satieの固定版MIDI/声部分配）→ scripts/score_demo.swift（音源コピーの準備・既存保存/レンダーAPI）。[仕様と出典](SCORE_DEMO.md)。
+
+MIDIファイル: app/MIDIFileImport.swift、app/MIDIFileImportView.swift、WorkspaceViewのmidi.import.open、EnsembleModel.importMIDI。tests/MIDIFileImportTests.swift / --midi-file-only、公開fixture tests/Fixtures。私有素材の限定分析はscripts/prepare_midi_materials.py → midi_material_scan.swift → midi_material_demo.swift。[仕様](MIDI_IMPORT.md)。

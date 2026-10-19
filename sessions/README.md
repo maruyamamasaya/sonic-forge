@@ -134,3 +134,5 @@ Date: YYYY-MM-DD
 - [音程推定の評価録音とデモ](2026-10-19-pitch-corpus.md)
 
 - [公開楽譜からの試作音源](2026-10-20-score-demo.md)
+
+- [MIDI読込と私有音源の楽器化](2026-10-20-midi-import.md)

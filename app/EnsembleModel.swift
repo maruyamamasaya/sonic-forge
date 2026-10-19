@@ -372,6 +372,26 @@ final class EnsembleModel: ObservableObject {
             return true
         } catch { self.error = "編曲案を採用できませんでした。\n" + error.localizedDescription; return false }
     }
+    @discardableResult func importMIDI(_ value: EnsembleSnapshot) -> Bool {
+        guard canEdit else { return false }
+        do {
+            try EnsembleDocument.validate(value)
+            let replacements = value.parts.map { item -> EnsemblePart in
+                let part = EnsemblePart(name:item.name,instrument:item.instrument,performance:item.performance)
+                part.gainDB = item.gainDB; part.pan = item.pan; part.eq = item.eq; part.reverb = item.reverb
+                part.delay = item.delay; part.compressor = item.compressor; part.muted = item.muted
+                part.startBeat = item.startBeat; part.repeatCount = item.repeatCount; part.sectionID = item.sectionID; part.additionalClips = item.additionalClips
+                return part
+            }
+            beginSongEdit("MIDIを取り込む"); defer { endSongEdit() }
+            stop(); applyingSnapshot = true
+            parts.forEach { $0.changed = nil }
+            parts = replacements; sections = value.sections; tempo = value.tempo; masterDB = value.masterDB; limiter = value.limiter
+            applyingSnapshot = false; observeParts(); noteHistories.removeAll()
+            durationBeats = 0; positionBeats = 0; playbackRange = nil; rangeLoopEnabled = false
+            error = nil; return true
+        } catch { self.error = "MIDIを取り込めませんでした。\n" + error.localizedDescription; return false }
+    }
     func snapshot() throws -> EnsembleSnapshot {
         let values = try parts.map { part -> EnsemblePartSnapshot in
             guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }

@@ -318,3 +318,8 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 
 ## 公開楽譜の制作例
 [制作例](SCORE_DEMO.md)。scripts/create_score_demo.pyはSatieの特定版MIDIを固定変換し、既存InstrumentDocument/EnsembleDocument/EnsembleExportで音声と構成を作る例。任意MIDIのアプリ読込ではない。生成は新規build/出力先だけで、普段の素材DBへ登録しない。SonicForgeでは構成を開く→生成.sfensemble→3パート/テンポ72/4区切り→再生/全停止を確認する。原曲の先頭39小節だけで繰り返しなし。元構成に未保存編集がある場合は先に保存する。WAVの作成成功は存在だけでなく、再読込・有限/非無音・ピーク測定とrender-report.jsonで判定する。
+
+## MIDIファイルを取り込む
+[仕様](MIDI_IMPORT.md)。入口midi.import.open→midi.import.file。ファイル読込後はbusy=false、曲名/全長/テンポ/候補・注意を確認する。範囲midi.import.start/end、候補midi.import.select.トラック番号:チャンネル番号、楽器midi.import.instrument.ID、移調midi.import.transpose.IDを設定する。例のジムノペディは1:0/2:1、内部チャンネルは0始まり。原音域が基準音±24以内かvalidationを読む。
+
+採用はmidi.import.apply→構成の置き換え確認。先に元構成を保存。取消やmidi.import.closeでは元を維持する。成功は2〜4パート等の期待数・音符数・共通テンポ・dirty=true、Undo/Redoで確認。MIDIは任意の音色/GMを自動再現せず、未反映CC/再押鍵の注意を隠さない。テンポ変化は時刻へ換算される。256音/64ペダル/8音を超える場合は範囲や候補を変え、勝手に間引かない。停止は既存の全停止、保存/書き出しは通常入口。生成された私有楽器はローカルでだけ扱い、声素材は本人の新しい発言や歌唱を生成したものと報告しない。

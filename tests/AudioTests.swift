@@ -4,6 +4,8 @@ import AVFoundation
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        try await MIDIFileImportTests.run()
+        if CommandLine.arguments.contains("--midi-file-only") { return }
         try PitchCorpusTests.run()
         if CommandLine.arguments.contains("--pitch-only") { try await PitchEstimationTests.run(); return }
         try await PitchEstimationTests.run()

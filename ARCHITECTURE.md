@@ -258,3 +258,5 @@ MaterialDeletionのprotectionReview/prepareRelease/releaseProtectionが保護一
 PitchEstimateControl/Panel → PitchAnalysis（MainActorの状態・音源ID/世代・Task取消）→ PitchEstimator（バックグラウンドのFIR/周期解析）。取り込み済みInstrumentSampleは解析中も参照保持し、PCMを変更しない。StudioはrootNote、InspectorはsetInstrumentSettingsへ明示採用だけ渡す。保存構造は維持。[仕様](PITCH_ESTIMATION.md)。
 
 評価録音: PitchCorpusの同梱manifest/WAVをPitchDemoMenu → PlayerModel.loadPitchDemo → 既存load/prepareInstrumentへ接続。推定器は変えず、CLI評価も同じ検証済みWAVを使う。原本/変換後SHA-256・固定切片・名目正解音を保持。[評価](PITCH_EVALUATION.md)。
+
+SMF import: MIDIFileImport（1 MB境界・track/channel・テンポ積分・PerformanceDocument変換）→ MIDIImportDraft/View（非同期読込・世代・範囲/楽器割当の確認）→ EnsembleModel.importMIDI（全体検証後の置換とUndo）。保存/レンダーの既存経路を共有し、形式変更なし。[仕様](MIDI_IMPORT.md)。

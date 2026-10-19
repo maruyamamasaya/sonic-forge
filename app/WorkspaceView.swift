@@ -8,6 +8,7 @@ struct WorkspaceView: View {
     @ObservedObject var ensemble: EnsembleModel
     @ObservedObject var library: InstrumentLibrary
     @AppStorage("workspaceWoodThemeV1") private var wood: WorkspaceWood = .walnut
+    @State private var importingMIDI = false
     @State private var selectedSection: UUID?
     @State private var selectedPart: UUID?
     @State private var selectedClip: UUID?
@@ -47,6 +48,7 @@ struct WorkspaceView: View {
         .sheet(isPresented: $arranging) {
             ArrangementComposerView(ensemble: ensemble, connection: model.composer, composer: arranger, wood: wood)
         }
+        .sheet(isPresented: $importingMIDI) { MIDIFileImportView(ensemble:ensemble,library:library,wood:wood) }
         .sheet(isPresented: $allParts) { EnsembleView(model: model, ensemble: ensemble, library: library) }
         .confirmationDialog("未保存の構成を置き換えますか？", isPresented: $confirmOpen) {
             Button("構成を選ぶ…", role: .destructive) { ensemble.openPanel() }
@@ -162,6 +164,7 @@ struct WorkspaceView: View {
                 ForEach(WorkspaceWood.allCases) { Text(JapaneseUI.wood($0.rawValue)).tag($0) }
             }.labelsHidden().frame(width: 118).accessibilityIdentifier("Wood theme").accessibilityLabel("木材の種類")
             StudioHelpButton(wood: wood)
+            Button("MIDI読込…") { library.stopPreview(); importingMIDI = true }.disabled(!ensemble.canEdit).accessibilityIdentifier("midi.import.open")
             Button("全パート…") { library.stopPreview(); ensemble.stop(); allParts = true }.disabled(ensemble.busy)
             Button("開く…") { requestOpen() }.disabled(!ensemble.canEdit).accessibilityIdentifier("Open ensemble").accessibilityLabel("構成を開く")
             Button("保存…") { ensemble.savePanel() }.disabled(!ensemble.canEdit || ensemble.parts.isEmpty).accessibilityIdentifier("Save ensemble").accessibilityLabel("構成を保存").help(StudioHelpTopic.save.explanation)

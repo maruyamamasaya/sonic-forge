@@ -266,3 +266,5 @@ DBはschema v2。v1は初回の素材利用時に管理フォルダ内backupsへ
 音程を推定…は取り込み済み楽器のPCMから基準音候補を調べる。候補の確認/修正後、採用したときだけ設定を変更する。[音高推定](PITCH_ESTIMATION.md)。
 
 正解ラベル付きの実録音デモはSample Studioの「デモ → 音程評価デモ」。ビルド時にmanifest/WAV/NOTICEを同梱するため通信不要。再取得/再評価は[評価手順](PITCH_EVALUATION.md)を参照。
+
+曲の構成の「MIDI読込…」からSMFを選び、自作楽器を候補ごとに割り当てる。[読み込み手順と制限](MIDI_IMPORT.md)。音色はMIDIの番号では自動決定しない。

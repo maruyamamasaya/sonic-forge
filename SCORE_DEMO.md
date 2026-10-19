@@ -60,3 +60,5 @@ ffmpeg -n -i build/my-gymnopedie-demo/Gymnopedie-Woodland.wav -codec:a libmp3lam
 生成・保存復元・WAV再読み込み・非無音/有限値/ピーク・実画面の確認結果は[作業記録](sessions/2026-10-20-score-demo.md)へ残す。音声と生成物はbuild/に置き、Gitへは変換スクリプトと出典/作業記録だけを残す。
 
 今回の完成版は`build/gymnopedie-demo-2026-10-20-final/`。両版101.2秒、ピークはPiano −6.30 dBFS、Woodland −5.67 dBFS。初回の音量が小さかったため、素材コピーのピークと既存コンプレッサーの補正量を調整した。WAV/MP3の後段の音量正規化はしていない。
+
+後続で[アプリ内MIDI読込](MIDI_IMPORT.md)を実装した。このページの固定変換と異なり、SMFの離鍵をそのまま読む。
