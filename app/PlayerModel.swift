@@ -52,7 +52,7 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var midiSuspended = false
     private var computerKeys: [UInt16: Int] = [:]
     static let computerKeyboard: [UInt16: Int] = [0: 60, 13: 61, 1: 62, 14: 63, 2: 64, 3: 65, 17: 66, 5: 67, 16: 68, 4: 69, 32: 70, 38: 71, 40: 72]
-    @Published var rootNote = 60 { didSet { midi.performanceRoot = rootNote; stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
+    @Published var rootNote = 60 { didSet { guard NotePitch.rootRange.contains(rootNote) else { rootNote = oldValue; return }; midi.performanceRoot = rootNote; stopInstrument(); if rootNote != oldValue && instrumentSample != nil { instrumentDirty = true } } }
     @Published private(set) var sampleLoop = SampleLoop(endFrame: 2)
     func setLoop(_ value: SampleLoop) {
         guard !busy, let sample = instrumentSample,
@@ -132,7 +132,7 @@ final class PlayerModel: ObservableObject {
                 }
                 return nil
             }
-            if event.type == .keyDown, modifiers.isEmpty, let note = Self.computerKeyboard[event.keyCode], self.instrumentSample != nil, !self.busy {
+            if event.type == .keyDown, modifiers.isEmpty, let note = self.computerNote(event.keyCode), self.instrumentSample != nil, !self.busy {
                 if !event.isARepeat && self.computerKeys[event.keyCode] == nil {
                     self.computerKeys[event.keyCode] = note
                     self.playNote(note, input: .computer)
@@ -483,11 +483,14 @@ final class PlayerModel: ObservableObject {
     }
     func screenKeyUp(_ note: Int) { if !holdKeys { releaseNote(note) } }
     var demoChordActive: Bool { noteInputs.values.contains { $0.contains(.demo) } }
+    func computerNote(_ key: UInt16) -> Int? {
+        Self.computerKeyboard[key].map { $0 - 60 + NotePitch.computerBase(root: rootNote) }
+    }
     func toggleDemoChord() {
         if demoChordActive {
             for note in Array(noteInputs.keys) { releaseNote(note, input: .demo) }
         } else {
-            let base = min(rootNote, 65)
+            let base = rootNote
             for note in [base, base + 4, base + 7] { playNote(note, input: .demo) }
         }
     }

@@ -64,6 +64,15 @@ struct SampleLoop: Codable, Equatable {
 }
 
 enum NotePitch {
+    static let rootRange = 24...96 // C1...C7; actual playback remains root +/-24 semitones.
+    static func keyboardRange(root: Int) -> ClosedRange<Int> {
+        let start = (48...72).contains(root) ? 48 : min(84, max(12, (root / 12) * 12 - 12))
+        return start...(start + 24)
+    }
+    static func computerBase(root: Int) -> Int {
+        (48...72).contains(root) ? 60 : (root / 12) * 12
+    }
+
     static func rate(note: Int, root: Int) -> Float { Float(pow(2, Double(note - root) / 12)) }
     static func name(_ note: Int) -> String {
         let names = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]

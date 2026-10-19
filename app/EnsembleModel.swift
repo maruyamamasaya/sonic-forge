@@ -569,7 +569,7 @@ final class EnsembleModel: ObservableObject {
     func setInstrumentSettings(part id: UUID, root: Int, envelope: ADSRParameters, loop: SampleLoop) {
         beginSongEdit("楽器設定を変更"); defer { endSongEdit() }
         guard canEdit, let part = parts.first(where: { $0.id == id }), let old = part.instrument else { return }
-        guard (48...72).contains(root), envelope.isValid,
+        guard NotePitch.rootRange.contains(root), envelope.isValid,
               loop.isValid(frameCount: Int64(old.sample.buffer.frameLength), sampleRate: old.sample.buffer.format.sampleRate) else {
             error = "楽器の基準音・ADSR・ループ範囲を確認してください。"; return
         }

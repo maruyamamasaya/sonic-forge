@@ -69,7 +69,7 @@ enum EnsembleDocument {
         for part in snapshot.parts {
             guard (1...16).contains(part.repeatCount), part.startBeat.isFinite, (0...256).contains(part.startBeat), !part.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, part.name.count <= 80,
                   part.instrument.name.count <= 255, part.gainDB.isFinite, (-36...0).contains(part.gainDB), part.pan.isFinite, (-1...1).contains(part.pan), part.eq.isValid, PartReverb.isValid(part.reverb), part.delay.isValid, part.compressor.isValid,
-                  (48...72).contains(part.instrument.root), part.instrument.envelope.isValid,
+                  NotePitch.rootRange.contains(part.instrument.root), part.instrument.envelope.isValid,
                   part.instrument.loop.isValid(frameCount: Int64(part.instrument.sample.buffer.frameLength), sampleRate: part.instrument.sample.buffer.format.sampleRate) else {
                 throw AudioError.invalid("パート名・音量・楽器設定が無効です。パート名は1〜80文字にしてください。")
             }

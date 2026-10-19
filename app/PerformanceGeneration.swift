@@ -5,7 +5,7 @@ struct PerformanceBrief {
     let root: Int
     func validate() throws {
         guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, prompt.count <= 1000,
-              (48...72).contains(root) else { throw AudioError.invalid("指示は1〜1000文字で入力してください。楽器の基準音も確認してください。") }
+              NotePitch.rootRange.contains(root) else { throw AudioError.invalid("指示は1〜1000文字で入力してください。楽器の基準音も確認してください。") }
     }
     var instructions: String {
         """

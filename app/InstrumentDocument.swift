@@ -34,7 +34,7 @@ enum InstrumentDocument {
     }
 
     static func makeArchive(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters, loop: SampleLoop? = nil, provenance: InstrumentProvenance? = nil) throws -> InstrumentArchive {
-        guard (48...72).contains(rootNote), envelope.isValid, sample.name.count <= 255 else {
+        guard NotePitch.rootRange.contains(rootNote), envelope.isValid, sample.name.count <= 255 else {
             throw AudioError.invalid("楽器の保存形式または基準音が無効です。")
         }
         let loop = loop ?? SampleLoop(endFrame: Int64(sample.buffer.frameLength))
@@ -67,7 +67,7 @@ enum InstrumentDocument {
         guard archive.version == 5 ? archive.provenance != nil : archive.provenance == nil else { throw AudioError.invalid("楽器の版と来歴情報が一致しません。") }
         let envelope = archive.version == 1 ? ADSRParameters.legacy : archive.envelope
         guard let envelope, envelope.isValid else { throw AudioError.invalid("ADSRの設定が無効です。") }
-        guard (48...72).contains(archive.rootNote), archive.sampleName.count <= 255,
+        guard NotePitch.rootRange.contains(archive.rootNote), archive.sampleName.count <= 255,
               archive.sampleWAV.count <= 64 * 1024 * 1024 + 8192 else {
             throw AudioError.invalid("楽器の設定または同梱音源が無効です。")
         }

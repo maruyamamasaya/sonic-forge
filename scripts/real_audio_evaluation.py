@@ -93,8 +93,8 @@ def main():
         hashes[name] = digest(path)
     out.mkdir(parents=True)
     # Stable periodic segments from a coarse 0.25s scan of this specific recording.
-    # Root is manual; bass 39 is outside current supported 48...72, so 48 is an explicitly untuned diagnostic mapping.
-    candidates = [{'stem':'bass','startFrame':63*44100,'endFrame':int(63.3*44100),'root':48},
+    # Root is manual: the previous bass diagnostic mapping 48 is now corrected to D-sharp2 (39).
+    candidates = [{'stem':'bass','startFrame':63*44100,'endFrame':int(63.3*44100),'root':39},
                   {'stem':'other','startFrame':int(115.25*44100),'endFrame':int(115.55*44100),'root':51}]
     drums, sr = sf.read(split/'drums.wav', start=20*44100, stop=40*44100, always_2d=True)
     block = 441

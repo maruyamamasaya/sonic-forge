@@ -300,3 +300,6 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 
 ## 実音源の評価
 [評価記録と再実行](REAL_AUDIO_EVALUATION.md)を参照。入口はscripts/real_audio_evaluation.py（この曲向けの開発用評価で、外部操作APIではない）。既存出力を上書きせず新しいbuild配下へ保存し、元曲のhashと分離manifestを照合する。成功は3候補のPASS・measurements.json・楽器/構成/WAVの再読込で判定する。音声再生の完走や周期性を、聴感上の品質合格と扱わない。取消は評価プロセスのCtrl-C、afplayで試す場合もCtrl-Cで停止。途中出力は成功扱いにせず残し、再試行は別の出力先にする。評価用DBは本番ライブラリと分離する。
+
+## 低音の基準音
+正本は[基準音と低音域](ROOT_NOTE_RANGE.md)。StudioのInstrument root / InspectorのSelected instrument rootはC1〜C7（24〜96）。D♯2=39を選び、画面鍵盤C1〜C3・PC表示C2〜C3と、基準音変更時の全停止/未保存を確認する。演奏可能範囲は±24半音を維持。既存/編集済みの演奏は自動移調しない。内蔵プリセットを選び直すか、新しい基準音でAI候補を生成する。保存成功はファイルのrootNote=39と、再読込後のrootNote/来歴/ADSR/loop、構成内のinstrument.rootNote=39で判定する。停止は全音停止/Stop All。旧アプリは新音域の保存ファイルを拒否する。実音の入口はbuild/real-audio-low-root/bass.sfinstrumentとbass_phrase.sfensemble。

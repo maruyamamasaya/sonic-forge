@@ -4,15 +4,15 @@ struct InstrumentKeyboard: View {
     @ObservedObject var model: PlayerModel
     @State private var pressedScreenNote: Int?
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
-    private let whiteNotes = (48...72).filter { ![1, 3, 6, 8, 10].contains($0 % 12) }
+    private var whiteNotes: [Int] { NotePitch.keyboardRange(root: model.rootNote).filter { ![1, 3, 6, 8, 10].contains($0 % 12) } }
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 10) {
                 Text("楽器").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary)
                 Text("基準音").font(.system(size: 11)).foregroundStyle(.secondary)
                 Picker("基準音", selection: $model.rootNote) {
-                    ForEach(48...72, id: \.self) { note in Text(NotePitch.name(note)).tag(note) }
-                }.help(StudioHelpTopic.root.explanation).labelsHidden().frame(width: 76).controlSize(.small)
+                    ForEach(NotePitch.rootRange, id: \.self) { note in Text(NotePitch.name(note)).tag(note) }
+                }.accessibilityIdentifier("Instrument root").help(StudioHelpTopic.root.explanation).labelsHidden().frame(width: 76).controlSize(.small)
                 Spacer(minLength: 0)
                 Button("開く…") { model.openInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small).help("楽器を開く・⇧⌘O")
                 Button("保存…") { model.saveInstrumentPanel() }.buttonStyle(.bordered).controlSize(.small)
@@ -31,7 +31,7 @@ struct InstrumentKeyboard: View {
                     .help("基準音から長三和音を演奏。もう一度押すと離鍵し、余韻へ移ります。")
                 Button("全音停止") { model.stopInstrument() }.controlSize(.small)
                 Spacer(minLength: 0)
-                Text("\(model.soundingVoices)/8音・A〜Kキー: C4〜C5").foregroundStyle(.secondary)
+                Text("\(model.soundingVoices)/8音・A〜Kキー: \(NotePitch.name(NotePitch.computerBase(root: model.rootNote)))〜\(NotePitch.name(NotePitch.computerBase(root: model.rootNote) + 12))").foregroundStyle(.secondary)
             }.font(.system(size: 10))
             MIDIControls(model: model, midi: model.midi)
             EnvelopeControls(model: model)
@@ -44,7 +44,7 @@ struct InstrumentKeyboard: View {
                             key(note: note, black: false).frame(maxWidth: .infinity)
                         }
                     }
-                    ForEach((48...72).filter { [1, 3, 6, 8, 10].contains($0 % 12) }, id: \.self) { note in
+                    ForEach(NotePitch.keyboardRange(root: model.rootNote).filter { [1, 3, 6, 8, 10].contains($0 % 12) }, id: \.self) { note in
                         let preceding = whiteNotes.filter { $0 < note }.count
                         key(note: note, black: true).frame(width: width * 0.62, height: geometry.size.height * 0.63)
                             .offset(x: CGFloat(preceding) * width - width * 0.31)
@@ -58,6 +58,7 @@ struct InstrumentKeyboard: View {
             }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
         }
         .disabled(model.busy || model.asset == nil)
+        .onChange(of: model.rootNote) { _, _ in pressedScreenNote = nil }
         .onDisappear { pressedScreenNote = nil; model.suspendMIDI(true) }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
             if let window = notification.object as? NSWindow, window.title == "SonicForge" {

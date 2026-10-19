@@ -82,9 +82,15 @@ final class MIDIInput: ObservableObject {
     @Published private(set) var customPerformance = false
     @Published private(set) var performanceDirty = false
     @Published private(set) var performanceFileURL: URL?
-    var performanceRoot: Int?
+    var performanceRoot: Int? {
+        didSet { if performanceRoot != oldValue && !customPerformance { resetPerformance() } }
+    }
     func resetPerformance() {
-        performance = .preset(performancePreset)
+        var preset = PerformanceDocument.preset(performancePreset)
+        if let root = performanceRoot, NotePitch.rootRange.contains(root), !(48...72).contains(root) {
+            for i in preset.notes.indices { preset.notes[i].pitch += root - 60 }
+        }
+        performance = preset
         performanceFileURL = nil; performanceDirty = false; customPerformance = false
     }
     @discardableResult

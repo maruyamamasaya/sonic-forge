@@ -33,7 +33,7 @@ v5はsectionsと各パートのadditionalClipsが必須。sectionIDは省略/nul
 | parts[].repeatCount | v3必須、整数1〜16。追加回数ではなく合計演奏回数 |
 | parts[].startBeat | v2必須、有限数0〜256拍。小数可。曲頭からの待機拍数 |
 
-楽器形式の正本は[InstrumentDocument.swift](app/InstrumentDocument.swift)のInstrumentArchive/makeArchive/restore。同梱WAVはPCM Float32、サンプル上限64 MiBとWAVヘッダー分。各楽器は既存のv1〜v5読み込み検証を共有する。基準音48〜72、最大30秒・デコード後64 MiB、全ADSR/ループ制限を満たす必要がある。
+楽器形式の正本は[InstrumentDocument.swift](app/InstrumentDocument.swift)のInstrumentArchive/makeArchive/restore。同梱WAVはPCM Float32、サンプル上限64 MiBとWAVヘッダー分。各楽器は既存のv1〜v5読み込み検証を共有する。基準音24〜96（C1〜C7。旧アプリの48〜72から拡張、保存キー/版は維持）、最大30秒・デコード後64 MiB、全ADSR/ループ制限を満たす必要がある。
 保存前と読込時に各演奏の形式・重複・保持8音以内・ペダル終端・楽器Root±24半音を検証する。ミュートしたパートも検証対象。AI生成専用の16拍/64音符制限を構成全体へ追加せず、通常の演奏形式の範囲を使う。
 
 ## 保存・復元の境界

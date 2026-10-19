@@ -76,7 +76,7 @@ struct WorkspaceInspector: View {
             Button("楽器を開く…") { ensemble.openInstrument(part.id) }
             if let instrument = part.instrument {
                 Picker("基準音", selection: Binding(get: { instrument.root }, set: { update(root: $0) })) {
-                    ForEach(48...72, id: \.self) { Text(NotePitch.name($0)).tag($0) }
+                    ForEach(NotePitch.rootRange, id: \.self) { Text(NotePitch.name($0)).tag($0) }
                 }.accessibilityIdentifier("Selected instrument root").accessibilityLabel("選択楽器の基準音").help(StudioHelpTopic.root.explanation)
                 Text("\(Int(instrument.sample.buffer.format.sampleRate)) Hz · \(timeLabel(Double(instrument.sample.buffer.frameLength) / instrument.sample.buffer.format.sampleRate))")
                     .font(.system(size: 10)).foregroundStyle(.secondary)

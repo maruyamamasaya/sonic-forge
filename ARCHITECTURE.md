@@ -44,7 +44,7 @@ scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署�
 ## Sample Instrument
 InstrumentSampleが全体／選択をバックグラウンドでFloat32 PCMへ取り込む（最大30秒・デコード後64 MB）。
 SampleInstrumentは8本のSourceNode（InstrumentVoice＋ADSR）→ 各Varispeed → 出力Mixer → system outputで和音を演奏。
-再生速度は2^((鍵盤ノート−基準音)/12)。画面はC3〜C5の25鍵、基準音もC3〜C5。MIDIは基準音±24半音の範囲で演奏可能。高い音ほど短くなる。
+再生速度は2^((鍵盤ノート−基準音)/12)。基準音はC1〜C7（MIDI24〜96）。画面は25鍵で、旧範囲C3〜C5はそのまま、低音/高音では基準音を含む音域へ切り替える。MIDIは基準音±24半音の範囲で演奏可能。高い音ほど短くなる。
 デモの基準音はA3、外部WAVは手動指定の初期値C4。自動ピッチ検出は行わない。
 MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。完了状態はUIタイマーで確認し、音声コールバックからUIを更新しない。
 Mixer tapのRMSを右メーターへ表示。音声スレッドのメーター更新はロックが取れなければ待たずに破棄する。
@@ -251,3 +251,5 @@ MaterialDeletionはschema v4のtombstones/retentions/reclaimsと削除計画を�
 MaterialDeletionのprotectionReview/prepareRelease/releaseProtectionが保護一覧・仮解除rollbackによる容量計算・snapshot再検証付き個別解除を担当する。schema v4を維持し、音声回収は既存の明示操作に分ける。
 
 完全削除計画はrecordsのID集合で単体/複数を共通処理する。prepareBatchDeletionは最大50件のゴミ箱素材を検証し、対象/削除済み祖先のhash集合から選択外の参照を除く。全件のDB変更と重複のない回収journalを同じtransactionで確定する。部分回収失敗は辞書順先頭IDに集約し既存の単体再確認経路で復旧する。
+
+基準音の共通範囲はNotePitch.rootRange（24〜96）。画面/PC鍵盤はkeyboardRange/computerBaseで音域を決め、InstrumentDocument/EnsembleDocument/EnsembleModel/PerformanceBriefが同じ範囲を検証する。MIDIInputは未編集内蔵プリセットのみ新音域に追従。保存構造/版は維持。[判断0056](decisions/0056-expanded-root-range.md)。

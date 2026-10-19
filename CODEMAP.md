@@ -134,3 +134,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 素材参照・保護解除: app/MaterialDeletion.swift（protectionReview/prepareRelease/releaseProtection）、app/MaterialLibraryModel.swift（reviewProtections/reviewRelease/confirmRelease）、app/MaterialLibraryView.swift（参照シート）。
 
 素材の一括完全削除: app/MaterialDeletion.swift（prepareBatchDeletion/集合単位のdeletionPlan/deletePermanently）、app/MaterialLibraryModel.swift（deletionSelection/reviewBatchDeletion）、app/MaterialLibraryView.swift（ゴミ箱のチェック/対象一覧/共通確認）。
+
+低音の基準音: NotePitch.rootRange/keyboardRange/computerBase、PlayerModel.computerNote、MIDIInput.resetPerformance、InstrumentKeyboard/WorkspaceInspector。保存はInstrumentDocument/EnsembleDocument、検証はtests/RootRangeTests.swift（--roots-only / --playback）。[仕様](ROOT_NOTE_RANGE.md)。
