@@ -50,7 +50,7 @@ enum JapaneseUI {
 }
 
 enum StudioHelpTopic: String, CaseIterable, Identifiable {
-    case workflow, clip, section, instrument, root, beat, velocity, pan, quantize, loop, envelope, save, ai
+    case workflow, clip, section, instrument, root, beat, velocity, pan, eq, quantize, loop, envelope, save, ai
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -62,6 +62,7 @@ enum StudioHelpTopic: String, CaseIterable, Identifiable {
         case .beat: return "拍・テンポ・繰り返し"
         case .velocity: return "強弱（ベロシティ）と音量"
         case .pan: return "パン（左右の配置）"
+        case .eq: return "EQ（低音・中音・高音）"
         case .quantize: return "拍に揃える（クオンタイズ）"
         case .loop: return "ループとクロスフェード"
         case .envelope: return "立ち上がりと余韻（ADSR）"
@@ -78,6 +79,7 @@ enum StudioHelpTopic: String, CaseIterable, Identifiable {
         case .root: return "元のサンプルをどの音程の鍵盤へ対応させるかを決めます。音程の自動検出ではありません。音符の音程はMIDI番号（60＝C4）、移調は半音数（12＝1オクターブ）です。"
         case .beat: return "1拍は四分音符1個分。BPMは1分間の拍数で、大きいほど速くなります。クリップの繰り返しは演奏を指定回数並べる設定で、素材のループとは別です。"
         case .velocity: return "強弱は音符ごとの発音の強さ（1〜127）。クリップの強弱%はその倍率、パート音量は同じ楽器の全クリップの音量、全体音量は曲全体の出力です。"
+        case .eq: return "EQは音域ごとの音量を調整する機能です。低音は太さ、中音は存在感、高音は明るさ。各±12 dB、0 dBは元の音。フラットで全項目を0に戻せます。同じパートの全クリップで共通で、保存とWAVに反映します。「音質調整デモ」で試せます。"
         case .pan: return "パート全体の音を左右へ配置します。左−100%・中央・右100%。同じパートの全クリップで共通です。再生中も調整でき、中央ボタンで戻せます。構成保存とWAVにも反映します。「左右配置デモ」で試せます。"
         case .quantize: return "選んだ音符の開始を目盛りへ揃えます。1/4は1拍、1/8は半拍、1/16は¼拍。Tは3連符です。長さ・音程・強弱は保ち、音符編集の取り消しで戻せます。"
         case .loop: return "素材の一部分を繰り返して音を伸ばします。継ぎ目（クロスフェード）は末尾と先頭を少し重ね、クリック音を減らします。設定は同じパートの全クリップへ適用されます。"

@@ -46,7 +46,7 @@ enum EnsemblePanTests {
             let file = directory.appendingPathComponent("pan-\(channels).sfensemble")
             let saved = await model.save(to: file, remember: false); precondition(saved && !model.dirty)
             let object = try JSONSerialization.jsonObject(with: Data(contentsOf: file)) as! [String: Any]
-            precondition(object["version"] as! Int == 6)
+            precondition(object["version"] as! Int == 7)
             let restored = EnsembleModel(); let opened = await restored.load(file, remember: false)
             precondition(opened && restored.parts[0].pan == -0.65)
             part.pan = 0.75

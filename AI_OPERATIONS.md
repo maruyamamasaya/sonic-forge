@@ -97,10 +97,10 @@ APIキーやCLI認証情報をチャット・文書・ログへ転記しない�
 ## 複数の楽器と演奏を割り当てる
 正本は[ENSEMBLE.md](ENSEMBLE.md)。メインEnsemble→パート追加で行を追加→INSTRUMENTのライブラリ選択または開く…→PERFORMANCEのPreset/開く…/編集中の演奏を使う。編集中の楽器を追加は現在の本体楽器と演奏をスナップショットで追加する。AI生成データは本体へ採用して編集中の楽器を追加、または保存した.sfperformanceをパートへ開く…する。パートごとに異なる基準音で生成/検証すること。音域を勝手に補正しない。
 全行のReadyと共通テンポを確認して全体を再生。各行のvoices/出力、共通Beat/出力で同時演奏を判定する。本体の鍵盤やメーターはパート演奏の状態を表さない。playing=trueはRelease中も含み、releasingで区別。全停止 / 閉じる / 非アクティブで全パートを停止。Stop後はplaying=false、各voices=0、level=-60、保持音とペダルが空であることを確認する。
-再生中は割り当てを変えず、Mute・音量・パンを操作できる。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成は保存…した状態だけがディスクへ保存される。閉じるで閉じただけ、または● 未保存の状態を保存済みだと報告しない。外部操作APIは未実装。
+再生中は割り当てを変えず、Mute・音量・パン・EQを操作できる。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成は保存…した状態だけがディスクへ保存される。閉じるで閉じただけ、または● 未保存の状態を保存済みだと報告しない。外部操作APIは未実装。
 
 ## 構成の保存と起動時復元の判定
-[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v6](ENSEMBLE_FORMAT.md)を参照。保存…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
+[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v7](ENSEMBLE_FORMAT.md)を参照。保存…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
 開く…の未保存置換確認では必要に応じてキャンセル→先に保存…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・保存済み・設定・playing=falseを確認してから全体を再生。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読み開く…へ進み、復元成功と報告しない。
 保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、全停止後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
 
@@ -138,7 +138,7 @@ EnsemblePart.additionalClips/allClips、EnsembleModel.addClip/editClip/setClipPe
 ## クリップ複製と展開変更
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中にDuplicate clip for パート名 UUIDメニュー→別セクション。UUIDは現在のタイムライン/追加エディターから取得する。最初の演奏にもSECTION CLIPS行に同じメニューがある。複製後のClip transpose/Clip velocity for パート名 新UUIDを操作し、元の演奏・START・REPEATが変わらないことを確認する。
 モデル入口はEnsembleModel.duplicateClip(part:clip:to:)。成功時は新UUID、失敗時はnilとerror。成功時のみ追加/dirtyとなる。演奏・相対START・REPEATを保ち、楽器/mixを共有する。対象セクションの長さ不足や区間重複は自動修正せず拒否。canEdit=falseでは変更しない。最大8クリップでメニュー無効。
-成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v6を継続。全体を再生とExport WAVは既存の全クリップ経路を使う。停止は全停止→playing=false/全voices=0/ペダル解除を確認する。
+成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v7を継続。全体を再生とExport WAVは既存の全クリップ経路を使う。停止は全停止→playing=false/全voices=0/ペダル解除を確認する。
 
 ## セクション全体を複製する
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中、Duplicate section 名前 UUIDボタンを操作する。モデル入口はEnsembleModel.duplicateSection(UUID)、成功は新セクションUUID、失敗はnil（canEdit=falseでは変更なし、それ以外はerror）。元の直後へ同じ長さのCopyを挿入し、sectionIDが元IDに一致する全パートの全クリップを複製する。Song基準は対象外。
@@ -237,4 +237,11 @@ Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32
 
 成功はpanの数値、右設定の左右%表示、dirty=trueで確認。再生中も変更可能で、ライブMixerへ30 Hzで反映。元の楽器PCM/演奏を変えず同じパートの全クリップへ適用。停止は全停止（Stop all workspace audio）。停止後に上段のUndo/Redoで戻せる。busy中は操作不可。AI編曲はパンを保持し、提案のJSONへpanを勝手に加えない。
 
-保存…→dirty=false・busy=false→再起動/開く…でpan一致を確認。v6はpan必須、旧v1〜v5は0。WAVはpan/音量/Mute/Masterを含む曲全体で出力し、書き出し成功後に再読み込みで左右を検証する。デモは空き2パート→デモ→左右配置デモ、Soft Chords=-0.65/Bouncy Phrase=+0.65を確認→再生→全停止→保存。UI%と内部−1〜1を混同しない。
+保存…→dirty=false・busy=false→再起動/開く…でpan一致を確認。v6以降はpan必須、旧v1〜v5は0。WAVはpan/音量/Mute/Masterを含む曲全体で出力し、書き出し成功後に再読み込みで左右を検証する。デモは空き2パート→デモ→左右配置デモ、Soft Chords=-0.65/Bouncy Phrase=+0.65を確認→再生→全停止→保存。UI%と内部−1〜1を混同しない。
+
+## パートEQを調整する
+入口はEnsemblePart.eq: PartEQ(lowDB:midDB:highDB:)。各値は有限数−12〜12 dB、既定0。右設定/全パート画面の「EQ・音質」を使用。Sliderの安定IDはEQ low for パートUUID / EQ mid for パートUUID / EQ high for パートUUID、リセットはReset EQ for パートUUID。日本語アクセシビリティ名は「パート名 のEQ・低音/中音/高音」。周波数は200 Hz/1 kHz/4 kHz固定。
+
+成功は各dB表示・part.eq・dirty=trueで判定。再生中は30 Hzで反映、busy中は無効。同じ楽器パートの全クリップに共通で、音源PCMや演奏音符は変更しない。停止は全停止（Stop all workspace audio）→playing=false/発音0。停止後は曲全体Undo/Redoで戻す。「フラット」は3帯域を一操作で0に戻す。AI編曲はEQを保持し、提案schemaへeqを追加しない。
+
+保存…→busy=false/error=nil/dirty=false→開く…または再起動で値一致を確認。構成v7はeqの3値が必須、旧v1〜v6は0。不正データは元の構成を保持。WAVはEQ/パン/音量/Mute/Masterを含む全体出力。空き2パート→デモ→音質調整デモ（Soft Chords +6/−3/−6、Bouncy Phrase −6/+3/+6）→再生→全停止→別名保存→WAV書き出し→再読み込みが確認手順。

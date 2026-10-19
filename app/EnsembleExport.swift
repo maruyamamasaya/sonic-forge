@@ -49,7 +49,7 @@ enum EnsembleExport {
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 512) else { throw AudioError.invalid("書き出しメモリを確保できません。") }
         engine.prepare(); try engine.start()
         // Mixer connection parameters must be set after the graph is initialized.
-        for (voice, part) in zip(voices, snapshot.parts) { voice.sampler.pan = Float(part.pan) }
+        for (voice, part) in zip(voices, snapshot.parts) { voice.sampler.pan = Float(part.pan); voice.setEQ(part.eq) }
         // Close the file before publishing it by atomic rename.
         do {
             var settings = format.settings; settings[AVLinearPCMIsNonInterleaved] = false

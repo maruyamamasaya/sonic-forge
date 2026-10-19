@@ -105,7 +105,7 @@ enum ArrangementGeneration {
             }
             let first = clips[0]
             return EnsemblePartSnapshot(name: original.name, instrument: original.instrument,
-                performance: first.performance, gainDB: suggested.gainDB, muted: suggested.muted, pan: original.pan,
+                performance: first.performance, gainDB: suggested.gainDB, muted: suggested.muted, pan: original.pan, eq: original.eq,
                 startBeat: first.startBeat, repeatCount: first.repeatCount, sectionID: first.sectionID,
                 additionalClips: Array(clips.dropFirst()))
         }

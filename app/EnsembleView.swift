@@ -45,23 +45,25 @@ struct EnsembleView: View {
                 Button("曲の編集をやり直す") { ensemble.restoreSongEdit(redo: true) }.disabled(!ensemble.canRedoSong)
                     .accessibilityIdentifier("Redo song edit").help(ensemble.redoSongLabel)
             }.buttonStyle(StudioButton())
-            EnsembleSectionsView(ensemble: ensemble)
-            if ensemble.parts.isEmpty {
-                VStack(spacing: 14) {
-                    Image(systemName: "pianokeys").font(.system(size: 36)).foregroundStyle(accent)
-                    Text("複数の楽器で曲を作る").font(.system(size: 18, weight: .medium))
-                    Text("各パートに楽器と演奏を割り当てるか、デモ2パートで試せます。")
-                        .font(.system(size: 12)).foregroundStyle(.secondary)
-                }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                EnsembleTimelineView(ensemble: ensemble)
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(ensemble.parts) { part in
-                            EnsemblePartRow(part: part, ensemble: ensemble, library: library,
-                                            currentPerformance: model.midi.performance)
-                        }
-                    }.padding(.vertical, 2)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    EnsembleSectionsView(ensemble: ensemble)
+                    if ensemble.parts.isEmpty {
+                        VStack(spacing: 14) {
+                            Image(systemName: "pianokeys").font(.system(size: 36)).foregroundStyle(accent)
+                            Text("複数の楽器で曲を作る").font(.system(size: 18, weight: .medium))
+                            Text("各パートに楽器と演奏を割り当てるか、デモ2パートで試せます。")
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                        }.frame(maxWidth: .infinity).padding(.vertical, 36)
+                    } else {
+                        EnsembleTimelineView(ensemble: ensemble)
+                        VStack(spacing: 12) {
+                            ForEach(ensemble.parts) { part in
+                                EnsemblePartRow(part: part, ensemble: ensemble, library: library,
+                                                currentPerformance: model.midi.performance)
+                            }
+                        }.padding(.vertical, 2)
+                    }
                 }
             }
             Divider()
@@ -195,7 +197,10 @@ private struct EnsemblePartRow: View {
                 Spacer()
                 Text(validation ?? "準備完了").foregroundStyle(validation == nil ? Color.secondary : .orange).lineLimit(1)
             }.disabled(ensemble.busy).font(.system(size: 10))
-            EnsemblePanControl(part: part, ensemble: ensemble).frame(maxWidth: 280)
+            HStack(alignment: .top, spacing: 24) {
+                EnsemblePanControl(part: part, ensemble: ensemble).frame(width: 250)
+                EnsembleEQControl(part: part, ensemble: ensemble).frame(maxWidth: 320)
+            }
             HStack {
                 Text("演奏クリップ・\(part.allClips.count) / 8・音色と音量は共通")
                     .font(.system(size: 9)).foregroundStyle(.secondary)

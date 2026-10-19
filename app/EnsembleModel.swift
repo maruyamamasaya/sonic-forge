@@ -24,6 +24,7 @@ final class EnsemblePart: ObservableObject, Identifiable {
     @Published fileprivate(set) var instrumentURL: URL? { didSet { changed?() } }
     @Published fileprivate(set) var performance: PerformanceDocument { didSet { changed?() } }
     @Published var gainDB = 0.0 { didSet { changed?() } }
+    @Published var eq = PartEQ.flat { didSet { changed?() } }
     @Published var pan = 0.0 { didSet { changed?() } }
     @Published var muted = false { didSet { changed?() } }
     @Published var startBeat = 0.0 { didSet { changed?() } }
@@ -47,12 +48,24 @@ final class EnsemblePart: ObservableObject, Identifiable {
 final class EnsembleVoice {
     let sampler: SampleInstrument
     let instrument: EnsembleInstrument
+    private let equalizer: AVAudioUnitEQ
+    private var appliedEQ = PartEQ.flat
     private var pressed: Set<Int> = [], sustained: Set<Int> = [], pedals: Set<Int> = []
     private var parser = MIDIByteParser()
     init(instrument: EnsembleInstrument, engine: AVAudioEngine, mixer: AVAudioMixerNode) {
         self.instrument = instrument
-        sampler = SampleInstrument(engine: engine, destination: mixer)
+        let input = AVAudioMixerNode()
+        equalizer = PartEQ.makeNode()
+        engine.attach(input); engine.attach(equalizer)
+        let format = AVAudioFormat(standardFormatWithSampleRate: 48000, channels: 2)!
+        engine.connect(input, to: equalizer, format: format)
+        engine.connect(equalizer, to: mixer, format: format)
+        sampler = SampleInstrument(engine: engine, destination: input, panDestination: mixer)
         sampler.install(instrument.sample)
+    }
+    func setEQ(_ settings: PartEQ) {
+        guard settings != appliedEQ else { return }
+        settings.apply(to: equalizer); appliedEQ = settings
     }
     func receive(_ bytes: [UInt8]) throws {
         for message in parser.consume(bytes) {
@@ -202,6 +215,7 @@ final class EnsembleModel: ObservableObject {
         let clips: [EnsembleClip]
         let gain: Double
         let pan: Double
+        let eq: PartEQ
         let muted: Bool
     }
     private struct SongState {
@@ -222,7 +236,7 @@ final class EnsembleModel: ObservableObject {
                 default: sameInstrument = false
                 }
                 return a.part.id == b.part.id && a.name == b.name && sameInstrument &&
-                    a.instrumentURL == b.instrumentURL && a.clips == b.clips && a.gain == b.gain && a.pan == b.pan && a.muted == b.muted
+                    a.instrumentURL == b.instrumentURL && a.clips == b.clips && a.gain == b.gain && a.pan == b.pan && a.eq == b.eq && a.muted == b.muted
             }
         }
     }
@@ -235,7 +249,7 @@ final class EnsembleModel: ObservableObject {
     private func songState() -> SongState {
         SongState(sections: sections, parts: parts.map {
             SongPartState(part: $0, name: $0.name, instrument: $0.instrument, instrumentURL: $0.instrumentURL,
-                          clips: $0.allClips, gain: $0.gainDB, pan: $0.pan, muted: $0.muted)
+                          clips: $0.allClips, gain: $0.gainDB, pan: $0.pan, eq: $0.eq, muted: $0.muted)
         }, tempo: tempo, master: masterDB)
     }
     private func beginSongEdit(_ label: String) {
@@ -275,7 +289,7 @@ final class EnsembleModel: ObservableObject {
             part.name = value.name; part.instrument = value.instrument; part.instrumentURL = value.instrumentURL
             part.performance = first.performance; part.startBeat = first.startBeat
             part.repeatCount = first.repeatCount; part.sectionID = first.sectionID
-            part.additionalClips = Array(value.clips.dropFirst()); part.gainDB = value.gain; part.pan = value.pan; part.muted = value.muted
+            part.additionalClips = Array(value.clips.dropFirst()); part.gainDB = value.gain; part.pan = value.pan; part.eq = value.eq; part.muted = value.muted
         }
         sections = state.sections; parts = state.parts.map(\.part); tempo = state.tempo; masterDB = state.master
         applyingSnapshot = false
@@ -315,7 +329,7 @@ final class EnsembleModel: ObservableObject {
     func snapshot() throws -> EnsembleSnapshot {
         let values = try parts.map { part -> EnsemblePartSnapshot in
             guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }
-            return EnsemblePartSnapshot(name: part.name, instrument: instrument, performance: part.performance, gainDB: part.gainDB, muted: part.muted, pan: part.pan, startBeat: part.startBeat, repeatCount: part.repeatCount, sectionID: part.sectionID, additionalClips: part.additionalClips)
+            return EnsemblePartSnapshot(name: part.name, instrument: instrument, performance: part.performance, gainDB: part.gainDB, muted: part.muted, pan: part.pan, eq: part.eq, startBeat: part.startBeat, repeatCount: part.repeatCount, sectionID: part.sectionID, additionalClips: part.additionalClips)
         }
         let result = EnsembleSnapshot(tempo: tempo, masterDB: masterDB, parts: values, sections: sections)
         try EnsembleDocument.validate(result)
@@ -341,7 +355,7 @@ final class EnsembleModel: ObservableObject {
             let loaded = try await Task.detached(priority: .userInitiated) { try EnsembleDocument.load(url) }.value
             let replacements = loaded.parts.map { item -> EnsemblePart in
                 let part = EnsemblePart(name: item.name, instrument: item.instrument, performance: item.performance)
-                part.gainDB = item.gainDB; part.pan = item.pan; part.muted = item.muted; part.startBeat = item.startBeat; part.repeatCount = item.repeatCount; part.sectionID = item.sectionID; part.additionalClips = item.additionalClips
+                part.gainDB = item.gainDB; part.pan = item.pan; part.eq = item.eq; part.muted = item.muted; part.startBeat = item.startBeat; part.repeatCount = item.repeatCount; part.sectionID = item.sectionID; part.additionalClips = item.additionalClips
                 return part
             }
             stop(); durationBeats = 0; playbackRange = nil; rangeLoopEnabled = false
@@ -725,7 +739,7 @@ final class EnsembleModel: ObservableObject {
         do { setPerformance(try PerformanceDocument.load(url), part: id) }
         catch { self.error = "パートの演奏を読み込めませんでした。\n" + error.localizedDescription }
     }
-    func addDemos(staggered: Bool = false, repeating: Bool = false, panned: Bool = false) async {
+    func addDemos(staggered: Bool = false, repeating: Bool = false, panned: Bool = false, equalized: Bool = false) async {
         beginSongEdit("デモを追加"); defer { endSongEdit() }
         guard canEdit else { return }
         guard parts.count <= Self.maximumParts - 2 else { error = "デモ2パートを追加するには空きを2つ用意してください。"; return }
@@ -748,6 +762,7 @@ final class EnsembleModel: ObservableObject {
             let chord = EnsemblePart(name: "Soft Chords", instrument: soft, performance: try PerformanceGeneration.demo(PerformanceBrief(prompt: "落ち着いた和音", root: 57)))
             let phrase = EnsemblePart(name: "Bouncy Phrase", instrument: pluck, performance: try PerformanceGeneration.demo(PerformanceBrief(prompt: "跳ねたフレーズ", root: 57)))
             if panned { chord.pan = -0.65; phrase.pan = 0.65 }
+            if equalized { chord.eq = PartEQ(lowDB: 6, midDB: -3, highDB: -6); phrase.eq = PartEQ(lowDB: -6, midDB: 3, highDB: 6) }
             phrase.startBeat = staggered ? 4 : 0
             if repeating { chord.repeatCount = 2; phrase.repeatCount = 3 }
             parts.append(contentsOf: [chord, phrase]); error = nil
@@ -766,7 +781,7 @@ final class EnsembleModel: ObservableObject {
         var events: [Event] = []
         for part in parts {
             guard let instrument = part.instrument else { throw AudioError.invalid("\(part.name): 楽器を割り当ててください。") }
-            guard part.startBeat.isFinite, (0...256).contains(part.startBeat), part.gainDB.isFinite, (-36...0).contains(part.gainDB), part.pan.isFinite, (-1...1).contains(part.pan), instrument.envelope.isValid,
+            guard part.startBeat.isFinite, (0...256).contains(part.startBeat), part.gainDB.isFinite, (-36...0).contains(part.gainDB), part.pan.isFinite, (-1...1).contains(part.pan), part.eq.isValid, instrument.envelope.isValid,
                   instrument.loop.isValid(frameCount: Int64(instrument.sample.buffer.frameLength), sampleRate: instrument.sample.buffer.format.sampleRate) else {
                 throw AudioError.invalid("\(part.name): 楽器設定・音量が無効です。")
             }
@@ -850,6 +865,7 @@ final class EnsembleModel: ObservableObject {
         for part in parts {
             voices[part.id]?.sampler.gain = part.muted ? 0 : Float(pow(10, max(-36, min(0, part.gainDB)) / 20))
             voices[part.id]?.sampler.pan = Float(part.pan.isFinite ? max(-1, min(1, part.pan)) : 0)
+            voices[part.id]?.setEQ(part.eq)
         }
     }
     private func refresh() {

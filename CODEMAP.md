@@ -111,3 +111,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 編曲提案: app/ArrangementGeneration.swift / ArrangementComposer.swift / ArrangementComposerView.swift → EnsembleModel.arrangementBrief / applyArrangement。検証はtests/ArrangementGenerationTests.swift。共有通信はCodexPerformanceClient.generateJSON / OpenAIPerformanceClient.jsonRequest / generateJSON。
 
 日本語表示・用語ヘルプ: app/JapaneseUI.swift の JapaneseUI / StudioHelpTopic / StudioHelpButton（help.guide / help.search）。入口はWorkspaceView / StudioView、短い説明は各設定のhelp属性。AI用ラベルと識別子はAI_OPERATIONS.mdの日本語UIとヘルプ。
+
+パートEQ: app/PartEQ.swift のPartEQ/apply/makeNode、EnsemblePart.eq、EnsembleVoice.setEQ、EnsembleEQControl（WorkspaceInspector/EnsembleView）、addDemos(equalized:)。検証はtests/EnsembleEQTests.swift、形式はENSEMBLE_FORMAT.md。

@@ -39,7 +39,7 @@ enum EnsembleClipTests {
         precondition(restored.parts.count == 1 && restored.parts[0].additionalClips[0].id == clipID && restored.parts[0].additionalClips[0].performance == chorus)
         let bytes = try Data(contentsOf: file)
         let object = try JSONSerialization.jsonObject(with: bytes) as! [String: Any]
-        precondition(object["version"] as! Int == 6)
+        precondition(object["version"] as! Int == 7)
         let ids = restored.parts.map(\.id)
         func reject(_ value: [String: Any]) async throws {
             let bad = dir.appendingPathComponent("bad.sfensemble")

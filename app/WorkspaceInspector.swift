@@ -23,6 +23,8 @@ struct WorkspaceInspector: View {
                     Slider(value: $part.gainDB, in: -36...0).accessibilityIdentifier("\(part.name) volume").accessibilityLabel("\(part.name) の音量").disabled(ensemble.busy)
                     Text(String(format: "%.0f dB・%d/8音・出力 %.0f dB", part.gainDB, part.voices, part.level)).font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
                     EnsemblePanControl(part: part, ensemble: ensemble)
+                    Divider()
+                    EnsembleEQControl(part: part, ensemble: ensemble)
                     Button("パート削除") { ensemble.remove(part.id) }.disabled(!ensemble.canEdit)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 3)
             }
@@ -145,5 +147,35 @@ struct EnsemblePanControl: View {
             }
         }.font(.system(size: 10)).disabled(ensemble.busy)
             .help("パート全体の音を左右へ配置します。中央0・左−1・右+1。同じ楽器の全クリップで共通。再生中も調整でき、構成保存とWAVに反映します。")
+    }
+}
+
+struct EnsembleEQControl: View {
+    @ObservedObject var part: EnsemblePart
+    @ObservedObject var ensemble: EnsembleModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Text("EQ・音質").foregroundStyle(.secondary)
+                Spacer()
+                Button("フラット") { part.eq = .flat }.accessibilityIdentifier("Reset EQ for \(part.id)")
+                    .accessibilityLabel("\(part.name) のEQをフラットに戻す")
+            }
+            band("低音", key: "low", path: \.lowDB, detail: "200 Hz以下を中心に、音の太さを調整します。")
+            band("中音", key: "mid", path: \.midDB, detail: "1 kHz付近の存在感を調整します。")
+            band("高音", key: "high", path: \.highDB, detail: "4 kHz以上を中心に、明るさを調整します。")
+            Text("±12 dB・全クリップで共通").font(.system(size: 9)).foregroundStyle(.secondary)
+        }.font(.system(size: 10)).disabled(ensemble.busy)
+            .help("低音・中音・高音の音量を調整します。0 dBが元の音。フラットですべて0に戻します。上げると音量も増えるため、パート音量も調整してください。")
+    }
+    private func band(_ name: String, key: String, path: WritableKeyPath<PartEQ, Double>, detail: String) -> some View {
+        VStack(spacing: 3) {
+            HStack { Text(name); Spacer(); Text(String(format: "%+.1f dB", part.eq[keyPath: path])).monospacedDigit() }
+            Slider(value: Binding(get: { part.eq[keyPath: path] }, set: { value in
+                var eq = part.eq; eq[keyPath: path] = value; part.eq = eq
+            }), in: -12...12, step: 0.5)
+                .accessibilityIdentifier("EQ \(key) for \(part.id)").accessibilityLabel("\(part.name) のEQ・\(name)")
+                .help(detail + " −12〜+12 dB、0.5 dB刻み。")
+        }
     }
 }

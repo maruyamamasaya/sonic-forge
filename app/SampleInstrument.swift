@@ -158,22 +158,24 @@ final class SampleInstrument {
     }
     private let engine: AVAudioEngine
     private let output: AVAudioMixerNode
+    private let panOutput: AVAudioMixerNode
     private let slots = (0..<maximumVoices).map { _ in Slot() }
     private var sequence: UInt64 = 0
     private(set) var sample: InstrumentSample?
     let meter = InstrumentMeter()
-    var pan: Float = 0 { didSet { output.pan = pan } }
+    var pan: Float = 0 { didSet { panOutput.pan = pan } }
     var gain: Float = 0.25 { didSet { output.outputVolume = gain } }
     var isSounding: Bool { slots.contains { $0.voice.isActive } }
     var heldNotes: Set<Int> { Set(slots.compactMap { $0.held && $0.voice.isActive ? $0.note : nil }) }
     var soundingCount: Int { slots.filter { $0.voice.isActive }.count }
 
-    init(engine: AVAudioEngine = AVAudioEngine(), destination: AVAudioMixerNode? = nil) {
+    init(engine: AVAudioEngine = AVAudioEngine(), destination: AVAudioMixerNode? = nil, panDestination: AVAudioMixerNode? = nil) {
         self.engine = engine
         self.output = destination ?? engine.mainMixerNode
+        self.panOutput = panDestination ?? destination ?? engine.mainMixerNode
         for slot in slots { engine.attach(slot.speed) }
         let meter = self.meter
-        output.installTap(onBus: 0, bufferSize: 512, format: nil) { buffer, _ in meter.update(buffer) }
+        panOutput.installTap(onBus: 0, bufferSize: 512, format: nil) { buffer, _ in meter.update(buffer) }
     }
     func install(_ sample: InstrumentSample) {
         stop(); engine.stop()

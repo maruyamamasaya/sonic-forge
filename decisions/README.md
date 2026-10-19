@@ -100,3 +100,5 @@ Status: proposed / accepted / superseded
 - [0038: 曲の途中再生と範囲ループ試聴](0038-ensemble-audition-transport.md)
 
 - [0039: パート単位のパンと構成形式v6](0039-part-pan.md)
+
+- [0040: パート単位の3バンドEQ](0040-part-eq.md)
