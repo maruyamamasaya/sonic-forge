@@ -34,20 +34,22 @@ enum EnsembleExport {
         let temporary = destination.deletingLastPathComponent().appendingPathComponent(".sonicforge-ensemble-\(UUID().uuidString).wav")
         defer { try? FileManager.default.removeItem(at: temporary) }
         let engine = AVAudioEngine()
+        let master = EnsembleMasterBus(engine: engine)
         var voices: [EnsembleVoice] = []
         defer { voices.forEach { $0.stop() }; engine.stop() }
         for (index, part) in snapshot.parts.enumerated() {
             let mixer = AVAudioMixerNode(); engine.attach(mixer)
-            engine.connect(mixer, to: engine.mainMixerNode, fromBus: 0, toBus: AVAudioNodeBus(index), format: AVAudioFormat(standardFormatWithSampleRate: 48000, channels: 2)!)
+            engine.connect(mixer, to: master.input, fromBus: 0, toBus: AVAudioNodeBus(index), format: AVAudioFormat(standardFormatWithSampleRate: 48000, channels: 2)!)
             let voice = EnsembleVoice(instrument: part.instrument, engine: engine, mixer: mixer)
             voice.sampler.gain = part.muted ? 0 : Float(pow(10, part.gainDB / 20))
             voices.append(voice)
         }
-        engine.mainMixerNode.outputVolume = Float(pow(10, snapshot.masterDB / 20)) / Float(EnsembleModel.maximumParts)
+        master.apply(snapshot.limiter, masterDB: snapshot.masterDB)
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
         try engine.enableManualRenderingMode(.offline, format: format, maximumFrameCount: 512)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 512) else { throw AudioError.invalid("書き出しメモリを確保できません。") }
         engine.prepare(); try engine.start()
+        master.apply(snapshot.limiter, masterDB: snapshot.masterDB)
         // Mixer connection parameters must be set after the graph is initialized.
         for (voice, part) in zip(voices, snapshot.parts) {
             voice.sampler.gain = part.muted ? 0 : Float(pow(10, part.gainDB / 20))

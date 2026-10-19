@@ -14,7 +14,7 @@ Ensemble中央上部のAI編曲…を開く。既存の1〜4パートすべて�
 OpenAIの接続先固定・store=false・リダイレクト禁止・キーのメモリ保持・HTTPエラー/未完了/refusal拒否・応答1 MB上限は既存経路と共通。編曲の出力枠は16000トークン、CLIは既存120秒制限。外部出力のコード/コマンドを実行しない。CLIは既存の空一時領域・read-only・個人設定不使用・ツール無効で起動する。
 
 ## 編曲提案JSON v1
-保存済みの.sfensembleとは別の、音声を含まない一時提案形式。JSON Schemaの正本はArrangementGeneration.schema。指示をコピーで現在のpartIDと完全なschemaを取得する。提案ファイルの読み書きUIはなく、Other AI欄への貼り付けで検証する。採用後は既存.sfensemble v10へ保存する。
+保存済みの.sfensembleとは別の、音声を含まない一時提案形式。JSON Schemaの正本はArrangementGeneration.schema。指示をコピーで現在のpartIDと完全なschemaを取得する。提案ファイルの読み書きUIはなく、Other AI欄への貼り付けで検証する。採用後は既存.sfensemble v11へ保存する。
 
 | フィールド | 意味・検証 |
 | --- | --- |
@@ -37,12 +37,14 @@ Demo→「薄いイントロ → 厚いサビ」→デモ案を作る。Intro 8�
 ## 実装入口
 WorkspaceViewのAI編曲…→ArrangementComposerView→ArrangementComposer.generate/cancel/adopt。ArrangementBriefは現在構成とrevisionを固定し音声なしの指示を作る。ArrangementGeneration.decode/materializeが候補値を全検証し、EnsembleModel.applyArrangementがrevision照合後に一括反映する。外部から呼べるAPIではない。共有JSON通信はCodexPerformanceClient.generateJSON / OpenAIPerformanceClient.jsonRequest/generateJSONで、従来の短い演奏生成も同じ処理を使う。
 
-手動のパン（左右配置）は編曲案の対象外で、採用時も元の値を保持します。構成保存v10とWAVにはパンを含めます。
+手動のパン（左右配置）は編曲案の対象外で、採用時も元の値を保持します。構成保存v11とWAVにはパンを含めます。
 
-手動の3バンドEQも編曲案の対象外で、materialize/採用時に元の設定を保持する。構成v10とWAVに反映する。
+手動の3バンドEQも編曲案の対象外で、materialize/採用時に元の設定を保持する。構成v11とWAVに反映する。
 
-手動のリバーブ量も提案schemaの対象外。候補materialize/採用時に元のパート設定を保持し、構成v10とWAVへ反映する。
+手動のリバーブ量も提案schemaの対象外。候補materialize/採用時に元のパート設定を保持し、構成v11とWAVへ反映する。
 
-手動のディレイ3値も提案schemaの対象外。materialize/採用時に元の値を保持し、構成v10と全体WAVへ反映する。
+手動のディレイ3値も提案schemaの対象外。materialize/採用時に元の値を保持し、構成v11と全体WAVへ反映する。
 
 コンプレッサーもmaterialize時に既存パートの手動値を保持する。提案/briefのschemaは変更せず、操作と停止は[AI操作](AI_OPERATIONS.md#パートのコンプレッサーを調整する)を参照。
+
+マスターリミッターは編曲提案の対象外。materialize/採用時に既存Snapshotの値を保持する。操作・状態判定・停止は[AI操作](AI_OPERATIONS.md#マスターリミッターを調整する)。

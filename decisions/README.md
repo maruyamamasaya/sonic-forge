@@ -108,3 +108,17 @@ Status: proposed / accepted / superseded
 - [0042: パート単位のディレイ](0042-part-delay.md)
 
 - [0043: パート単位のコンプレッサー](0043-part-compressor.md)
+
+- [0044: 音源分離の初期実装方針（提案）](0044-source-separation-plan.md)
+
+- [0045: M1 Maxでの音源分離にMLXを採用](0045-mlx-separation-backend.md)
+
+- [0046: 分離workerを既存の楽器編集へ接続](0046-separation-worker-integration.md)
+
+- [0047: 来歴付き素材ライブラリの実装方針（提案）](0047-material-library-plan.md)
+
+- [0048: マスターのピークリミッター](0048-master-limiter.md)
+
+- [0049: 来歴付き素材の保存基盤](0049-material-persistence.md)
+
+- [0050: 素材の注釈検索と同一区間の比較試聴](0050-material-search-comparison.md)

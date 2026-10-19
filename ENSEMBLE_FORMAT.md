@@ -1,14 +1,15 @@
-# 構成ファイル形式 v10
+# 構成ファイル形式 v11
 
 正本は[EnsembleDocument.swift](app/EnsembleDocument.swift)。操作は[ENSEMBLE.md](ENSEMBLE.md)。UTF-8 JSON、拡張子.sfensemble、最大384 MiB。音源同梱で外部パスへ依存しない。
 
 ## フィールド
-v5はsectionsと各パートのadditionalClipsが必須。sectionIDは省略/nullでSong。v1〜v4は追加クリップなしへ移行し、v1〜v3はセクションなし、v1/v2は繰り返し回数1、v1の開始位置は0へ移行。v6は各パートのpanも必須。v1〜v5のpanは中央0へ移行。v7はeqも必須。v1〜v6のEQはフラットへ移行。v8はreverbも必須。v1〜v7はリバーブ0へ移行。v9はdelayも必須。v1〜v8はディレイオフへ移行。v10はcompressorも必須。v1〜v9はコンプレッサーオフへ移行。保存は常にv10。未知のversionを拒否する。
+v5はsectionsと各パートのadditionalClipsが必須。sectionIDは省略/nullでSong。v1〜v4は追加クリップなしへ移行し、v1〜v3はセクションなし、v1/v2は繰り返し回数1、v1の開始位置は0へ移行。v6は各パートのpanも必須。v1〜v5のpanは中央0へ移行。v7はeqも必須。v1〜v6のEQはフラットへ移行。v8はreverbも必須。v1〜v7はリバーブ0へ移行。v9はdelayも必須。v1〜v8はディレイオフへ移行。v10はcompressorも必須。v1〜v9はコンプレッサーオフへ移行。v11は曲全体のlimiterも必須。旧v1〜v10はリミッターオフへ移行。保存は常にv11。未知のversionを拒否する。
 
 | 場所・フィールド | 内容 |
 | --- | --- |
-| version | 整数10（読込は1〜9も可） |
+| version | 整数11（読込は1〜10も可） |
 | tempo | 共通テンポ、有限数40〜240 BPM |
+| limiter | v11必須、{enabled: Bool, ceilingDB: 有限数−12〜−0.1 dBFS, releaseMS: 有限数1〜60 ms}。既定false/−1/24。全パートの合算に適用 |
 | masterDB | Ensemble共通Master、有限数−60〜0 dB |
 | parts | 順序付き1〜4パート |
 | parts[].name | パート名、1〜80文字、空白のみ不可 |
@@ -40,7 +41,7 @@ v5はsectionsと各パートのadditionalClipsが必須。sectionIDは省略/nul
 ファイル内に原本パス・実行コード・認証情報・再生位置・発音数・押鍵/ペダルの現在状態は保存しない。各パートのUUIDは読み込み時に新規作成する。再生するペダルイベントはperformanceに含まれるが、復元時点でペダルを踏んだ状態にはしない。
 最後に正常保存/読込したパスだけをアプリのUserDefaults（lastEnsemblePathV1）で記憶する。構成を別のMacへ移す場合は.sfensemble単体をコピーしてOpen…すればよい。移動後の自動パス追跡・クラウド同期・未保存変更の自動復旧は未実装。
 
-startBeatはperformance内のbeatを書き換えず、再生時に全イベントの秒へstartBeat × 60 / 共通tempoを加える。v2の欠落/null・負数・上限超過は拒否する。v9までの旧アプリはv10を拒否するため、上書き後は旧版で開けない。
+startBeatはperformance内のbeatを書き換えず、再生時に全イベントの秒へstartBeat × 60 / 共通tempoを加える。v2の欠落/null・負数・上限超過は拒否する。v10までの旧アプリはv11を拒否するため、上書き後は旧版で開けない。
 
 repeatCountは元のperformanceを複製して保存せず、再生/出力時に展開する。各回の間隔は元の最終イベント拍のceil、全体長は(count−1)×間隔＋元の長さ。正本は[EnsembleTimeline.swift](app/EnsembleTimeline.swift)のevents/repeatedLength。
 

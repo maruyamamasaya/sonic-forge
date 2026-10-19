@@ -23,7 +23,8 @@ final class PlayerModel: ObservableObject {
     @Published private(set) var playingSelection = false
     @Published private(set) var exporting = false
     @Published private(set) var exportMessage: String?
-    var busy: Bool { loading || exporting || preparingInstrument }
+    @Published private(set) var adoptingSeparation = false
+    var busy: Bool { loading || exporting || preparingInstrument || separation.busy || adoptingSeparation || materials.busy }
     @Published private(set) var preparingInstrument = false
     @Published private(set) var instrumentSample: InstrumentSample?
     enum NoteInput: Hashable { case screen, computer, demo, midi(UInt8), midiSustain(UInt8) }
@@ -36,6 +37,12 @@ final class PlayerModel: ObservableObject {
     let midi = MIDIInput()
     let library = InstrumentLibrary()
     let composer = PerformanceComposer()
+    let separation = SeparationModel()
+    let materials: MaterialLibraryModel
+    @Published private(set) var materialOrigin: MaterialOrigin?
+    @Published private(set) var restoredMaterial: MaterialRecord?
+    private var materialObservation: AnyCancellable?
+    private var separationAssetDirectory: URL?
     @Published var ensembleWorkspaceActive = true
     let ensemble = EnsembleModel()
     @Published private(set) var midiSuspended = false
@@ -87,8 +94,12 @@ final class PlayerModel: ObservableObject {
     private var keyboardMonitor: Any?
     private var timer: AnyCancellable?
     private var demoDirectory: URL?
+    private var separationObservation: AnyCancellable?
 
-    init() {
+    init(materialStore: MaterialStore = MaterialStore()) {
+        materials = MaterialLibraryModel(store: materialStore)
+        materialObservation = materials.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        separationObservation = separation.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         midi.performanceRoot = rootNote
         midi.onMessages = { [weak self] messages in self?.receiveMIDI(messages) }
         midi.onReset = { [weak self] in self?.releaseMIDI(immediate: true) }
@@ -253,6 +264,8 @@ final class PlayerModel: ObservableObject {
             instrument.install(restored.sample)
             instrument.gain = Float(pow(10, gainDB / 20))
             player = replacement
+            if let separationAssetDirectory { try? FileManager.default.removeItem(at: separationAssetDirectory); self.separationAssetDirectory = nil }
+            materialOrigin = nil; restoredMaterial = nil
             asset = restored.asset
             editor = WaveformEditor(frameCount: Int64(restored.sample.buffer.frameLength), sampleRate: restored.sample.buffer.format.sampleRate)
             instrumentSample = restored.sample
@@ -320,7 +333,9 @@ final class PlayerModel: ObservableObject {
             playingSelection = false
             player?.stop()
             player = replacement
+            if let separationAssetDirectory { try? FileManager.default.removeItem(at: separationAssetDirectory); self.separationAssetDirectory = nil }
             exportMessage = nil
+            materialOrigin = nil; restoredMaterial = nil
             asset = loaded
             rootNote = demo ? 57 : 60
             envelope = .standard
@@ -352,6 +367,7 @@ final class PlayerModel: ObservableObject {
     }
     func playNote(_ note: Int, input: NoteInput = .screen, velocity: Int = 127) {
         guard (1...127).contains(velocity), !busy, instrumentSample != nil, (0...127).contains(note), (0.25...4).contains(NotePitch.rate(note: note, root: rootNote)) else { return }
+        materials.stopPreview()
         ensemble.stop()
         if noteInputs[note]?.contains(input) == true { return }
         if noteInputs[note]?.isEmpty == false {
@@ -456,6 +472,8 @@ final class PlayerModel: ObservableObject {
         if soundingVoices != count { soundingVoices = count }
     }
     func stopInstrument() {
+        materials.stopPreview()
+        separation.stopPreview()
         ensemble.stop()
         instrument.stop()
         midi.cancelTestState()
@@ -578,6 +596,9 @@ final class PlayerModel: ObservableObject {
         } else { levels = [-60, -60] }
     }
     func cleanup() {
+        materials.cancel(); materialOrigin = nil
+        separation.cleanup()
+        if let separationAssetDirectory { try? FileManager.default.removeItem(at: separationAssetDirectory) }
         ensemble.stop()
         library.stopPreview()
         composer.cancel()
@@ -588,5 +609,90 @@ final class PlayerModel: ObservableObject {
         selectionPlayer?.stop()
         player?.stop()
         if let demoDirectory { try? FileManager.default.removeItem(at: demoDirectory) }
+    }
+}
+
+
+extension PlayerModel {
+    func useSeparatedAudio(_ source: URL, origin: MaterialOrigin? = nil) async -> Bool {
+        guard !busy else { return false }
+        adoptingSeparation = true
+        defer { adoptingSeparation = false }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-SeparatedSample-" + UUID().uuidString)
+        let destination = directory.appendingPathComponent(source.lastPathComponent)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try await Task.detached(priority: .userInitiated) { try FileManager.default.copyItem(at: source, to: destination) }.value
+            adoptingSeparation = false
+            await load(destination)
+            guard asset?.url == destination else { try? FileManager.default.removeItem(at: directory); return false }
+            separationAssetDirectory = directory
+            materialOrigin = origin
+            return true
+        } catch {
+            try? FileManager.default.removeItem(at: directory)
+            self.error = "選んだ音を開けませんでした。" + error.localizedDescription
+            return false
+        }
+    }
+    func saveBeforeSeparationUse() async -> Bool {
+        guard !busy, let sample = instrumentSample else { return false }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.sonicForgeInstrument]
+        panel.nameFieldStringValue = instrumentFileURL?.lastPathComponent ?? "楽器.sfinstrument"
+        panel.title = "編集中の楽器を保存"
+        let response: NSApplication.ModalResponse = await withCheckedContinuation { continuation in
+            panel.begin { continuation.resume(returning: $0) }
+        }
+        guard response == .OK, let url = panel.url else { return false }
+        await saveInstrument(sample: sample, root: rootNote, to: url)
+        return !instrumentDirty && instrumentFileURL == url
+    }
+}
+
+extension PlayerModel {
+    var canSaveMaterial: Bool {
+        guard let origin = materialOrigin, let selection = editor.selection, let asset else { return false }
+        return asset.sampleRate == origin.provenance.sampleRate && selection.frameCount > 0 && selection.frameCount <= 30 * 44100
+    }
+    func prepareMaterial(name: String) {
+        guard !busy, canSaveMaterial, let origin = materialOrigin, let selection = editor.selection else { return }
+        stop(); ensemble.stop(); library.stopPreview(); separation.stopPreview()
+        materials.prepare(origin: origin, selection: selection, name: name)
+    }
+    @discardableResult
+    func openMaterial(_ id: String, original: Bool = false) async -> Bool {
+        guard !busy else { return false }
+        adoptingSeparation = true
+        defer { adoptingSeparation = false }
+        do {
+            let restored = try await materials.store.restore(id)
+            let url = original ? restored.origin.original : restored.origin.stem
+            adoptingSeparation = false
+            await load(url)
+            guard asset?.url == url, error == nil else { return false }
+            // The full parent waveform uses exactly the canonical source frame grid.
+            editor.select(from: Double(restored.record.startFrame) / Double(restored.record.provenance.frames),
+                          to: Double(restored.record.endFrame) / Double(restored.record.provenance.frames))
+            position = Double(restored.record.startFrame) / restored.record.provenance.sampleRate
+            player?.currentTime = position
+            materialOrigin = original ? nil : restored.origin
+            restoredMaterial = restored.record
+            exportMessage = "素材を復元 · " + restored.record.name
+            return true
+        } catch {
+            self.error = "素材を開けませんでした。\n" + error.localizedDescription
+            return false
+        }
+    }
+}
+
+extension PlayerModel {
+    func previewMaterial(_ kind: MaterialPreviewKind) {
+        guard !busy else { return }
+        if materials.previewDuration == 0 {
+            stop(); library.stopPreview()
+        }
+        materials.preview(kind)
     }
 }

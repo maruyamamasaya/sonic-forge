@@ -1,0 +1,436 @@
+{
+  "date": "2026-10-19",
+  "hardware": {
+    "chip": "Apple M1 Max",
+    "ram_bytes": 34359738368,
+    "os": "macOS 26.6.2",
+    "python": "3.10.4"
+  },
+  "method": {
+    "serial": true,
+    "network": "HF_HUB_OFFLINE=1; DEMUCS_MLX_NO_DOWNLOAD=1",
+    "outer_normalization": "common NumPy channel-mean mean/std(ddof=1)+1e-8",
+    "mlx_cache_limit_bytes": 4294967296,
+    "memory_poll_seconds": 0.05,
+    "subjective_listening": "not performed by agent",
+    "ground_truth_stems": false
+  },
+  "measurements": {
+    "short-torch": {
+      "backend": "torch",
+      "sample_rate": 44100,
+      "frames": 882000,
+      "duration_s": 20.0,
+      "input_sha256": "e66c08e0f16ff23a117699deaebdeb0e3e261f2d4c590a7bf94119aadf59350b",
+      "settings": {
+        "model": "htdemucs",
+        "shifts": 0,
+        "overlap": 0.25,
+        "split": true,
+        "segment": 7.8,
+        "precision": "float32",
+        "batch_size": 1
+      },
+      "runs": [
+        {
+          "kind": "cold",
+          "inference_s": 5.572765332646668,
+          "audio_seconds_per_wall_second": 3.5888825037786796,
+          "write_s": 0.03921733284369111
+        },
+        {
+          "kind": "warm",
+          "inference_s": 0.9898993340320885,
+          "audio_seconds_per_wall_second": 20.204074608814395,
+          "write_s": 1.6670674085617065e-07
+        },
+        {
+          "kind": "warm",
+          "inference_s": 0.9877732913009822,
+          "audio_seconds_per_wall_second": 20.247561030586567,
+          "write_s": 2.0815059542655945e-07
+        }
+      ],
+      "versions": {
+        "demucs": "4.1.0",
+        "torch": "2.14.1",
+        "numpy": "2.2.6"
+      },
+      "load_s": 1.3736367500387132,
+      "sources": [
+        "drums",
+        "bass",
+        "other",
+        "vocals"
+      ],
+      "total_s": 8.974183000158519,
+      "memory": {
+        "rss_bytes": 689307648,
+        "metal_active_bytes": 373159424,
+        "metal_driver_bytes": 1327333376,
+        "process_peak_rss_bytes": 689356800
+      }
+    },
+    "short-mlx": {
+      "backend": "mlx",
+      "sample_rate": 44100,
+      "frames": 882000,
+      "duration_s": 20.0,
+      "input_sha256": "e66c08e0f16ff23a117699deaebdeb0e3e261f2d4c590a7bf94119aadf59350b",
+      "settings": {
+        "model": "htdemucs",
+        "shifts": 0,
+        "overlap": 0.25,
+        "split": true,
+        "segment": 7.8,
+        "precision": "float32",
+        "batch_size": 1
+      },
+      "runs": [
+        {
+          "kind": "cold",
+          "inference_s": 8.844148917123675,
+          "audio_seconds_per_wall_second": 2.2613820942427627,
+          "write_s": 0.029970166739076376
+        },
+        {
+          "kind": "warm",
+          "inference_s": 0.44495358411222696,
+          "audio_seconds_per_wall_second": 44.9485085953495,
+          "write_s": 3.3294782042503357e-07
+        },
+        {
+          "kind": "warm",
+          "inference_s": 0.4410140407271683,
+          "audio_seconds_per_wall_second": 45.35003005124938,
+          "write_s": 3.3294782042503357e-07
+        }
+      ],
+      "versions": {
+        "demucs-mlx": "1.6.1",
+        "mlx": "0.32.4",
+        "numpy": "2.2.6"
+      },
+      "load_s": 0.18901799991726875,
+      "mlx_peak_active_bytes": 3740855936,
+      "sources": [
+        "drums",
+        "bass",
+        "other",
+        "vocals"
+      ],
+      "total_s": 9.95958516607061,
+      "memory": {
+        "rss_bytes": 329383936,
+        "metal_active_bytes": 3740855936,
+        "metal_driver_bytes": 4226684296,
+        "process_peak_rss_bytes": 357875712
+      }
+    },
+    "full-torch": {
+      "backend": "torch",
+      "sample_rate": 44100,
+      "frames": 11289012,
+      "duration_s": 255.98666666666668,
+      "input_sha256": "2d43bfff6226a41fa86660976d98b713abc6afe485483addc3bee4174b0766e1",
+      "settings": {
+        "model": "htdemucs",
+        "shifts": 0,
+        "overlap": 0.25,
+        "split": true,
+        "segment": 7.8,
+        "precision": "float32",
+        "batch_size": 1
+      },
+      "runs": [
+        {
+          "kind": "cold",
+          "inference_s": 11.532160417176783,
+          "audio_seconds_per_wall_second": 22.197633175947047,
+          "write_s": 0.49536416633054614
+        },
+        {
+          "kind": "warm",
+          "inference_s": 10.904294374864548,
+          "audio_seconds_per_wall_second": 23.475766323471664,
+          "write_s": 2.076849341392517e-07
+        },
+        {
+          "kind": "warm",
+          "inference_s": 11.155046375002712,
+          "audio_seconds_per_wall_second": 22.94805938595701,
+          "write_s": 2.50060111284256e-07
+        }
+      ],
+      "versions": {
+        "demucs": "4.1.0",
+        "torch": "2.14.1",
+        "numpy": "2.2.6"
+      },
+      "load_s": 1.4012086251750588,
+      "sources": [
+        "drums",
+        "bass",
+        "other",
+        "vocals"
+      ],
+      "total_s": 35.59679558407515,
+      "memory": {
+        "rss_bytes": 2175827968,
+        "metal_active_bytes": 418051584,
+        "metal_driver_bytes": 1327349760,
+        "process_peak_rss_bytes": 2175827968
+      }
+    },
+    "full-mlx": {
+      "backend": "mlx",
+      "sample_rate": 44100,
+      "frames": 11289012,
+      "duration_s": 255.98666666666668,
+      "input_sha256": "2d43bfff6226a41fa86660976d98b713abc6afe485483addc3bee4174b0766e1",
+      "settings": {
+        "model": "htdemucs",
+        "shifts": 0,
+        "overlap": 0.25,
+        "split": true,
+        "segment": 7.8,
+        "precision": "float32",
+        "batch_size": 1
+      },
+      "runs": [
+        {
+          "kind": "cold",
+          "inference_s": 5.404114332981408,
+          "audio_seconds_per_wall_second": 47.368847306648455,
+          "write_s": 0.5061083748005331
+        },
+        {
+          "kind": "warm",
+          "inference_s": 5.020351165905595,
+          "audio_seconds_per_wall_second": 50.98979298602324,
+          "write_s": 2.919696271419525e-07
+        },
+        {
+          "kind": "warm",
+          "inference_s": 4.897480207961053,
+          "audio_seconds_per_wall_second": 52.26905588113454,
+          "write_s": 2.9103830456733704e-07
+        }
+      ],
+      "versions": {
+        "demucs-mlx": "1.6.1",
+        "mlx": "0.32.4",
+        "numpy": "2.2.6"
+      },
+      "load_s": 0.14571249997243285,
+      "mlx_peak_active_bytes": 4069483180,
+      "sources": [
+        "drums",
+        "bass",
+        "other",
+        "vocals"
+      ],
+      "total_s": 16.07851166697219,
+      "memory": {
+        "rss_bytes": 1893089280,
+        "metal_active_bytes": 3937119924,
+        "metal_driver_bytes": 5294844636,
+        "process_peak_rss_bytes": 1893236736
+      },
+      "os_time": {
+        "wall_s": 16.24,
+        "max_rss_bytes": 1893826560,
+        "peak_footprint_bytes": 6314134888,
+        "swaps": 0
+      }
+    },
+    "confirm-torch": {
+      "backend": "torch",
+      "sample_rate": 44100,
+      "frames": 11289012,
+      "duration_s": 255.98666666666668,
+      "input_sha256": "2d43bfff6226a41fa86660976d98b713abc6afe485483addc3bee4174b0766e1",
+      "settings": {
+        "model": "htdemucs",
+        "shifts": 0,
+        "overlap": 0.25,
+        "split": true,
+        "segment": 7.8,
+        "precision": "float32",
+        "batch_size": 1
+      },
+      "runs": [
+        {
+          "kind": "cold",
+          "inference_s": 11.352340083103627,
+          "audio_seconds_per_wall_second": 22.549242252499738,
+          "write_s": 0.49127050023525953
+        }
+      ],
+      "versions": {
+        "demucs": "4.1.0",
+        "torch": "2.14.1",
+        "numpy": "2.2.6"
+      },
+      "load_s": 1.3886065417900681,
+      "sources": [
+        "drums",
+        "bass",
+        "other",
+        "vocals"
+      ],
+      "total_s": 13.325368915684521,
+      "memory": {
+        "rss_bytes": 1756987392,
+        "metal_active_bytes": 407041536,
+        "metal_driver_bytes": 1327349760,
+        "process_peak_rss_bytes": 1756987392
+      },
+      "os_time": {
+        "wall_s": 13.63,
+        "max_rss_bytes": 1766653952,
+        "peak_footprint_bytes": 2845689920,
+        "swaps": 0
+      }
+    },
+    "confirm-mlx": {
+      "backend": "mlx",
+      "sample_rate": 44100,
+      "frames": 11289012,
+      "duration_s": 255.98666666666668,
+      "input_sha256": "2d43bfff6226a41fa86660976d98b713abc6afe485483addc3bee4174b0766e1",
+      "settings": {
+        "model": "htdemucs",
+        "shifts": 0,
+        "overlap": 0.25,
+        "split": true,
+        "segment": 7.8,
+        "precision": "float32",
+        "batch_size": 1
+      },
+      "runs": [
+        {
+          "kind": "cold",
+          "inference_s": 5.087643917184323,
+          "audio_seconds_per_wall_second": 50.31536617608618,
+          "write_s": 0.6231053750962019
+        }
+      ],
+      "versions": {
+        "demucs-mlx": "1.6.1",
+        "mlx": "0.32.4",
+        "numpy": "2.2.6"
+      },
+      "load_s": 0.1280609997920692,
+      "mlx_peak_active_bytes": 3937119924,
+      "sources": [
+        "drums",
+        "bass",
+        "other",
+        "vocals"
+      ],
+      "total_s": 5.929622082971036,
+      "memory": {
+        "rss_bytes": 1292124160,
+        "metal_active_bytes": 3825869496,
+        "metal_driver_bytes": 5260834984,
+        "process_peak_rss_bytes": 1292124160
+      },
+      "os_time": {
+        "wall_s": 6.07,
+        "max_rss_bytes": 1292124160,
+        "peak_footprint_bytes": 5687707928,
+        "swaps": 0
+      }
+    }
+  },
+  "comparison": {
+    "short": {
+      "drums": {
+        "snr_db_against_torch": 104.6764693944142,
+        "max_abs_error": 1.537799835205078e-05,
+        "rms_torch": 0.20014308966269648,
+        "rms_mlx": 0.20014349073860394,
+        "correlation": 0.9999999999849764,
+        "frames": 882000,
+        "sample_rate": 44100
+      },
+      "bass": {
+        "snr_db_against_torch": 109.15174819156914,
+        "max_abs_error": 3.680586814880371e-06,
+        "rms_torch": 0.08865481390361377,
+        "rms_mlx": 0.08865478691959612,
+        "correlation": 0.9999999999939624,
+        "frames": 882000,
+        "sample_rate": 44100
+      },
+      "other": {
+        "snr_db_against_torch": 95.065256005251,
+        "max_abs_error": 1.4901161193847656e-05,
+        "rms_torch": 0.13693696351054543,
+        "rms_mlx": 0.13693852062652467,
+        "correlation": 0.9999999999089089,
+        "frames": 882000,
+        "sample_rate": 44100
+      },
+      "vocals": {
+        "snr_db_against_torch": 93.55116058799314,
+        "max_abs_error": 2.193450927734375e-05,
+        "rms_torch": 0.19947806944768912,
+        "rms_mlx": 0.19948224504651224,
+        "correlation": 0.9999999999983766,
+        "frames": 882000,
+        "sample_rate": 44100
+      }
+    },
+    "full": {
+      "drums": {
+        "snr_db_against_torch": 104.662028147879,
+        "max_abs_error": 2.9183924198150635e-05,
+        "rms_torch": 0.1931097975723999,
+        "rms_mlx": 0.19311017341763936,
+        "correlation": 0.999999999984838,
+        "frames": 11289012,
+        "sample_rate": 44100
+      },
+      "bass": {
+        "snr_db_against_torch": 107.19689758309292,
+        "max_abs_error": 5.148351192474365e-06,
+        "rms_torch": 0.07570244859425208,
+        "rms_mlx": 0.07570245760740046,
+        "correlation": 0.9999999999904406,
+        "frames": 11289012,
+        "sample_rate": 44100
+      },
+      "other": {
+        "snr_db_against_torch": 95.6728227032557,
+        "max_abs_error": 2.5570392608642578e-05,
+        "rms_torch": 0.14394225734338892,
+        "rms_mlx": 0.1439438618450336,
+        "correlation": 0.9999999999267309,
+        "frames": 11289012,
+        "sample_rate": 44100
+      },
+      "vocals": {
+        "snr_db_against_torch": 94.28725548741482,
+        "max_abs_error": 2.1696090698242188e-05,
+        "rms_torch": 0.18426896587042566,
+        "rms_mlx": 0.18427247565214377,
+        "correlation": 0.9999999999950487,
+        "frames": 11289012,
+        "sample_rate": 44100
+      }
+    }
+  },
+  "weights": {
+    "pytorch": {
+      "source": "adefossez/HTDemucs/955717e8.safetensors",
+      "sha256": "d9fa14133cfcc034a6758923bb3a8ca9f8dfd0b582134643bbf83f72c17576dd"
+    },
+    "mlx": {
+      "source": "ssmall256/demucs-mlx/htdemucs.safetensors",
+      "sha256": "339d267a7a6983a11eedbdc00413c602a65e9b9103f695fb5c2b2a481cd9d297",
+      "official_signature": "955717e8"
+    }
+  }
+}

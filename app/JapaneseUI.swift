@@ -50,7 +50,7 @@ enum JapaneseUI {
 }
 
 enum StudioHelpTopic: String, CaseIterable, Identifiable {
-    case workflow, clip, section, instrument, root, beat, velocity, pan, eq, reverb, delay, compressor, quantize, loop, envelope, save, ai
+    case workflow, clip, section, instrument, root, beat, velocity, pan, eq, reverb, delay, compressor, limiter, quantize, loop, envelope, save, ai
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -62,6 +62,7 @@ enum StudioHelpTopic: String, CaseIterable, Identifiable {
         case .beat: return "拍・テンポ・繰り返し"
         case .velocity: return "強弱（ベロシティ）と音量"
         case .pan: return "パン（左右の配置）"
+        case .limiter: return "リミッター（曲全体のピーク）"
         case .compressor: return "コンプレッサー（音量のばらつき）"
         case .delay: return "ディレイ（繰り返す音）"
         case .reverb: return "リバーブ（響き）"
@@ -82,6 +83,7 @@ enum StudioHelpTopic: String, CaseIterable, Identifiable {
         case .root: return "元のサンプルをどの音程の鍵盤へ対応させるかを決めます。音程の自動検出ではありません。音符の音程はMIDI番号（60＝C4）、移調は半音数（12＝1オクターブ）です。"
         case .beat: return "1拍は四分音符1個分。BPMは1分間の拍数で、大きいほど速くなります。クリップの繰り返しは演奏を指定回数並べる設定で、素材のループとは別です。"
         case .velocity: return "強弱は音符ごとの発音の強さ（1〜127）。クリップの強弱%はその倍率、パート音量は同じ楽器の全クリップの音量、全体音量は曲全体の出力です。"
+        case .limiter: return "曲全体の大きすぎるピークを抑えます。下部の「リミッター」を開いてオンにし、出力上限とリリース（音量が戻る速さ）を調整。全体音量の後に作用し、構成保存とWAVに反映します。元の音源に含まれる音割れは修復しません。サンプルピーク方式で、トゥルーピークや外部機器の音割れは保証しません。デモメニューから試せます。"
         case .compressor: return "大きな音を抑え、強弱の差を整えます。しきい値を下げるほど作用し、ヘッドルームが小さいほど強く圧縮。アタックとリリースは反応・回復の速さ、補正音量は圧縮後の音量です。オン/オフで比較でき、保存とWAVにも反映します。コンプレッサーデモで試せます。自動音量合わせや音割れ防止の保証ではありません。"
         case .delay: return "ディレイは音を遅らせて繰り返す効果です。間隔はmsで指定し、量0%でオフ、100%で遅れた音だけ。繰り返しの割合を上げるほど長く残ります。パートの全クリップに共通で、構成保存と余韻込みWAVに反映します。全停止で止まり、拍やクリップの開始位置とは別です。「ディレイデモ」で試せます。"
         case .reverb: return "リバーブは部屋の響きを加える機能です。0%でオフ、100%で響きだけになります。各パートの全クリップで共通で、再生中も調整でき、構成保存とWAVに反映します。曲末の響きは最大3秒。全停止で余韻も止まります。「リバーブデモ」で試せます。"

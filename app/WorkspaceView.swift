@@ -43,7 +43,7 @@ struct WorkspaceView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openEnsembleWorkspace)) { _ in requestOpen() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in ensemble.stop(); library.stopPreview() }
         .onChange(of: library.query) { _, _ in librarySelection = nil; library.stopPreview() }
-        .onDisappear { ensemble.stop(); library.stopPreview(); model.stop() }
+        .onDisappear { model.separation.cancel(); model.separation.stopPreview(); ensemble.stop(); library.stopPreview(); model.stop() }
         .sheet(isPresented: $arranging) {
             ArrangementComposerView(ensemble: ensemble, connection: model.composer, composer: arranger, wood: wood)
         }
@@ -95,6 +95,7 @@ struct WorkspaceView: View {
                             Button("デモ曲") { Task { await ensemble.addSharedSongDemo() } }.disabled(!ensemble.parts.isEmpty || !ensemble.sections.isEmpty)
                             Button("デモ2パート") { Task { await ensemble.addDemos() } }
                             Button("左右配置デモ") { Task { await ensemble.addDemos(panned: true) } }
+                            Button("リミッターデモ") { Task { await ensemble.addDemos(limited: true) } }
                             Button("コンプレッサーデモ") { Task { await ensemble.addDemos(compressed: true) } }
                             Button("ディレイデモ") { Task { await ensemble.addDemos(delayed: true) } }
                             Button("リバーブデモ") { Task { await ensemble.addDemos(reverberant: true) } }
@@ -244,6 +245,7 @@ struct WorkspaceView: View {
             TextField("曲全体のテンポ", value: $ensemble.tempo, format: .number).textFieldStyle(.roundedBorder).frame(width: 58).disabled(!ensemble.canEdit)
             Text("BPM").foregroundStyle(.secondary).help(StudioHelpTopic.beat.explanation)
             Spacer()
+            MasterLimiterControl(ensemble: ensemble)
             VStack(alignment: .trailing, spacing: 4) {
                 Text(String(format: "全体音量・%.0f dB", ensemble.masterDB)).font(.system(size: 10))
                 Slider(value: $ensemble.masterDB, in: -60...0).frame(width: 145).tint(accent).accessibilityIdentifier("Ensemble master volume").accessibilityLabel("曲全体の音量").disabled(ensemble.busy)

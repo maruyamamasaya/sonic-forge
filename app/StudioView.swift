@@ -9,7 +9,9 @@ private let line = Color.white.opacity(0.10)
 struct StudioView: View {
     @ObservedObject var model: PlayerModel
     @State private var showingLibrary = false
+    @State private var showingMaterials = false
     var onShowEnsemble: () -> Void = {}
+    @State private var separating = false
     @State private var composing = false
     @State private var playComposed = false
     private var asset: AudioAsset? { model.asset }
@@ -20,7 +22,7 @@ struct StudioView: View {
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 12) {
-                        Text(model.instrumentFileURL?.deletingPathExtension().lastPathComponent ?? asset.map { $0.isDemo ? "金属音・デモ" : $0.url.deletingPathExtension().lastPathComponent } ?? "素材・楽器編集")
+                        Text(model.restoredMaterial?.name ?? model.instrumentFileURL?.deletingPathExtension().lastPathComponent ?? asset.map { $0.isDemo ? "金属音・デモ" : $0.url.deletingPathExtension().lastPathComponent } ?? "素材・楽器編集")
                             .font(.system(size: 22, weight: .medium)).lineLimit(1).truncationMode(.middle)
                         if asset?.isDemo == true {
                             Text("デモ").font(.system(size: 10, weight: .semibold)).foregroundStyle(amber)
@@ -75,6 +77,8 @@ struct StudioView: View {
         }
         .background(base).foregroundStyle(Color(red: 0.86, green: 0.89, blue: 0.91))
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showingMaterials) { MaterialLibraryView(model: model, library: model.materials) }
+        .sheet(isPresented: $separating) { SeparationView(model: model, separation: model.separation) }
         .sheet(isPresented: $showingLibrary) { LibraryView(model: model, library: model.library) }
         .sheet(isPresented: $composing, onDismiss: {
             if playComposed { playComposed = false; model.suspendMIDI(false); model.midi.playPerformance() }
@@ -93,6 +97,9 @@ struct StudioView: View {
             Spacer()
             StudioHelpButton()
             Button("曲の構成へ") { model.stop(); onShowEnsemble() }.buttonStyle(StudioButton())
+            Button("曲を分離…") { model.stop(); model.library.stopPreview(); separating = true }
+                .buttonStyle(StudioButton()).accessibilityIdentifier("separation.open")
+                .help("曲からドラム・ベース・ボーカルなどを取り出し、自分の楽器を作ります。")
             Button("AI演奏…") { model.stop(); composing = true }.buttonStyle(StudioButton())
                 .disabled(model.instrumentSample == nil)
             Button("楽器一覧…") { model.stop(); showingLibrary = true }.buttonStyle(StudioButton())
@@ -119,6 +126,15 @@ struct StudioView: View {
             info("チャンネル", asset.map { $0.channels == 1 ? "モノラル" : "ステレオ" } ?? "—")
             info("ビット深度", asset.map { "\($0.bitDepth)-bit" } ?? "—")
             info("ファイル容量", asset.map { ByteCountFormatter.string(fromByteCount: $0.byteCount, countStyle: .file) } ?? "—")
+            Button("保存した素材…") { model.stop(); showingMaterials = true }
+                .buttonStyle(StudioButton()).padding(.top, 12).disabled(model.busy)
+                .accessibilityIdentifier("materials.library")
+                .help("分離した選択範囲を元曲・位置と一緒に保存し、後から開きます。")
+            if let saved = model.restoredMaterial {
+                Text("元曲: " + saved.provenance.sourceName + "\n" + saved.location)
+                    .font(.caption).foregroundStyle(muted).lineLimit(3).textSelection(.enabled)
+                    .accessibilityIdentifier("materials.origin")
+            }
             Text("出力").font(.system(size: 11, weight: .semibold)).tracking(1.4).padding(.top, 24)
             HStack(spacing: 18) {
                 VStack(alignment: .trailing, spacing: 0) {

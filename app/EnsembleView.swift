@@ -91,6 +91,7 @@ struct EnsembleView: View {
                     Text("出力 \(Int(ensemble.level)) dB").font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
                 }
             }
+            HStack { Spacer(); MasterLimiterControl(ensemble: ensemble); Spacer() }
             EnsembleTransportControls(ensemble: ensemble)
             if ensemble.exporting {
                 HStack {

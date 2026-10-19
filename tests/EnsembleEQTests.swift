@@ -72,7 +72,7 @@ enum EnsembleEQTests {
             let file = directory.appendingPathComponent("eq-\(channels).sfensemble")
             let saved = await model.save(to: file, remember: false); precondition(saved && !model.dirty)
             let object = try JSONSerialization.jsonObject(with: Data(contentsOf: file)) as! [String: Any]
-            precondition(object["version"] as! Int == 10)
+            precondition(object["version"] as! Int == 11)
             let restored = EnsembleModel(); let loaded = await restored.load(file, remember: false)
             precondition(loaded && restored.parts[0].eq == settings)
             part.eq = .flat

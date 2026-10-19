@@ -5,3 +5,6 @@
 node_modules/
 dist/
 build/
+
+# Local source music for separation experiments
+sample_music/

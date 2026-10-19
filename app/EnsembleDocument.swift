@@ -29,6 +29,7 @@ struct EnsembleSnapshot {
     let masterDB: Double
     let parts: [EnsemblePartSnapshot]
     var sections: [EnsembleSection] = []
+    var limiter: MasterLimiter = .off
 }
 private struct EnsemblePartArchive: Codable {
     let name: String
@@ -53,6 +54,7 @@ private struct EnsembleArchive: Codable {
     let masterDB: Double
     let parts: [EnsemblePartArchive]
     let sections: [EnsembleSection]?
+    let limiter: MasterLimiter?
 }
 
 /// Self-contained: embedded WAV and settings, never external instrument/performance paths.
@@ -60,7 +62,7 @@ enum EnsembleDocument {
     static let maximumBytes = 384 * 1024 * 1024
     static func validate(_ snapshot: EnsembleSnapshot) throws {
         guard snapshot.tempo.isFinite, (40...240).contains(snapshot.tempo),
-              snapshot.masterDB.isFinite, (-60...0).contains(snapshot.masterDB), (1...4).contains(snapshot.parts.count) else {
+              snapshot.masterDB.isFinite, (-60...0).contains(snapshot.masterDB), (1...4).contains(snapshot.parts.count), snapshot.limiter.isValid else {
             throw AudioError.invalid("構成のテンポ・Master音量・パート数が無効です。")
         }
         try EnsembleSections.validate(snapshot.sections)
@@ -84,7 +86,7 @@ enum EnsembleDocument {
                     envelope: part.instrument.envelope, loop: part.instrument.loop),
                 performance: part.performance, gainDB: part.gainDB, muted: part.muted, compressor: part.compressor, delay: part.delay, reverb: part.reverb, eq: part.eq, pan: part.pan, startBeat: part.startBeat, repeatCount: part.repeatCount, sectionID: part.sectionID, additionalClips: part.additionalClips)
         }
-        let archive = EnsembleArchive(version: 10, tempo: snapshot.tempo, masterDB: snapshot.masterDB, parts: parts, sections: snapshot.sections)
+        let archive = EnsembleArchive(version: 11, tempo: snapshot.tempo, masterDB: snapshot.masterDB, parts: parts, sections: snapshot.sections, limiter: snapshot.limiter)
         let data = try JSONEncoder().encode(archive)
         guard data.count <= maximumBytes else { throw AudioError.invalid("構成ファイルは384 MB以下にしてください。") }
         try data.write(to: url, options: .atomic)
@@ -93,9 +95,9 @@ enum EnsembleDocument {
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size > 0, size <= maximumBytes else { throw AudioError.invalid("構成ファイルは384 MB以下にしてください。") }
         let archive = try JSONDecoder().decode(EnsembleArchive.self, from: Data(contentsOf: url))
-        guard (1...10).contains(archive.version) else { throw AudioError.invalid("このバージョンの構成ファイルには対応していません。") }
+        guard (1...11).contains(archive.version) else { throw AudioError.invalid("このバージョンの構成ファイルには対応していません。") }
         guard (1...4).contains(archive.parts.count), archive.tempo.isFinite, (40...240).contains(archive.tempo),
-              archive.masterDB.isFinite, (-60...0).contains(archive.masterDB) else { throw AudioError.invalid("構成の設定が無効です。") }
+              archive.masterDB.isFinite, (-60...0).contains(archive.masterDB), (archive.version < 11 || archive.limiter != nil), (archive.limiter ?? .off).isValid else { throw AudioError.invalid("構成の設定が無効です。") }
         guard archive.version < 4 || archive.sections != nil else { throw AudioError.invalid("セクション情報がありません。") }
         let sections = archive.version < 4 ? [] : archive.sections!
         try EnsembleSections.validate(sections)
@@ -121,7 +123,7 @@ enum EnsembleDocument {
                     envelope: restored.envelope, loop: restored.loop, name: part.instrumentName),
                 performance: part.performance, gainDB: part.gainDB, muted: part.muted, pan: archive.version < 6 ? 0 : part.pan!, eq: archive.version < 7 ? .flat : part.eq!, reverb: archive.version < 8 ? 0 : part.reverb!, delay: archive.version < 9 ? .off : part.delay!, compressor: archive.version < 10 ? .off : part.compressor!, startBeat: archive.version == 1 ? 0 : part.startBeat!, repeatCount: archive.version < 3 ? 1 : part.repeatCount!, sectionID: archive.version < 4 ? nil : part.sectionID, additionalClips: archive.version < 5 ? [] : part.additionalClips!)
         }
-        let snapshot = EnsembleSnapshot(tempo: archive.tempo, masterDB: archive.masterDB, parts: parts, sections: sections)
+        let snapshot = EnsembleSnapshot(tempo: archive.tempo, masterDB: archive.masterDB, parts: parts, sections: sections, limiter: archive.version < 11 ? .off : archive.limiter!)
         try validate(snapshot)
         return snapshot
     }

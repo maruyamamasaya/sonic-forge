@@ -4,6 +4,11 @@ import AVFoundation
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        try await MaterialSearchTests.run()
+        try await MaterialTests.run()
+        if CommandLine.arguments.contains("--materials-only") { return }
+        if CommandLine.arguments.contains("--limiter-only") { try await MasterLimiterTests.run(); return }
+        try await SeparationTests.run()
         try PerformanceTests.run()
         try await EnsembleTests.run()
         try await EnsemblePlaybackTests.run()
@@ -14,6 +19,7 @@ struct AudioTests {
         try await EnsembleReverbTests.run()
         try await EnsembleDelayTests.run()
         try await EnsembleCompressorTests.run()
+        try await MasterLimiterTests.run()
         try await EnsembleSectionTests.run()
         try await SectionDuplicationTests.run()
         try await WorkspaceTests.run()

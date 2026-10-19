@@ -109,7 +109,7 @@ enum ArrangementGeneration {
                 startBeat: first.startBeat, repeatCount: first.repeatCount, sectionID: first.sectionID,
                 additionalClips: Array(clips.dropFirst()))
         }
-        let result = EnsembleSnapshot(tempo: proposal.tempo, masterDB: brief.snapshot.masterDB, parts: parts, sections: sections)
+        let result = EnsembleSnapshot(tempo: proposal.tempo, masterDB: brief.snapshot.masterDB, parts: parts, sections: sections, limiter: brief.snapshot.limiter)
         try EnsembleDocument.validate(result)
         return result
     }

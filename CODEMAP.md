@@ -5,6 +5,9 @@
 | --- | --- | --- |
 | コンセプト・人間向け案内 | README.md | SonicForge、音 |
 | 開発の経緯・人向けの入門 | DEVELOPMENT_JOURNEY.md、USER_GUIDE.md | 音素材、楽器、演奏、構成、用語 |
+| 音源分離の方針・実機比較 | SOURCE_SEPARATION.md、SEPARATION_BENCHMARK.md、scripts/separation_benchmark.py、benchmarks/separation/、decisions/0045-mlx-separation-backend.md | htdemucs、MLX、worker、分離、run、compare |
+| 来歴付き素材ライブラリの仕様・計画 | MATERIAL_LIBRARY.md、decisions/0047-material-library-plan.md | SourceTrack、SeparationRun、MaterialClip、SQLite、元曲frame |
+| 全体構想・中長期計画 | ROADMAP.md | 分離、分析、蓄積、スコア、ロードマップ |
 | 現在地・次の作業 | CURRENT.md | 未実装、次に行うこと |
 | 構成ファイル形式 | ENSEMBLE_FORMAT.md | sfensemble、version、instrument、masterDB |
 | 複数楽器の演奏 | ENSEMBLE.md | Ensemble、Play All、パート |
@@ -24,6 +27,8 @@
 | Feature | Primary paths | Search keywords / Key entry points | Related tests |
 | --- | --- | --- | --- |
 | アプリ入口・メイン制作画面 | app/SonicForgeApp.swift、app/WorkspaceView.swift、app/WorkspaceInspector.swift、app/WorkspaceSectionInspector.swift、app/WorkspaceAppearance.swift | WorkspaceView、ensembleWorkspaceActive、Selected clip、setInstrumentSettings | 実アプリ手動確認 |
+| 来歴付き素材の保存・復元 | app/MaterialOrigin.swift、app/MaterialStore.swift、app/MaterialLibraryModel.swift、app/MaterialLibraryView.swift、app/MaterialComparison.swift | MaterialStore.search/updateAnnotations/comparison、MaterialLibraryModel.preview/stopPreview、MaterialStore.prepare/commit/restore、PlayerModel.openMaterial、SeparationLease | tests/MaterialTests.swift、tests/MaterialSearchTests.swift |
+| 曲の分離・試聴・素材採用 | app/SeparationClient.swift、app/SeparationModel.swift、app/SeparationView.swift、scripts/separation_worker.py | SeparationClient.run/validate、SeparationModel.start/cancel/preview、useSeparatedAudio | tests/SeparationTests.swift、実モデルと実UI |
 | WAV・デモ・波形解析 | app/AudioAsset.swift | AudioAsset.load、DemoAudio.write、peaks | tests/AudioTests.swift |
 | 再生・ファイル選択・状態 | app/PlayerModel.swift | open、load、toggle、stop、seek、playSelection、refreshPlaybackState | tests/AudioTests.swift --playback |
 | 選択・ズーム・表示範囲 | app/WaveformEditor.swift | select、setZoom、pan、fitSelection、AudioSelection | tests/AudioTests.swift |
@@ -119,3 +124,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 パートディレイ: app/PartDelay.swift（isValid/tailSeconds/apply）、EnsemblePart.delay、EnsembleVoice.setDelay、EnsembleDelayControl（WorkspaceInspector/EnsembleView）、addDemos(delayed:)。余韻はEnsembleModel.play/EnsembleExport.write、検証はtests/EnsembleDelayTests.swift。
 
 パートコンプレッサー: app/PartCompressor.swift（isValid/apply/makeNode）、EnsemblePart.compressor、EnsembleVoice.setCompressor、EnsembleCompressorControl（WorkspaceInspector/EnsembleView）、addDemos(compressed:)。検証はtests/EnsembleCompressorTests.swift、保存形式はENSEMBLE_FORMAT.md。
+
+マスターリミッター: app/MasterLimiter.swift（MasterLimiter/EnsembleMasterBus）、EnsembleModel.limiter/updateGains/play、EnsembleExport.write、app/MasterLimiterControl.swift（下段/全パート）、addDemos(limited:)。検証はtests/MasterLimiterTests.swift、操作はMASTER_LIMITER.md。

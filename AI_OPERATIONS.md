@@ -1,6 +1,6 @@
 # AI向け操作・演奏ガイド
 
-最終確認: 2026-10-17
+最終確認: 2026-10-19
 
 ## この文書の役割
 AIがアプリを操作・拡張するときに、操作の入口、観測する状態、停止方法を短時間で把握するためのガイド。
@@ -28,6 +28,8 @@ UIの要素番号や画面座標は固定ではない。機器やウィンドウ
 ## 操作とアプリ内の入口
 | 目的 | 画面 | 主な実装入口 |
 | --- | --- | --- |
+| 曲を分離 | 曲を分離… → 曲を選んで分離… / モデルを準備 | SeparationModel.start、busy/status/audio、SeparationClient.run/validate |
+| 分離結果の確認と採用 | 選んだ音を試聴 / 試聴停止 / この音を編集 | SeparationModel.preview/stopPreview、PlayerModel.useSeparatedAudio |
 | 素材を用意 | デモを開く / WAVを開く… | PlayerModel.loadDemo / load |
 | 音色を作る | 選択を楽器に、基準音、ADSR、ループ、継ぎ目 | prepareInstrument、rootNote、setEnvelope、setLoop |
 | 楽器を探す・試聴・読込 | Library…、楽器を検索、試聴 / 試聴停止、楽器を読み込む | InstrumentLibrary.filtered / preview / stopPreview、PlayerModel.loadInstrument |
@@ -100,7 +102,7 @@ APIキーやCLI認証情報をチャット・文書・ログへ転記しない�
 再生中は割り当てを変えず、Mute・音量・パン・EQ・リバーブ・ディレイ・コンプレッサーを操作できる。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成は保存…した状態だけがディスクへ保存される。閉じるで閉じただけ、または● 未保存の状態を保存済みだと報告しない。外部操作APIは未実装。
 
 ## 構成の保存と起動時復元の判定
-[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v10](ENSEMBLE_FORMAT.md)を参照。保存…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
+[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v11](ENSEMBLE_FORMAT.md)を参照。保存…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
 開く…の未保存置換確認では必要に応じてキャンセル→先に保存…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・保存済み・設定・playing=falseを確認してから全体を再生。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読み開く…へ進み、復元成功と報告しない。
 保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、全停止後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
 
@@ -138,7 +140,7 @@ EnsemblePart.additionalClips/allClips、EnsembleModel.addClip/editClip/setClipPe
 ## クリップ複製と展開変更
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中にDuplicate clip for パート名 UUIDメニュー→別セクション。UUIDは現在のタイムライン/追加エディターから取得する。最初の演奏にもSECTION CLIPS行に同じメニューがある。複製後のClip transpose/Clip velocity for パート名 新UUIDを操作し、元の演奏・START・REPEATが変わらないことを確認する。
 モデル入口はEnsembleModel.duplicateClip(part:clip:to:)。成功時は新UUID、失敗時はnilとerror。成功時のみ追加/dirtyとなる。演奏・相対START・REPEATを保ち、楽器/mixを共有する。対象セクションの長さ不足や区間重複は自動修正せず拒否。canEdit=falseでは変更しない。最大8クリップでメニュー無効。
-成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v10を使用。全体を再生とExport WAVは既存の全クリップ経路を使う。停止は全停止→playing=false/全voices=0/ペダル解除を確認する。
+成功判定はクリップ数+1、元IDの値維持、新IDのsectionIDとタイムライン絶対開始の一致。editClipでコピーだけのtranspose/velocityPercentを変え、Save後/再起動後も追加IDと全設定を確認する。構成v11を使用。全体を再生とExport WAVは既存の全クリップ経路を使う。停止は全停止→playing=false/全voices=0/ペダル解除を確認する。
 
 ## セクション全体を複製する
 正本は[ENSEMBLE.md](ENSEMBLE.md)。停止中、Duplicate section 名前 UUIDボタンを操作する。モデル入口はEnsembleModel.duplicateSection(UUID)、成功は新セクションUUID、失敗はnil（canEdit=falseでは変更なし、それ以外はerror）。元の直後へ同じ長さのCopyを挿入し、sectionIDが元IDに一致する全パートの全クリップを複製する。Song基準は対象外。
@@ -261,3 +263,22 @@ Clip note Nを単独/複数選択→Note quantize gridで1/4・1/8・1/16・1/32
 入口はEnsemblePart.compressor: PartCompressor(enabled:thresholdDB:headroomDB:attackMS:releaseMS:makeupDB:)。範囲と既定値は[構成形式](ENSEMBLE_FORMAT.md)。UIは右設定/全パートの「コンプレッサー・音量を整える」、Toggle IDはCompressor enabled for パートUUID、Slider IDはCompressor threshold/headroom/attack/release/makeup for パートUUID。ラベルは「パート名 のコンプレッサー・しきい値/ヘッドルーム/アタック/リリース/補正音量」。ヘッドルームは小さいほど強い圧縮で固定ratioではない。ADSRのreleaseやパートgainと区別する。
 操作後はenabledと5値/dirty/revisionで判定。再生中は30 Hz反映、処理中は編集不可。オン/オフ比較はenabledだけ変更し5値保持、オフは補正音量もバイパス。全停止（Stop all workspace audio）→playing=false/voices=0/level=−60。一時停止/シーク/範囲周回も内部検出状態をreset。停止後の全体Undo/Redo対応。
 空き2パート→デモ→コンプレッサーデモ（Soft Chords: true/−30/5/10/150/0、Bouncy Phrase: true/−30/3/2/100/0、演奏の強弱45/120交互）→再生/調整→全停止→別名保存→dirty=false→再起動復元で6項目一致→WAV出力→Studio再読込/再生で確認する。v10保存、旧v1〜v9はオフ。AI編曲採用でも手動値を保持、提案schemaに設定を追加しない。楽器単体保存には含まれない。自動音量合わせや聴感品質を保証しない。
+
+## 音源分離の確認と停止
+
+入口識別子はseparation.open/choose/prepare。busy中は処理中、statusとaudioの5件（元曲+4ステム）で完了を確認する。試聴はpreview/stopPreview/seek、採用はuse。途中取消はcancel、閉じるはclose。アプリ非アクティブ化では試聴だけ停止。採用前の未保存確認に従い、採用後はSample Studioで短い範囲を選ぶ。保存後の成功表示とライブラリ登録を確認する。操作詳細は[分離ガイド](SEPARATION.md)。
+
+## 来歴付き素材の保存
+Sample Studio右側`materials.library`（保存した素材…）が入口。名前`materials.name`→`materials.prepare`で準備し、`materials.capacity`の追加容量と来歴を確認→`materials.commit`で保存。`materials.status`の「保存済み」と一覧を確認する。準備中の表示だけで保存成功と判定しない。停止は`materials.cancel`/準備を破棄。busy中は閉じず、commit後は取消にせず成功を表示する。
+再起動後は`materials.list`から選択し、`materials.open`でパートと選択範囲、`materials.openOriginal`で元曲の位置を復元。未保存楽器の確認に従う。PlayerModel.restoredMaterial、editor.selection、materialOrigin（元曲表示時はnil）、右側`materials.origin`で出所と絶対位置を観測する。開く操作は自動再生しない。試聴は既存の選択再生/停止を使う。
+
+## マスターリミッターを調整する
+入口はEnsembleModel.limiter = MasterLimiter(enabled:ceilingDB:releaseMS:)。既定false/−1/24、全体の設定でパートへ分配しない。範囲/保存キーは[構成形式](ENSEMBLE_FORMAT.md)。下段または全パートのボタンIDはMaster limiter settings、開いたToggleはMaster limiter enabled、SliderはMaster limiter ceiling / Master limiter release、閉じるはClose master limiter settings。上限の単位はdBFS、時間はms。全体音量より後に作用し、各パートのコンプレッサーとは別。
+操作後はenabled/ceilingDB/releaseMS・dirty/revisionを照合。処理中は編集不可、再生中は30 Hz反映。オフでも上限/リリースを保持。停止はポップオーバーを閉じて全停止（Stop all workspace audio）→playing=false/voices=0/level=−60。設定を閉じるだけでは再生停止しない。全停止/一時停止/シーク/範囲周回で検出状態をresetし、停止後の全体Undo/Redoに対応する。
+空き2パート→デモ→リミッターデモ、またはAdd master limiter demo。EQ全帯域+12 dB/コンプレッサー補正+24 dB/音符の強弱127/Attack・Decay 0・Sustain 1・Release 0.5秒の2パートとmasterDB=0/limiter=true/−1/24を一括追加する（元パートは残す）。曲全体Undoで追加前へ戻せる。再生→上限/リリース変更→全停止→別名保存→dirty=false→再起動/開くで3値一致/無音復元→全体WAV→Studio再読込/再生を確認。保存v11、旧1〜10はオフ。AI編曲採用時も保持。Demoは外部AIを呼ばない。
+サンプルピークを抑える機能で、元から割れた音の修復、オーバーサンプリングによるトゥルーピーク検出、外部機器の過大音量防止は扱わない。WAVのピーク判定と聴感品質は区別する。
+
+## 素材の検索・注釈・比較試聴
+入口は`materials.library`。「現在の選択を保存」は`materials.saveSection`の開閉内にある。`materials.search`は名前/曲/タグ/メモ、`materials.tagFilter`は完全一致タグ。`materials.count`と一覧で結果を判定し、`materials.previous/next`で50件ずつ移動。searching中の古い一覧を結果と扱わない。検索変更では試聴を停止し、編集フォームは保持する。
+素材を選び、`materials.tags`/`materials.note`を編集→`materials.annotations.save`で確定。未保存表示/annotationDirtyと保存成功のstatusを区別する。切替・閉じる・編集へ渡す時の保存/破棄/戻るに従う。注釈編集は楽器/曲を変更しない。
+`materials.preview.clip/original/stem`で同一区間を比較。previewLoadingは準備中、previewKindで発音種別、previewPositionは区間内秒。`materials.preview.seek`で位置を指定、`materials.preview.stop`または全停止で停止する。検索/選択変更、画面終了、非アクティブ化で準備中の遅延発音も止まる。試聴中は本体の再生/MIDIと重ねない。

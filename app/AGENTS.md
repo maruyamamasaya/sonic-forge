@@ -9,3 +9,9 @@
 - 検証はTESTING.mdのNative変更手順に従う。音が出ることと音質・遅延品質を保証することは区別する。
 
 - 主要UIは日本語。JapaneseUI.swiftは表示用の変換と検索付き用語説明だけを扱う。保存キー/enum rawValue/ユーザーデータ名を翻訳しない。UI名の変更時はaccessibilityIdentifierとAI_OPERATIONSの対応を保ち、ツールチップと最小サイズも確認する。
+
+- 音源分離はSeparationView（設定/試聴/採用）、SeparationModel（MainActorのジョブ/候補/試聴状態）、SeparationClient（Process/契約/音源検証）、同梱separation_worker.py（固定MLX）に分ける。採用した音はPlayerModel.useSeparatedAudioの所有コピーで保持し、候補の寿命から切り離す。詳細は[分離ガイド](../SEPARATION.md)。
+
+- 来歴付き素材はMaterialOrigin/SeparationLease（分離jobの参照所有）、MaterialStore actor（SQLite3/管理音声/準備・commit・復元）、MaterialLibraryModel/View（検索/注釈/容量確認/一覧/比較試聴）とMaterialComparison（同一区間PCMの所有）に分ける。PlayerModel.openMaterialは検証後に全長波形と絶対frame選択を復元する。テストは一時MaterialStoreを注入し、本番Application Supportを変更しない。楽器v4への来歴埋め込みはまだ行わない。
+
+- 素材注釈は来歴payloadと別のschema v2へ保存する。移行前はSQLite backup APIで退避しtransactionで移行。比較は短い同長PCMを用い、PlayerModelの全停止/他再生と排他にする。検索/選択/画面終了で準備を無効化し、未保存のタグ/メモを無確認で破棄しない。

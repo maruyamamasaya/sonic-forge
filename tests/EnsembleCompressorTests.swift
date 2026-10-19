@@ -73,7 +73,7 @@ enum EnsembleCompressorTests {
             let saved = await model.save(to: url, remember: false); precondition(saved && !model.dirty)
             let original = try Data(contentsOf: url)
             let object = try JSONSerialization.jsonObject(with: original) as! [String: Any]
-            precondition(object["version"] as! Int == 10)
+            precondition(object["version"] as! Int == 11)
             let restored = EnsembleModel(); let loaded = await restored.load(url, remember: false)
             precondition(loaded && restored.parts.map(\.compressor) == [settings, boosted] && !restored.playing)
             part.compressor = bypass

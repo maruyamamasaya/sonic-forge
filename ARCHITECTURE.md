@@ -4,19 +4,21 @@
 ```text
 SwiftUI WorkspaceView → EnsembleModel → 共通AVAudioEngine → macOS system output
           └ StudioView → PlayerModel → AVAudioPlayer / SampleInstrument
+                  └ SeparationView → SeparationModel → Python worker → 検証WAV → PlayerModel
                          │
 NSOpenPanel / DemoAudio → AudioAsset.load（background）→ peak配列 → Canvas波形
 ```
 
 ## Technology Stack / Important Dependencies
 macOS 14以上、Swift 5言語モード、XcodeのSwiftコンパイラ。
-SwiftUI / AppKit / AVFoundation / CoreMIDI / CombineとPython標準ライブラリのみ。第三者パッケージなし。
+SwiftUI / AppKit / AVFoundation / CoreMIDI / Combine / CryptoKit / SQLite3とPython標準ライブラリを使用。アプリ本体は第三者パッケージなし。音源分離の比較専用venvにはPyTorch/MLX等を任意導入済みだが、MLX推論は外部venvのworkerとしてアプリから呼び出す。詳細は[実機比較](SEPARATION_BENCHMARK.md)。
 当初提案のC++ / JUCEから、最初のMac専用版はApple標準基盤へ変更。[判断理由](decisions/0002-native-playback.md)。
 
 ## Directory Structure / Main Components
 - app/: UI、再生状態、WAV解析、デモ合成。領域ルールは [app/AGENTS.md](app/AGENTS.md)。
 - tests/: ファイル解析と再生状態のテスト。
-- scripts/: ローカル.app生成、テスト、標準Verify。
+- scripts/: ローカル.app生成、テスト、標準Verify、任意の音源分離比較。
+- benchmarks/separation/: 個人情報を除いた分離の実測値と比較用依存固定一覧。音源・重み・venvはbuild/に置く（Demucs側重みは標準Hugging Face cache）。
 - decisions/、sessions/: 判断と作業結果。
 主要シンボルは [CODEMAP.md](CODEMAP.md)。
 
@@ -32,7 +34,7 @@ WAVExportは選択を32-bit Float WAVへ書き出す。保存先と同じディ�
 デモは8秒・48 kHz・16-bit・ステレオの減衰音を一時ディレクトリに合成。通常終了時に削除。ユーザー音源は変更しない。
 
 ## API / Database / Authentication / External Services
-DB・アプリ利用者認証は未導入。AI生成は任意のCodex CLI / OpenAI API / 手動JSON接続。詳細は下記Performance GenerationとArrangement Proposals。macOSの既定出力を使用する。
+音源分離は任意の専用Python環境でローカルMLXを実行する。素材保存はローカルSQLite3を使用。アプリ利用者認証は未導入。AI生成は任意のCodex CLI / OpenAI API / 手動JSON接続。詳細は下記Performance GenerationとArrangement Proposals。macOSの既定出力を使用する。
 
 ## Deployment
 app/Resources/AppIcon.pngをアイコンの原本とし、scripts/build.shが標準サイズのiconsetとICNSを生成してResourcesへ同梱する。Info.plistのCFBundleIconFileで参照する。
@@ -120,7 +122,7 @@ PerformanceEditorが独立したシートで編集し、MIDIInputが演奏ファ
 InstrumentLibraryは楽器ファイルの絶対パスをUserDefaultsのinstrumentLibraryPathsV1へ保存する参照型の一覧。成功した通常保存・読込で自動登録し、Add FilesはInstrumentDocumentの全検証後に登録する。既存の最後の楽器も起動時復元成功で登録される。検索はファイル名、同名は親フォルダ表示で区別する。
 LibraryViewは本体を維持する独立シート。未保存楽器の置換は確認後に既存のloadInstrumentへ渡す。一覧から除外しても原本は削除しない。移動・削除された原本はMissingとなり、新しい場所から再追加する。
 試聴は専用SampleInstrumentで基準音をvelocity100・−18 dBで演奏し、0.8秒後に離鍵、開始3秒後に強制停止する（長いAttack/Releaseの全体確認ではない）。PCM・ADSR・ループを使用し、本体の楽器・dirty・起動時復元先を変更しない。本体停止後に開始し、選択/検索変更・閉じる・アプリ非アクティブ・終了時に停止。バックグラウンド復号後も世代を検査し、閉じた後の遅延発音を防ぐ。試聴の一時音源は停止時に清掃。
-Add DemosはApplication Support/SonicForge/Library内に同一合成素材のMetal/Softを作成し登録する。既存同名ファイルは上書きしない。外部ファイルはコピー・再帰走査しない。クラウド同期・タグ・DB・外部APIは未実装。
+Add DemosはApplication Support/SonicForge/Library内に同一合成素材のMetal/Softを作成し登録する。既存同名ファイルは上書きしない。外部ファイルはコピー・再帰走査しない。この楽器一覧のクラウド同期・タグ・DB索引・外部APIは未実装。来歴付き素材のDBは別のMaterialStoreが管理する。
 
 ## Performance Generation
 StudioViewのCompose… → PerformanceComposer（候補・取消世代） → PerformanceBrief / PerformanceGeneration（指示・共通schema・検証） → CodexPerformanceClient / OpenAIPerformanceClient。Codexはインストール済みネイティブ実行ファイルをProcess引数配列＋stdinで起動。空の一時作業領域・read-only・ignore-user-config・ephemeral、shell/unified_exec/apps/hooks無効、web_search無効。標準出力・標準エラーは保存せず最終JSONファイルだけを検証。120秒で停止、終了時に一時領域を清掃する。Nodeラッパーは既知の同梱バイナリへ解決してNodeのPATHに依存しない。
@@ -130,12 +132,12 @@ Other AIは共通の指示とschemaをコピーしJSONを貼り付ける手動�
 ## Ensemble
 EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パートはPCM/Root/ADSR/LoopのスナップショットとPerformanceDocumentを持つ。InstrumentDocumentからの読込はバックグラウンドで全検証し、PCM取得後に展開一時領域を清掃する。失敗時は以前の割り当てを保持する。演奏読込は既存形式の検証を再利用する。
 全パートを開始前に検証し、各演奏のtempoを共通テンポへ置換したコピーからイベントを作り、startBeat × 60 / tempo秒を音符・離鍵・ペダルへ加算する。開始位置は有限数0〜256拍。終了拍もシフト後の最後のイベントから求める。元の演奏データは書き換えない。各パートの±24半音・8音上限は既存検証を再利用。1つでも未割当/不正なら全体を開始しない。ミュートしたパートも検証する。
-再生ごとに1つのAVAudioEngineとパート別の入力Mixer/EQ/コンプレッサー/ディレイ/リバーブ/パンMixerを準備。SampleInstrumentのdestination/panDestination引数で出力と左右配置を分け、各パンMixerをmainMixerの別busへ接続する。単一楽器の既定出力は従来通りmainMixer。EnsembleVoiceはパート別にMIDIの押鍵所有権/チャンネルCC64を管理し、同音程の別パートを干渉させない。ペダル中の同音再押鍵は再発音する。
+再生ごとに1つのAVAudioEngineとパート別の入力Mixer/EQ/コンプレッサー/ディレイ/リバーブ/パンMixerを準備。SampleInstrumentのdestination/panDestination引数で出力と左右配置を分け、各パンMixerをEnsembleMasterBus.inputの別busへ接続する。単一楽器の既定出力は従来通りmainMixer。EnsembleVoiceはパート別にMIDIの押鍵所有権/チャンネルCC64を管理し、同音程の別パートを干渉させない。ペダル中の同音再押鍵は再発音する。
 全イベントを1つのTaskから単調時計の共通開始時刻に対する絶対秒で配送する。睡眠時間の積算によるずれは避けるが、サンプル精度ではない。再生後はパートごとのReleaseを待ち、最大6秒で終了。停止はTask取消/世代変更/全ボイス停止/共通engine破棄。閉じる・アプリ非アクティブ・本体の音声再生/全音停止でも終了する。
 パートMixerの音量・ミュートは30 Hzで更新。共通出力は最大4パート分の固定1/4ヘッドルームと専用Masterを使用。各サンプラーの1/8ヘッドルームは維持する。パートと共通出力それぞれの実RMSを表示し、本体のメーターとは区別。割り当てはシートを閉じても保持し、保存した構成は起動時に復元する。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 ## Ensemble Persistence
-EnsembleDocumentが.sfensemble v10を管理。旧v1〜v5のpanは中央0、v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読み込む。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
+EnsembleDocumentが.sfensemble v11を管理。旧v1〜v5のpanは中央0、v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読み込む。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
 保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/繰り返し回数/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
 EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsのlastEnsemblePathV1へ保持。PlayerModel.startSessionから一度だけ復元し、本体の楽器復元とは独立。無音・停止状態で復元し、自動再生しない。欠落/破損時は構成エラーを表示して手動Openへ導く。復元前の構成や正常な保存先を失敗で更新しない。
 
@@ -220,3 +222,19 @@ PartDelayはtimeMS（50〜1000）、mix（0〜100）、feedback（0〜60）の�
 
 ## Part Compressor
 PartCompressorはApple AUDynamicsProcessorをAVAudioUnitEffectで使用。EQ後/ディレイ前で48 kHz stereo処理する。thresholdDB −40〜0、headroomDB 0.1〜40、attackMS 0.1〜200、releaseMS 10〜3000、makeupDB 0〜24の有限数とenabledを持つ。既定はオフ/−24/5/10/150/0。固定ratioは使わずheadroomが小さいほど強い圧縮。ExpansionRatio=1でゲート/エキスパンダーを無効化する。オフは補正音量もbypassし、他の値を保持。EnsembleVoice.setCompressorでライブ30 Hz/固定WAVを共有し、オン/オフ切替とvoice.stopでAUをreset。音声生成/残響を行わず余韻予算は追加しない。全停止/一時停止/シーク/周回も同じ停止経路。SongState/dirty/Undo/Redo・AI編曲時の手動値保持に含む。構成v10は6項目必須、v1〜v9は既定オフへ移行。判断は[0043](decisions/0043-part-compressor.md)。
+
+## Source Separation
+
+SeparationView → SeparationModel → SeparationClient（Process）→ Resources/separation_worker.py。固定MLXモデルと外側正規化、原曲+4ステムをFloat32 WAVへ出力。jobID付きatomic progress/manifestを使い、候補全体の検証後にのみ更新。採用時はPlayerModelがWAVの所有コピーを保持し、既存の波形・InstrumentSample・InstrumentDocumentへつなぐ。取消と終了はworker停止後に一時ファイルを削除。Python/モデルは別途準備。詳細・制限は[分離ガイド](SEPARATION.md)、判断は[0046](decisions/0046-separation-worker-integration.md)。
+
+## 来歴付き素材保存
+SeparationManifestは入力SHA-256・依存版・gain・前処理識別子を検証する。SeparationLeaseがジョブの一時ディレクトリを参照所有し、PlayerModelに採用された来歴がある間は次の分離や候補cleanup後も元曲を保持する。
+MaterialLibraryView/Model → MaterialStore actor → SQLite3（保存基盤v1、注釈検索追加でv2へ移行）+ 内容SHA-256の管理ファイル。元入力・比較用元曲・選択stem全長・切片をstagingで検証し、容量確認後、ファイル公開→DB transactionの順に保存する。同じrun/stem/範囲は既存素材を返す。新しい分離runは別の来歴として保持する。
+素材を開く際はhash・形式・フレーム数を確認後、全長stemまたは比較用元曲の波形と絶対フレーム範囲を復元する。失敗時は現在の音源を保持。楽器v4は変更しない。孤立objectsは自動削除せず、破損/未知版DBも保持してエラーにする。詳細は[MATERIAL_LIBRARY](MATERIAL_LIBRARY.md)。
+
+## Master Limiter
+MasterLimiterのenabled/ceilingDB/releaseMSをEnsembleSnapshotとSongStateで保持。EnsembleMasterBusが全パート合算Mixer（固定1/4ヘッドルーム＋masterDB）→Apple AUPeakLimiter→mainMixerを共有し、mainMixerのtapで処理後のRMSを測る。入力側でceilingDBを逆補正し、mainMixer.outputVolumeで上限へ戻す。オン/オフ切替・周回・全停止で検出状態をreset。上限を下げるときは最終gainを先に下げ、PreGain変更時の一時的な増幅を避ける。ライブ30 HzとWAVの固定Snapshotが同じapplyを使う。オフはAUバイパス/最終gain=1で旧ミックスを保つ。既定オフ、値の範囲は[構成形式](ENSEMBLE_FORMAT.md)、操作/限界は[リミッター](MASTER_LIMITER.md)。構成v11は3項目必須、旧v1〜v10はオフ移行。AI編曲のmaterializeは既存値を保持し提案schemaは変更しない。理由は[0048](decisions/0048-master-limiter.md)。
+
+## 素材の注釈・検索・比較試聴
+MaterialStore schema v2は不変の来歴とは別にmaterial_annotations/tags/material_tagsを管理する。v1からはSQLite backup APIでbackupsへ退避後、transactionで移行。注釈保存と正規化済み検索キー/タグ関連の更新を一括commitする。検索はbind済みLIKE（記号escape）とタグID、ORDER BY created/id、LIMIT/OFFSETで50件まで返す。MaterialLibraryModelは検索generationで古い結果を無効化し、選択中の未保存注釈を検索から独立して保持する。
+MaterialStore.comparison → MaterialComparisonが検証済み保存音声の区間を短いWAVへ生成し所有する。MaterialLibraryModelは素材/元曲/stemを同じ相対位置からAVAudioPlayerで切り替え、終了/停止で所有ファイルを解放する。PlayerModel.previewMaterialは他の再生を停止し、PlayerModel.stopInstrument/playNoteは素材試聴を停止する。UI閉鎖/非アクティブ/検索・選択変更では遅延発音も無効化。詳細は[MATERIAL_LIBRARY](MATERIAL_LIBRARY.md)、判断は[0050](decisions/0050-material-search-comparison.md)。
