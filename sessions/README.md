@@ -110,3 +110,5 @@ Date: YYYY-MM-DD
 - [2026-10-19: 来歴付き素材保存と位置復元](2026-10-19-material-persistence.md)
 
 - [2026-10-19: 素材のタグ・メモ検索と比較試聴](2026-10-19-material-search-comparison.md)
+
+- [2026-10-19: 開発全体の振り返り更新](2026-10-19-development-retrospective.md)
