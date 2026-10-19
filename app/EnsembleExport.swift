@@ -27,7 +27,7 @@ enum EnsembleExport {
         events = events.enumerated().sorted {
             $0.element.frame == $1.element.frame ? $0.offset < $1.offset : $0.element.frame < $1.element.frame
         }.map(\.element)
-        let tail = snapshot.parts.map { $0.instrument.envelope.release + ($0.muted ? 0 : PartReverb.tailSeconds($0.reverb)) }.max() ?? 0
+        let tail = snapshot.parts.map { $0.instrument.envelope.release + ($0.muted ? 0 : PartReverb.tailSeconds($0.reverb) + $0.delay.tailSeconds) }.max() ?? 0
         let sectionEnd = Int64((EnsembleSections.end(snapshot.sections) * 60 / snapshot.tempo * sampleRate).rounded(.up))
         let end = max(events.last?.frame ?? 0, sectionEnd) + Int64(((tail + 0.05) * sampleRate).rounded(.up))
         guard end > 0, end <= maximumFrames else { throw AudioError.invalid("書き出すWAVが256 MBを超えます。開始位置や演奏を短くしてください。") }
@@ -51,7 +51,7 @@ enum EnsembleExport {
         // Mixer connection parameters must be set after the graph is initialized.
         for (voice, part) in zip(voices, snapshot.parts) {
             voice.sampler.gain = part.muted ? 0 : Float(pow(10, part.gainDB / 20))
-            voice.sampler.pan = Float(part.pan); voice.setEQ(part.eq); voice.setReverb(part.reverb)
+            voice.sampler.pan = Float(part.pan); voice.setEQ(part.eq); voice.setReverb(part.reverb); voice.setDelay(part.delay)
         }
         // Close the file before publishing it by atomic rename.
         do {

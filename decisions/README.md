@@ -104,3 +104,5 @@ Status: proposed / accepted / superseded
 - [0040: パート単位の3バンドEQ](0040-part-eq.md)
 
 - [0041: パート単位のリバーブ](0041-part-reverb.md)
+
+- [0042: パート単位のディレイ](0042-part-delay.md)

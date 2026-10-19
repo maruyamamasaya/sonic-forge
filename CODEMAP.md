@@ -115,3 +115,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 パートEQ: app/PartEQ.swift のPartEQ/apply/makeNode、EnsemblePart.eq、EnsembleVoice.setEQ、EnsembleEQControl（WorkspaceInspector/EnsembleView）、addDemos(equalized:)。検証はtests/EnsembleEQTests.swift、形式はENSEMBLE_FORMAT.md。
 
 パートリバーブ: app/PartReverb.swift（isValid/tailSeconds/makeNode）、EnsemblePart.reverb、EnsembleVoice.setReverb、EnsembleReverbControl（WorkspaceInspector/EnsembleView）、addDemos(reverberant:)。余韻はEnsembleModel.play/EnsembleExport.write、検証はtests/EnsembleReverbTests.swift。
+
+パートディレイ: app/PartDelay.swift（isValid/tailSeconds/apply）、EnsemblePart.delay、EnsembleVoice.setDelay、EnsembleDelayControl（WorkspaceInspector/EnsembleView）、addDemos(delayed:)。余韻はEnsembleModel.play/EnsembleExport.write、検証はtests/EnsembleDelayTests.swift。

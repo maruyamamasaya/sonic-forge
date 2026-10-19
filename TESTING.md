@@ -203,3 +203,7 @@ EnsembleEQTestsは60 Hz/1 kHz/12 kHzの合成素材を本番AVAudioEngineでWAV�
 ## Part Reverb
 EnsembleReverbTestsはmono/stereoの短い音を本番グラフでWAV出力・再読み込みし、量に応じた離鍵後の非ゼロ残響、OFFの正確な復帰、追加3秒/終端減衰、出力gain比・pan端・Muteを測定する。v8のパート別保存/復元、v1〜v7 OFF互換、欠落/null/型違い/範囲外/非有限の原子的拒否、Undo/Redo、AI編曲時の保持を検証。--playbackでデモ・再生中変更・余韻を含むMute/停止も確認する。実デバイスのタップと30 Hz更新を考慮し、Muteのメーター判定は最大1秒待つ。
 GUIは右設定/全パートの量とオフ、Undo/Redo、最小1100幅、再生中調整、別名保存/再起動、曲全体WAV書き出し→Studio再読み込み/再生。聴感の品質・実機音響・長時間負荷の保証とは分ける。
+
+## Part Delay
+EnsembleDelayTestsはmono/stereoの短い音を本番グラフでWAV出力・再読み込みし、100/250 msでエコーの時刻が変わること、無音間隔、mix比、feedbackの次のエコー/0で1回、OFFの復帰、余韻長/終端減衰を検証。EQ/リバーブ併用、出力gain比/pan/Mute、v9保存/復元とv1〜v8オフ互換、欠落/null/型違い/範囲外/非有限の原子的拒否、履歴/AI保持も確認。--playbackでデモと再生中変更/Mute/全停止を検証し、メーターは最大1秒待つ。
+GUIは右設定/全パートの3値とオフ/Undo/Redo、1920幅/最小1100幅、デモ再生中調整、別名保存/再起動、余韻込みWAV出力→Studio再読込→再生。聴感品質・長時間負荷・全ての環境での無音切替を保証しない。

@@ -27,6 +27,8 @@ struct WorkspaceInspector: View {
                     EnsembleEQControl(part: part, ensemble: ensemble)
                     Divider()
                     EnsembleReverbControl(part: part, ensemble: ensemble)
+                    Divider()
+                    EnsembleDelayControl(part: part, ensemble: ensemble)
                     Button("パート削除") { ensemble.remove(part.id) }.disabled(!ensemble.canEdit)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 3)
             }
@@ -201,5 +203,37 @@ struct EnsembleReverbControl: View {
                 .monospacedDigit().foregroundStyle(.secondary)
         }.font(.system(size: 10)).disabled(ensemble.busy)
             .help("小さな部屋の響きを加えます。0%でオフ、100%で響きだけになります。同じパートの全クリップで共通。再生・構成保存・WAVに反映し、余韻は最大3秒まで残します。全停止で余韻も止まります。")
+    }
+}
+
+struct EnsembleDelayControl: View {
+    @ObservedObject var part: EnsemblePart
+    @ObservedObject var ensemble: EnsembleModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("ディレイ・繰り返す音").foregroundStyle(.secondary)
+                Spacer()
+                Button("オフ") { var value = part.delay; value.mix = 0; part.delay = value }
+                    .accessibilityIdentifier("Reset delay for \(part.id)")
+                    .accessibilityLabel("\(part.name) のディレイをオフにする")
+            }
+            band("間隔", key: "time", path: \.timeMS, range: 50...1000, step: 10, unit: "ms")
+            band("量", key: "mix", path: \.mix, range: 0...100, step: 1, unit: "%")
+            band("繰り返し", key: "feedback", path: \.feedback, range: 0...60, step: 1, unit: "%")
+            Text(part.delay.mix == 0 ? "オフ・全クリップで共通" : "全クリップで共通・テンポ同期なし")
+                .font(.system(size: 9)).foregroundStyle(.secondary)
+        }.font(.system(size: 10)).disabled(ensemble.busy)
+            .help("音を遅らせて繰り返します。間隔は50〜1000 ms、量0%でオフ・100%で遅れた音だけ。繰り返しは戻す音の割合で0〜60%。拍やクリップの開始位置とは別の設定です。再生・保存・余韻込みのWAVに反映し、全停止で止まります。")
+    }
+    private func band(_ name: String, key: String, path: WritableKeyPath<PartDelay, Double>, range: ClosedRange<Double>, step: Double, unit: String) -> some View {
+        VStack(spacing: 3) {
+            HStack { Text(name); Spacer(); Text(String(format: "%.0f", part.delay[keyPath: path]) + " " + unit).monospacedDigit() }
+            Slider(value: Binding(get: { part.delay[keyPath: path] }, set: { value in
+                var settings = part.delay; settings[keyPath: path] = value; part.delay = settings
+            }), in: range, step: step)
+                .accessibilityIdentifier("Delay \(key) for \(part.id)")
+                .accessibilityLabel("\(part.name) のディレイ・\(name)")
+        }
     }
 }
