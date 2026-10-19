@@ -112,3 +112,15 @@ Date: YYYY-MM-DD
 - [2026-10-19: 素材のタグ・メモ検索と比較試聴](2026-10-19-material-search-comparison.md)
 
 - [2026-10-19: 開発全体の振り返り更新](2026-10-19-development-retrospective.md)
+
+- [2026-10-19: 保存素材の再編集と楽器来歴](2026-10-19-material-reuse-provenance.md)
+
+- [2026-10-19: 素材のゴミ箱移動と復元](2026-10-19-material-trash.md)
+
+- [2026-10-19: 素材の完全削除と参照保護付き音声回収](2026-10-19-material-permanent-deletion.md)
+
+- [2026-10-19: 素材参照と保護解除](2026-10-19-material-protection-release.md)
+
+- [2026-10-19: ゴミ箱素材の一括完全削除](2026-10-19-material-batch-deletion.md)
+
+- [2026-10-19: 素材ライブラリのコミット準備](2026-10-19-material-library-checkpoint.md)

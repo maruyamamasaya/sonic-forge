@@ -13,6 +13,7 @@ struct InstrumentArchive: Codable {
     let sampleWAV: Data
     let envelope: ADSRParameters?
     let loop: SampleLoop?
+    var provenance: InstrumentProvenance? = nil
 }
 
 struct RestoredInstrument {
@@ -22,21 +23,23 @@ struct RestoredInstrument {
     let sample: InstrumentSample
     let asset: AudioAsset
     let directory: URL
+    let provenance: InstrumentProvenance?
 }
 
 enum InstrumentDocument {
-    static func save(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters = .standard, loop: SampleLoop? = nil, to url: URL) throws {
+    static func save(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters = .standard, loop: SampleLoop? = nil, provenance: InstrumentProvenance? = nil, to url: URL) throws {
         guard url.pathExtension.lowercased() == "sfinstrument" else { throw AudioError.invalid("楽器の保存形式が無効です。") }
-        let archive = try makeArchive(sample: sample, rootNote: rootNote, envelope: envelope, loop: loop)
+        let archive = try makeArchive(sample: sample, rootNote: rootNote, envelope: envelope, loop: loop, provenance: provenance)
         try JSONEncoder().encode(archive).write(to: url, options: .atomic)
     }
 
-    static func makeArchive(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters, loop: SampleLoop? = nil) throws -> InstrumentArchive {
+    static func makeArchive(sample: InstrumentSample, rootNote: Int, envelope: ADSRParameters, loop: SampleLoop? = nil, provenance: InstrumentProvenance? = nil) throws -> InstrumentArchive {
         guard (48...72).contains(rootNote), envelope.isValid, sample.name.count <= 255 else {
             throw AudioError.invalid("楽器の保存形式または基準音が無効です。")
         }
         let loop = loop ?? SampleLoop(endFrame: Int64(sample.buffer.frameLength))
         guard loop.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) else { throw AudioError.invalid("ループ範囲が無効です。") }
+        try provenance?.validate(frames: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate)
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-Save-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -50,7 +53,7 @@ enum InstrumentDocument {
         }
         let wav = try Data(contentsOf: audioURL)
         guard wav.count <= 64 * 1024 * 1024 + 8192 else { throw AudioError.invalid("楽器音源は64 MB以下にしてください。") }
-        return InstrumentArchive(version: 4, rootNote: rootNote, sampleName: sample.name, sampleWAV: wav, envelope: envelope, loop: loop)
+        return InstrumentArchive(version: provenance == nil ? 4 : 5, rootNote: rootNote, sampleName: sample.name, sampleWAV: wav, envelope: envelope, loop: loop, provenance: provenance)
     }
 
     static func load(_ url: URL) throws -> RestoredInstrument {
@@ -60,7 +63,8 @@ enum InstrumentDocument {
     }
 
     static func restore(_ archive: InstrumentArchive) throws -> RestoredInstrument {
-        guard (1...4).contains(archive.version) else { throw AudioError.invalid("このバージョンの楽器ファイルには対応していません。") }
+        guard (1...5).contains(archive.version) else { throw AudioError.invalid("このバージョンの楽器ファイルには対応していません。") }
+        guard archive.version == 5 ? archive.provenance != nil : archive.provenance == nil else { throw AudioError.invalid("楽器の版と来歴情報が一致しません。") }
         let envelope = archive.version == 1 ? ADSRParameters.legacy : archive.envelope
         guard let envelope, envelope.isValid else { throw AudioError.invalid("ADSRの設定が無効です。") }
         guard (48...72).contains(archive.rootNote), archive.sampleName.count <= 255,
@@ -77,7 +81,8 @@ enum InstrumentDocument {
             let sample = InstrumentSample(buffer: decoded.buffer, name: archive.sampleName, selection: decoded.selection)
             let loop = archive.version < 3 ? SampleLoop(endFrame: Int64(sample.buffer.frameLength)) : archive.loop
             guard let loop, loop.isValid(frameCount: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate) else { throw AudioError.invalid("ループ範囲が無効です。") }
-            return RestoredInstrument(loop: loop, envelope: envelope, rootNote: archive.rootNote, sample: sample, asset: asset, directory: directory)
+            try archive.provenance?.validate(frames: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate)
+            return RestoredInstrument(loop: loop, envelope: envelope, rootNote: archive.rootNote, sample: sample, asset: asset, directory: directory, provenance: archive.provenance)
         } catch {
             try? FileManager.default.removeItem(at: directory)
             throw error

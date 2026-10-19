@@ -8,11 +8,12 @@ struct EnsembleInstrument {
     let envelope: ADSRParameters
     let loop: SampleLoop
     let name: String
+    var provenance: InstrumentProvenance? = nil
     static func load(_ url: URL) throws -> Self {
         let restored = try InstrumentDocument.load(url)
         defer { try? FileManager.default.removeItem(at: restored.directory) }
         return Self(sample: restored.sample, root: restored.rootNote, envelope: restored.envelope,
-                    loop: restored.loop, name: url.deletingPathExtension().lastPathComponent)
+                    loop: restored.loop, name: url.deletingPathExtension().lastPathComponent, provenance: restored.provenance)
     }
 }
 
@@ -271,7 +272,7 @@ final class EnsembleModel: ObservableObject {
                 case (nil, nil): sameInstrument = true
                 case let (a?, b?):
                     sameInstrument = a.sample.buffer === b.sample.buffer && a.root == b.root &&
-                        a.envelope == b.envelope && a.loop == b.loop && a.name == b.name
+                        a.envelope == b.envelope && a.loop == b.loop && a.name == b.name && a.provenance == b.provenance
                 default: sameInstrument = false
                 }
                 return a.part.id == b.part.id && a.name == b.name && sameInstrument &&
@@ -290,6 +291,12 @@ final class EnsembleModel: ObservableObject {
             SongPartState(part: $0, name: $0.name, instrument: $0.instrument, instrumentURL: $0.instrumentURL,
                           clips: $0.allClips, gain: $0.gainDB, pan: $0.pan, eq: $0.eq, reverb: $0.reverb, compressor: $0.compressor, delay: $0.delay, muted: $0.muted)
         }, tempo: tempo, master: masterDB, limiter: limiter)
+    }
+    var materialProtections: [MaterialProtection] {
+        let states = [songState()] + songUndo.flatMap { [$0.before, $0.after] } + songRedo.flatMap { [$0.before, $0.after] }
+        return states.flatMap(\.parts).compactMap { part in
+            part.instrument?.provenance.map { MaterialProtection(record: $0.material, label: "構成・履歴: " + part.name) }
+        }
     }
     private func beginSongEdit(_ label: String) {
         if historyDepth == 0 { historyLabel = label }
@@ -566,7 +573,7 @@ final class EnsembleModel: ObservableObject {
               loop.isValid(frameCount: Int64(old.sample.buffer.frameLength), sampleRate: old.sample.buffer.format.sampleRate) else {
             error = "楽器の基準音・ADSR・ループ範囲を確認してください。"; return
         }
-        part.instrument = EnsembleInstrument(sample: old.sample, root: root, envelope: envelope, loop: loop, name: old.name)
+        part.instrument = EnsembleInstrument(sample: old.sample, root: root, envelope: envelope, loop: loop, name: old.name, provenance: old.provenance)
         markDirty(); error = nil
     }
     func removeClip(part id: UUID, clip clipID: UUID) {
@@ -822,7 +829,7 @@ final class EnsembleModel: ObservableObject {
                     if let instrument = part.instrument {
                         part.instrument = EnsembleInstrument(sample: instrument.sample, root: instrument.root,
                             envelope: ADSRParameters(attack: 0, decay: 0, sustain: 1, release: 0.5),
-                            loop: instrument.loop, name: instrument.name)
+                            loop: instrument.loop, name: instrument.name, provenance: instrument.provenance)
                     }
                 }
             }

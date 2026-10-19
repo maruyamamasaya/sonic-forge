@@ -39,8 +39,12 @@ final class PlayerModel: ObservableObject {
     let composer = PerformanceComposer()
     let separation = SeparationModel()
     let materials: MaterialLibraryModel
+    private var materialReadLease: MaterialAudioLease?
     @Published private(set) var materialOrigin: MaterialOrigin?
     @Published private(set) var restoredMaterial: MaterialRecord?
+    @Published private(set) var waveformProvenance: InstrumentProvenance?
+    @Published private(set) var instrumentProvenance: InstrumentProvenance?
+    var revealMaterialID: String?
     private var materialObservation: AnyCancellable?
     private var separationAssetDirectory: URL?
     @Published var ensembleWorkspaceActive = true
@@ -219,10 +223,12 @@ final class PlayerModel: ObservableObject {
         guard !busy else { return }
         let adsr = parameters ?? envelope
         let loop = loop ?? sampleLoop
+        let provenance = sample.buffer === instrumentSample?.buffer ? instrumentProvenance : nil
         exporting = true
         defer { exporting = false }
         do {
-            try await Task.detached(priority: .userInitiated) { try InstrumentDocument.save(sample: sample, rootNote: root, envelope: adsr, loop: loop, to: url) }.value
+            if let provenance { try await materials.store.retain([MaterialProtection(record: provenance.material, label: "作成した楽器")]) }
+            try await Task.detached(priority: .userInitiated) { try InstrumentDocument.save(sample: sample, rootNote: root, envelope: adsr, loop: loop, provenance: provenance, to: url) }.value
             instrumentFileURL = url
             instrumentDirty = false
             exportMessage = "Instrument saved · " + url.lastPathComponent
@@ -256,6 +262,12 @@ final class PlayerModel: ObservableObject {
         do {
             let restored = try await Task.detached(priority: .userInitiated) { try InstrumentDocument.load(url) }.value
             pendingDirectory = restored.directory
+            let origin: MaterialOrigin?
+            if let provenance = restored.provenance {
+                try? await materials.store.retain([MaterialProtection(record: provenance.material, label: "読み込んだ楽器")])
+                origin = try? await materials.store.resolve(provenance)
+            }
+            else { origin = nil }
             let replacement = try AVAudioPlayer(contentsOf: restored.asset.url)
             replacement.isMeteringEnabled = true
             replacement.volume = Float(pow(10, gainDB / 20))
@@ -265,7 +277,8 @@ final class PlayerModel: ObservableObject {
             instrument.gain = Float(pow(10, gainDB / 20))
             player = replacement
             if let separationAssetDirectory { try? FileManager.default.removeItem(at: separationAssetDirectory); self.separationAssetDirectory = nil }
-            materialOrigin = nil; restoredMaterial = nil
+            materialOrigin = origin; materialReadLease = origin?.audioLease; restoredMaterial = restored.provenance?.material
+            waveformProvenance = restored.provenance; instrumentProvenance = restored.provenance
             asset = restored.asset
             editor = WaveformEditor(frameCount: Int64(restored.sample.buffer.frameLength), sampleRate: restored.sample.buffer.format.sampleRate)
             instrumentSample = restored.sample
@@ -335,7 +348,8 @@ final class PlayerModel: ObservableObject {
             player = replacement
             if let separationAssetDirectory { try? FileManager.default.removeItem(at: separationAssetDirectory); self.separationAssetDirectory = nil }
             exportMessage = nil
-            materialOrigin = nil; restoredMaterial = nil
+            materialOrigin = nil; materialReadLease = nil; restoredMaterial = nil
+            waveformProvenance = nil; instrumentProvenance = nil
             asset = loaded
             rootNote = demo ? 57 : 60
             envelope = .standard
@@ -350,16 +364,30 @@ final class PlayerModel: ObservableObject {
     func prepareInstrument(useSelection: Bool = true) async {
         guard !busy, let asset else { return }
         let selection = useSelection ? editor.selection : nil
+        let origin = materialOrigin, waveform = waveformProvenance
         preparingInstrument = true
         defer { preparingInstrument = false }
         stopInstrument()
         do {
-            let sample = try await Task.detached(priority: .userInitiated) {
+            let decoded = try await Task.detached(priority: .userInitiated) {
                 try InstrumentSample.load(url: asset.url, selection: selection)
             }.value
+            let sample = InstrumentSample(buffer: decoded.buffer, name: origin?.record?.name ?? waveform?.material.name ?? decoded.name, selection: decoded.selection)
+            var provenance: InstrumentProvenance?
+            if let origin, let record = origin.record {
+                let absolute = try origin.absolute(sample.selection)
+                provenance = InstrumentProvenance(material: record, startFrame: absolute.startFrame, endFrame: absolute.endFrame)
+            } else if let waveform {
+                guard sample.selection.endFrame <= waveform.endFrame - waveform.startFrame else { throw AudioError.invalid("楽器の来歴範囲が一致しません。") }
+                provenance = InstrumentProvenance(material: waveform.material,
+                    startFrame: waveform.startFrame + sample.selection.startFrame, endFrame: waveform.startFrame + sample.selection.endFrame)
+            }
+            try provenance?.validate(frames: Int64(sample.buffer.frameLength), sampleRate: sample.buffer.format.sampleRate)
+            if let provenance { try await materials.store.retain([MaterialProtection(record: provenance.material, label: "作成した楽器")]) }
             instrument.install(sample)
             instrument.gain = Float(pow(10, gainDB / 20))
             instrumentSample = sample
+            instrumentProvenance = provenance
             sampleLoop = SampleLoop(endFrame: Int64(sample.buffer.frameLength))
             instrumentDirty = true
             error = nil
@@ -596,7 +624,7 @@ final class PlayerModel: ObservableObject {
         } else { levels = [-60, -60] }
     }
     func cleanup() {
-        materials.cancel(); materialOrigin = nil
+        materials.cancel(); materialOrigin = nil; materialReadLease = nil
         separation.cleanup()
         if let separationAssetDirectory { try? FileManager.default.removeItem(at: separationAssetDirectory) }
         ensemble.stop()
@@ -651,6 +679,10 @@ extension PlayerModel {
 }
 
 extension PlayerModel {
+    var materialSelectionInSource: AudioSelection? {
+        guard let origin = materialOrigin, let selection = editor.selection else { return nil }
+        return try? origin.absolute(selection)
+    }
     var canSaveMaterial: Bool {
         guard let origin = materialOrigin, let selection = editor.selection, let asset else { return false }
         return asset.sampleRate == origin.provenance.sampleRate && selection.frameCount > 0 && selection.frameCount <= 30 * 44100
@@ -661,22 +693,29 @@ extension PlayerModel {
         materials.prepare(origin: origin, selection: selection, name: name)
     }
     @discardableResult
-    func openMaterial(_ id: String, original: Bool = false) async -> Bool {
+    func openMaterial(_ id: String, original: Bool = false, clip: Bool = false) async -> Bool {
         guard !busy else { return false }
         adoptingSeparation = true
         defer { adoptingSeparation = false }
         do {
             let restored = try await materials.store.restore(id)
-            let url = original ? restored.origin.original : restored.origin.stem
+            let url = original ? restored.origin.original : clip ? restored.clip : restored.origin.stem
             adoptingSeparation = false
             await load(url)
             guard asset?.url == url, error == nil else { return false }
-            // The full parent waveform uses exactly the canonical source frame grid.
+            // Clip coordinates are local; the origin offset is applied exactly once on save.
             editor.select(from: Double(restored.record.startFrame) / Double(restored.record.provenance.frames),
                           to: Double(restored.record.endFrame) / Double(restored.record.provenance.frames))
-            position = Double(restored.record.startFrame) / restored.record.provenance.sampleRate
+            var origin = restored.origin
+            if clip && !original {
+                origin.frameOffset = restored.record.startFrame
+                editor.select(from: 0, to: 1)
+                waveformProvenance = InstrumentProvenance(material: restored.record, startFrame: restored.record.startFrame, endFrame: restored.record.endFrame)
+            }
+            position = clip && !original ? 0 : Double(restored.record.startFrame) / restored.record.provenance.sampleRate
             player?.currentTime = position
-            materialOrigin = original ? nil : restored.origin
+            materialReadLease = origin.audioLease
+            materialOrigin = original ? nil : origin
             restoredMaterial = restored.record
             exportMessage = "素材を復元 · " + restored.record.name
             return true
@@ -694,5 +733,14 @@ extension PlayerModel {
             stop(); library.stopPreview()
         }
         materials.preview(kind)
+    }
+}
+
+extension PlayerModel {
+    var materialDeletionProtections: [MaterialProtection] {
+        ensemble.materialProtections + (instrumentProvenance.map { [MaterialProtection(record: $0.material, label: "編集中の楽器")] } ?? [])
+    }
+    var materialDeletionFiles: [URL] {
+        library.entries.map(\.url) + (instrumentFileURL.map { [$0] } ?? []) + (ensemble.fileURL.map { [$0] } ?? [])
     }
 }

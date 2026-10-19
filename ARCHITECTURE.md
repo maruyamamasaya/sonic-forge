@@ -51,7 +51,7 @@ Mixer tapのRMSを右メーターへ表示。音声スレッドのメーター�
 従来の試聴とは排他再生。停止・音源交換・基準音変更・フォーカス喪失で発音を止める。離鍵はADSRのReleaseへ移行する。
 
 ## Instrument Documents
-InstrumentDocumentがversion 4の単一JSONファイル（.sfinstrument）を読み書きする。
+InstrumentDocumentが単一JSONファイル（.sfinstrument）を読み書きする。来歴なしはversion 4、ありはversion 5で保存し、version 1〜5を読む。
 取り込み済みPCMを32-bit Float WAVに変換してbase64で同梱し、基準音・ADSR・ループとサンプル表示名を保存。外部音源パスへの依存はない。
 保存はバックグラウンド生成＋atomic write。読み込みはサイズ・版・基準音・音源を検証後、一時領域へ展開して既存エンジンへ渡す。
 全検証と試聴プレイヤー準備に成功してから現在の状態を置き換え、失敗時は元の楽器を保持する。
@@ -137,7 +137,7 @@ EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パ
 パートMixerの音量・ミュートは30 Hzで更新。共通出力は最大4パート分の固定1/4ヘッドルームと専用Masterを使用。各サンプラーの1/8ヘッドルームは維持する。パートと共通出力それぞれの実RMSを表示し、本体のメーターとは区別。割り当てはシートを閉じても保持し、保存した構成は起動時に復元する。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 ## Ensemble Persistence
-EnsembleDocumentが.sfensemble v11を管理。旧v1〜v5のpanは中央0、v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読み込む。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
+EnsembleDocumentが.sfensemble v11/v12を管理（来歴付き楽器を含む場合のみv12）。旧v1〜v5のpanは中央0、v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読み込む。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4/v5をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
 保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/繰り返し回数/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
 EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsのlastEnsemblePathV1へ保持。PlayerModel.startSessionから一度だけ復元し、本体の楽器復元とは独立。無音・停止状態で復元し、自動再生しない。欠落/破損時は構成エラーを表示して手動Openへ導く。復元前の構成や正常な保存先を失敗で更新しない。
 
@@ -230,7 +230,7 @@ SeparationView → SeparationModel → SeparationClient（Process）→ Resource
 ## 来歴付き素材保存
 SeparationManifestは入力SHA-256・依存版・gain・前処理識別子を検証する。SeparationLeaseがジョブの一時ディレクトリを参照所有し、PlayerModelに採用された来歴がある間は次の分離や候補cleanup後も元曲を保持する。
 MaterialLibraryView/Model → MaterialStore actor → SQLite3（保存基盤v1、注釈検索追加でv2へ移行）+ 内容SHA-256の管理ファイル。元入力・比較用元曲・選択stem全長・切片をstagingで検証し、容量確認後、ファイル公開→DB transactionの順に保存する。同じrun/stem/範囲は既存素材を返す。新しい分離runは別の来歴として保持する。
-素材を開く際はhash・形式・フレーム数を確認後、全長stemまたは比較用元曲の波形と絶対フレーム範囲を復元する。失敗時は現在の音源を保持。楽器v4は変更しない。孤立objectsは自動削除せず、破損/未知版DBも保持してエラーにする。詳細は[MATERIAL_LIBRARY](MATERIAL_LIBRARY.md)。
+素材を開く際はhash・形式・フレーム数を確認後、全長stemまたは比較用元曲の波形と絶対フレーム範囲を復元する。失敗時は現在の音源を保持。短いclipの再編集はMaterialOrigin.frameOffsetを加算して元曲上の絶対位置へ戻し、親素材IDと注釈を継承する。孤立objectsは自動削除せず、破損/未知版DBも保持してエラーにする。詳細は[MATERIAL_LIBRARY](MATERIAL_LIBRARY.md)。
 
 ## Master Limiter
 MasterLimiterのenabled/ceilingDB/releaseMSをEnsembleSnapshotとSongStateで保持。EnsembleMasterBusが全パート合算Mixer（固定1/4ヘッドルーム＋masterDB）→Apple AUPeakLimiter→mainMixerを共有し、mainMixerのtapで処理後のRMSを測る。入力側でceilingDBを逆補正し、mainMixer.outputVolumeで上限へ戻す。オン/オフ切替・周回・全停止で検出状態をreset。上限を下げるときは最終gainを先に下げ、PreGain変更時の一時的な増幅を避ける。ライブ30 HzとWAVの固定Snapshotが同じapplyを使う。オフはAUバイパス/最終gain=1で旧ミックスを保つ。既定オフ、値の範囲は[構成形式](ENSEMBLE_FORMAT.md)、操作/限界は[リミッター](MASTER_LIMITER.md)。構成v11は3項目必須、旧v1〜v10はオフ移行。AI編曲のmaterializeは既存値を保持し提案schemaは変更しない。理由は[0048](decisions/0048-master-limiter.md)。
@@ -238,3 +238,16 @@ MasterLimiterのenabled/ceilingDB/releaseMSをEnsembleSnapshotとSongStateで保
 ## 素材の注釈・検索・比較試聴
 MaterialStore schema v2は不変の来歴とは別にmaterial_annotations/tags/material_tagsを管理する。v1からはSQLite backup APIでbackupsへ退避後、transactionで移行。注釈保存と正規化済み検索キー/タグ関連の更新を一括commitする。検索はbind済みLIKE（記号escape）とタグID、ORDER BY created/id、LIMIT/OFFSETで50件まで返す。MaterialLibraryModelは検索generationで古い結果を無効化し、選択中の未保存注釈を検索から独立して保持する。
 MaterialStore.comparison → MaterialComparisonが検証済み保存音声の区間を短いWAVへ生成し所有する。MaterialLibraryModelは素材/元曲/stemを同じ相対位置からAVAudioPlayerで切り替え、終了/停止で所有ファイルを解放する。PlayerModel.previewMaterialは他の再生を停止し、PlayerModel.stopInstrument/playNoteは素材試聴を停止する。UI閉鎖/非アクティブ/検索・選択変更では遅延発音も無効化。詳細は[MATERIAL_LIBRARY](MATERIAL_LIBRARY.md)、判断は[0050](decisions/0050-material-search-comparison.md)。
+
+## 素材再編集と楽器の来歴
+InstrumentProvenanceは元素材の不変MaterialRecordと楽器PCMに対応する絶対frameを保持する。PlayerModelは波形と取り込み済み楽器の来歴を分離し、選択変更で既存楽器の来歴を書き換えない。来歴付きは楽器v5、構成v12、来歴なしは従来v4/v11で保存。EnsembleInstrument/SongState/AI編曲/設定編集も保持する。DB不在でも短い内包PCMの演奏・再編集と来歴表示が可能で、元曲の管理音声は捏造しない。[判断](decisions/0051-material-reuse-provenance.md)。
+
+## 素材のゴミ箱
+MaterialStore schema v3のmaterial_trashは素材IDと移動日時だけを保存する。既存v2は退避してtransactionで移行。search/list/tagsは有効素材とゴミ箱を分離し、item/restore/resolve/comparisonはIDによる参照を維持する。setTrashedは音声ファイルや来歴payload/親子/注釈を変更しないため、編集中音声・派生素材・可搬楽器の来歴を壊さない。MaterialLibraryModel.showTrash/changeTrashStateとMaterialLibraryViewが未保存確認・試聴停止・状態別一覧/復元を扱う。同一区間のゴミ箱素材は再登録で自動復元しない。[判断](decisions/0052-material-trash.md)。
+
+## 完全削除と音声回収
+MaterialDeletionはschema v4のtombstones/retentions/reclaimsと削除計画を扱う。素材の不変recordを参照記録へ移し、他素材/祖先/楽器の永続保護/MaterialAudioLeaseを除いた音声だけを回収する。Storeの準備/確定を同じactorで行い、DBと候補内容の確認時snapshotを確定前に再検証する。commit後の回収journalをunlink成功ごとに解消し、失敗分は未回収メニューで再確認できる。PlayerModelの波形/元曲とMaterialComparisonがleaseを保持。楽器化/保存/読込と既知ファイル確認でretentionを保存し、構成/履歴も保護する。UIはMaterialDeletionReviewと削除済み参照記録、ModelはreviewDeletion/confirmDeletion。詳細は[完全削除](MATERIAL_DELETION.md)、判断は[0053](decisions/0053-material-permanent-deletion.md)。
+
+MaterialDeletionのprotectionReview/prepareRelease/releaseProtectionが保護一覧・仮解除rollbackによる容量計算・snapshot再検証付き個別解除を担当する。schema v4を維持し、音声回収は既存の明示操作に分ける。
+
+完全削除計画はrecordsのID集合で単体/複数を共通処理する。prepareBatchDeletionは最大50件のゴミ箱素材を検証し、対象/削除済み祖先のhash集合から選択外の参照を除く。全件のDB変更と重複のない回収journalを同じtransactionで確定する。部分回収失敗は辞書順先頭IDに集約し既存の単体再確認経路で復旧する。

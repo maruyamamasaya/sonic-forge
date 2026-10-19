@@ -45,7 +45,7 @@ enum MaterialSearchTests {
         let secondDraft = try await initial.prepare(origin: origin, selection: AudioSelection(startFrame: 22051, endFrame: 110250), name: "別の素材")
         let second = try await initial.commit(secondDraft.id)
         // Convert the fixture to the previously shipped v1 schema, preserving its records/blobs.
-        for sql in ["DROP TABLE material_tags", "DROP TABLE tags", "DROP TABLE material_annotations", "PRAGMA user_version=1"] { _ = try execute(database, sql) }
+        for sql in ["DROP TABLE material_reclaims", "DROP TABLE material_retentions", "DROP TABLE material_tombstones", "DROP TABLE material_trash", "DROP TABLE material_tags", "DROP TABLE tags", "DROP TABLE material_annotations", "PRAGMA user_version=1"] { _ = try execute(database, sql) }
         let brokenRoot = root.appendingPathComponent("broken-migration")
         try fm.createDirectory(at: brokenRoot, withIntermediateDirectories: true)
         let broken = brokenRoot.appendingPathComponent("catalog.sqlite")
@@ -142,12 +142,24 @@ enum MaterialSearchTests {
             player.previewMaterial(.stem)
             for _ in 0..<300 where library.previewLoading { try await Task.sleep(nanoseconds: 10_000_000) }
             library.seekPreview(1.97)
-            try await Task.sleep(nanoseconds: 150_000_000)
+            for _ in 0..<100 where library.previewKind != nil {
+                try await Task.sleep(nanoseconds: 10_000_000)
+            }
             precondition(library.previewKind == nil)
             player.previewMaterial(.clip)
             for _ in 0..<300 where library.previewLoading { try await Task.sleep(nanoseconds: 10_000_000) }
             library.query = "different"; precondition(library.previewKind == nil && !library.previewLoading)
         }
+        // Removing all rows from the last page clamps back to the previous page.
+        library.query = ""
+        for _ in 0..<300 where library.searching { try await Task.sleep(nanoseconds: 10_000_000) }
+        library.page(1)
+        for _ in 0..<300 where library.searching { try await Task.sleep(nanoseconds: 10_000_000) }
+        precondition(library.offset == 50 && library.records.count == 3)
+        for item in library.records { try await store.setTrashed(item.id, trashed: true) }
+        library.refresh(resetPage: false)
+        for _ in 0..<300 where library.searching { try await Task.sleep(nanoseconds: 10_000_000) }
+        precondition(library.offset == 0 && library.total == 50 && library.records.count == 50)
         library.cancel(); player.cleanup()
         print("PASS: material schema migration/backup/rollback, persistent tags/notes, Unicode/literal search/filter/paging, exact comparison PCM/ranges, stale search/dirty preservation and comparison playback lifecycle")
     }

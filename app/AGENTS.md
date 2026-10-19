@@ -12,6 +12,12 @@
 
 - 音源分離はSeparationView（設定/試聴/採用）、SeparationModel（MainActorのジョブ/候補/試聴状態）、SeparationClient（Process/契約/音源検証）、同梱separation_worker.py（固定MLX）に分ける。採用した音はPlayerModel.useSeparatedAudioの所有コピーで保持し、候補の寿命から切り離す。詳細は[分離ガイド](../SEPARATION.md)。
 
-- 来歴付き素材はMaterialOrigin/SeparationLease（分離jobの参照所有）、MaterialStore actor（SQLite3/管理音声/準備・commit・復元）、MaterialLibraryModel/View（検索/注釈/容量確認/一覧/比較試聴）とMaterialComparison（同一区間PCMの所有）に分ける。PlayerModel.openMaterialは検証後に全長波形と絶対frame選択を復元する。テストは一時MaterialStoreを注入し、本番Application Supportを変更しない。楽器v4への来歴埋め込みはまだ行わない。
+- 来歴付き素材はMaterialOrigin/SeparationLease（分離jobの参照所有）、MaterialStore actor（SQLite3/管理音声/準備・commit・復元）、MaterialLibraryModel/View（検索/注釈/容量確認/一覧/比較試聴）とMaterialComparison（同一区間PCMの所有）に分ける。PlayerModel.openMaterialは検証後に全長波形と絶対frame選択を復元する。テストは一時MaterialStoreを注入し、本番Application Supportを変更しない。短いclipの再編集はframeOffsetで元曲位置へ写像する。waveformProvenanceと楽器化時点のinstrumentProvenanceを分離し、楽器v5/構成v12・履歴/AI編曲にも保持する。来歴なしはv4/v11。
 
 - 素材注釈は来歴payloadと別のschema v2へ保存する。移行前はSQLite backup APIで退避しtransactionで移行。比較は短い同長PCMを用い、PlayerModelの全停止/他再生と排他にする。検索/選択/画面終了で準備を無効化し、未保存のタグ/メモを無確認で破棄しない。
+
+- 素材のゴミ箱はschema v3のmaterial_trashだけで管理し、共有音声・来歴payload・親子関係を削除/更新しない。通常検索とゴミ箱を分け、ID指定の来歴参照は両方で維持する。移動/復元と表示切替で試聴を停止し、未保存注釈の確認を保つ。完全削除はMaterialDeletionのschema v4で別管理する。確認時の影響/容量を再検証し、tombstone/回収journalのcommit後に未参照音声だけ回収する。楽器の永続保護と開いた波形/比較のleaseを保ち、失敗分は未回収メニューで再確認する。
+
+- 素材の永続保護解除はMaterialDeletionのprotectionReview/prepareRelease/releaseProtectionを使う。現在の楽器・構成/履歴・既知ファイルを再監査し、同一の使用中保護は解除しない。仮解除はrollbackし、確定時のsnapshot再検証後も保護行だけを削除する。音声回収は別途確認し、解除後の削除済み来歴への入口を残す。
+
+- 複数素材の完全削除は選択ID集合全体で計算し、選択内の親子を残存参照にしない。選択外の素材・楽器・構成/履歴・leaseを保護し、hash単位で容量/回収を重複排除する。全件の来歴/注釈/journalを同じtransactionで確定し、部分回収失敗は既存の再確認経路に残す。

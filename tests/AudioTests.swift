@@ -4,6 +4,8 @@ import AVFoundation
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        try await MaterialDeletionTests.run()
+        try await MaterialReuseTests.run()
         try await MaterialSearchTests.run()
         try await MaterialTests.run()
         if CommandLine.arguments.contains("--materials-only") { return }

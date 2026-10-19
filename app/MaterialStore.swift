@@ -14,6 +14,7 @@ struct MaterialRecord: Codable, Identifiable, Equatable {
     let originalHash: String
     let stemHash: String
     let clipHash: String
+    var parentMaterialID: String? = nil
     var selection: AudioSelection { AudioSelection(startFrame: startFrame, endFrame: endFrame) }
     var location: String {
         String(format: "%.3f–%.3f 秒 · %@", Double(startFrame) / provenance.sampleRate,
@@ -28,6 +29,8 @@ struct MaterialAnnotations: Equatable {
 struct MaterialItem: Identifiable, Equatable {
     let record: MaterialRecord
     let annotations: MaterialAnnotations
+    var trashedAt: Date? = nil
+    var deletedAt: Date? = nil
     var id: String { record.id }
 }
 struct MaterialPage {
@@ -68,14 +71,19 @@ actor MaterialStore {
     private struct Pending { let draft: MaterialDraft; let directory: URL; let blobs: [Blob] }
     private var pending: [UUID: Pending] = [:]
     private var initialized = false
-    init(root: URL = MaterialStore.defaultRoot) { self.root = root }
+    var readLeases: [UUID: WeakMaterialLease] = [:]
+    let reclaimFile: @Sendable (URL) throws -> Void
+    var hasPendingMaterial: Bool { !pending.isEmpty }
+    init(root: URL = MaterialStore.defaultRoot, reclaimFile: @escaping @Sendable (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) }) {
+        self.root = root; self.reclaimFile = reclaimFile
+    }
 
-    private func database() throws -> MaterialDatabase {
+    func database() throws -> MaterialDatabase {
         let manager = FileManager.default
         try manager.createDirectory(at: root, withIntermediateDirectories: true)
         let db = try MaterialDatabase(root.appendingPathComponent("catalog.sqlite"))
         let version = try db.rows("PRAGMA user_version").first?.first ?? "0"
-        guard ["0", "1", "2"].contains(version) else { throw AudioError.invalid("素材DBの版に対応していません。データは保持しています。") }
+        guard ["0", "1", "2", "3", "4"].contains(version) else { throw AudioError.invalid("素材DBの版に対応していません。データは保持しています。") }
         if version == "0" {
             // DDL is transactional. An existing corrupt/nonempty DB is never reset.
             guard try db.rows("SELECT name FROM sqlite_master WHERE type='table'").isEmpty else {
@@ -92,7 +100,7 @@ actor MaterialStore {
                 try db.execute("COMMIT")
             } catch { try? db.execute("ROLLBACK"); throw error }
         }
-        if version != "2" {
+        if version == "0" || version == "1" {
             if version == "1" {
                 let backups = root.appendingPathComponent("backups")
                 try manager.createDirectory(at: backups, withIntermediateDirectories: true)
@@ -113,6 +121,36 @@ actor MaterialStore {
                 try db.execute("COMMIT")
             } catch { try? db.execute("ROLLBACK"); throw error }
         }
+        if ["0", "1", "2"].contains(version) {
+            if version == "2" {
+                let backups = root.appendingPathComponent("backups")
+                try manager.createDirectory(at: backups, withIntermediateDirectories: true)
+                try db.backup(to: backups.appendingPathComponent("catalog-v2-" + UUID().uuidString + ".sqlite"))
+            }
+            try db.execute("BEGIN IMMEDIATE")
+            do {
+                try db.execute("CREATE TABLE material_trash(materialID TEXT PRIMARY KEY REFERENCES materials(id), trashedAt REAL NOT NULL)")
+                try Task.checkCancellation()
+                try db.execute("PRAGMA user_version=3")
+                try db.execute("COMMIT")
+            } catch { try? db.execute("ROLLBACK"); throw error }
+        }
+        if version != "4" {
+            if version == "3" {
+                let backups = root.appendingPathComponent("backups")
+                try manager.createDirectory(at: backups, withIntermediateDirectories: true)
+                try db.backup(to: backups.appendingPathComponent("catalog-v3-" + UUID().uuidString + ".sqlite"))
+            }
+            try db.execute("BEGIN IMMEDIATE")
+            do {
+                try db.execute("CREATE TABLE material_tombstones(id TEXT PRIMARY KEY, payload TEXT NOT NULL, deletedAt REAL NOT NULL)")
+                try db.execute("CREATE TABLE material_retentions(materialID TEXT NOT NULL, label TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(materialID,label))")
+                try db.execute("CREATE TABLE material_reclaims(hash TEXT PRIMARY KEY REFERENCES blobs(hash), materialID TEXT NOT NULL, path TEXT NOT NULL, bytes INTEGER NOT NULL)")
+                try Task.checkCancellation()
+                try db.execute("PRAGMA user_version=4")
+                try db.execute("COMMIT")
+            } catch { try? db.execute("ROLLBACK"); throw error }
+        }
         if !initialized {
             // Single local writer. Only abandoned staging is disposable; objects are preserved.
             let staging = root.appendingPathComponent("staging")
@@ -125,7 +163,7 @@ actor MaterialStore {
 
     func list() throws -> [MaterialRecord] {
         let db = try database()
-        return try db.rows("SELECT payload FROM materials ORDER BY created DESC, id DESC").map {
+        return try db.rows("SELECT payload FROM materials WHERE NOT EXISTS(SELECT 1 FROM material_trash WHERE materialID=materials.id) ORDER BY created DESC, id DESC").map {
             try JSONDecoder().decode(MaterialRecord.self, from: Data($0[0].utf8))
         }
     }
@@ -141,16 +179,16 @@ actor MaterialStore {
         let tags = try db.rows("SELECT t.name FROM tags t JOIN material_tags mt ON mt.tagID=t.id WHERE mt.materialID=? ORDER BY t.searchKey,t.id", [id]).map { $0[0] }
         return MaterialAnnotations(tags: tags, note: row[0])
     }
-    func tags() throws -> [MaterialTag] {
+    func tags(trashed: Bool = false) throws -> [MaterialTag] {
         let db = try database()
-        return try db.rows("SELECT t.id,t.name FROM tags t WHERE EXISTS(SELECT 1 FROM material_tags mt WHERE mt.tagID=t.id) ORDER BY t.searchKey,t.id").map { MaterialTag(id: $0[0], name: $0[1]) }
+        return try db.rows("SELECT t.id,t.name FROM tags t WHERE EXISTS(SELECT 1 FROM material_tags mt WHERE mt.tagID=t.id AND \(trashed ? "" : "NOT ")EXISTS(SELECT 1 FROM material_trash x WHERE x.materialID=mt.materialID)) ORDER BY t.searchKey,t.id").map { MaterialTag(id: $0[0], name: $0[1]) }
     }
-    func search(query: String = "", tagID: String? = nil, offset: Int = 0, limit: Int = 50) throws -> MaterialPage {
+    func search(query: String = "", tagID: String? = nil, offset: Int = 0, limit: Int = 50, trashed: Bool = false) throws -> MaterialPage {
         guard query.count <= 300, !query.contains("\0"), offset >= 0, (1...50).contains(limit) else { throw AudioError.invalid("検索条件が長すぎるか、表示範囲が無効です。") }
         let db = try database()
         let terms = Self.normalize(query).split(whereSeparator: { $0.isWhitespace }).map(String.init)
         guard terms.count <= 12 else { throw AudioError.invalid("検索語は12個以内にしてください。") }
-        var conditions: [String] = [], args: [String] = []
+        var conditions: [String] = ["\(trashed ? "" : "NOT ")EXISTS(SELECT 1 FROM material_trash x WHERE x.materialID=m.id)"], args: [String] = []
         for term in terms {
             conditions.append("a.searchKey LIKE ? ESCAPE '\\'")
             let escaped = term.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "%", with: "\\%").replacingOccurrences(of: "_", with: "\\_")
@@ -167,9 +205,36 @@ actor MaterialStore {
         let items = try rows.map { row -> MaterialItem in
             try Task.checkCancellation()
             let record = try JSONDecoder().decode(MaterialRecord.self, from: Data(row[0].utf8))
-            return MaterialItem(record: record, annotations: try annotations(record.id, db: db))
+            return MaterialItem(record: record, annotations: try annotations(record.id, db: db), trashedAt: try trashDate(record.id, db: db))
         }
         return MaterialPage(items: items, total: total)
+    }
+    func item(_ id: String) throws -> MaterialItem {
+        let db = try database()
+        guard let row = try db.rows("SELECT payload FROM materials WHERE id=?", [id]).first else { return try deletedItem(id, db: db) }
+        let record = try JSONDecoder().decode(MaterialRecord.self, from: Data(row[0].utf8))
+        return MaterialItem(record: record, annotations: try annotations(id, db: db), trashedAt: try trashDate(id, db: db))
+    }
+    private func trashDate(_ id: String, db: MaterialDatabase) throws -> Date? {
+        guard let row = try db.rows("SELECT trashedAt FROM material_trash WHERE materialID=?", [id]).first else { return nil }
+        guard let seconds = Double(row[0]), seconds.isFinite else { throw AudioError.invalid("ゴミ箱の日時が無効です。") }
+        return Date(timeIntervalSince1970: seconds)
+    }
+    /// Only visibility changes. Never remove records, ancestry or shared audio.
+    func setTrashed(_ id: String, trashed: Bool) throws {
+        let db = try database()
+        try Task.checkCancellation()
+        try db.execute("BEGIN IMMEDIATE")
+        do {
+            guard !(try db.rows("SELECT id FROM materials WHERE id=?", [id])).isEmpty else {
+                throw AudioError.invalid("素材が見つかりません。")
+            }
+            if trashed {
+                try db.execute("INSERT OR IGNORE INTO material_trash VALUES(?,?)", [id, String(Date().timeIntervalSince1970)])
+            } else { try db.execute("DELETE FROM material_trash WHERE materialID=?", [id]) }
+            try Task.checkCancellation()
+            try db.execute("COMMIT")
+        } catch { try? db.execute("ROLLBACK"); throw error }
     }
     func updateAnnotations(_ id: String, tags: [String], note: String) throws -> MaterialAnnotations {
         guard tags.count <= 20, note.count <= 4000, !note.contains("\0"), !tags.contains(where: { $0.contains("\0") }) else { throw AudioError.invalid("タグは20個、メモは4000文字以内にしてください。") }
@@ -201,9 +266,10 @@ actor MaterialStore {
         } catch { try? db.execute("ROLLBACK"); throw error }
     }
 
-    func prepare(origin: MaterialOrigin, selection: AudioSelection, name: String) throws -> MaterialDraft {
+    func prepare(origin: MaterialOrigin, selection localSelection: AudioSelection, name: String) throws -> MaterialDraft {
         let db = try database()
         let p = origin.provenance
+        let selection = try origin.absolute(localSelection)
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, name.count <= 160,
               MaterialHash.valid(p.inputSHA256), MaterialHash.valid(p.weightSHA256),
               p.model == "htdemucs", p.backend == "mlx-metal", p.settings == .standard, !p.runID.isEmpty, p.runID.count <= 100,
@@ -247,7 +313,7 @@ actor MaterialStore {
         }
         let record = MaterialRecord(id: UUID().uuidString, name: name.trimmingCharacters(in: .whitespacesAndNewlines), created: Date(),
             provenance: p, startFrame: selection.startFrame, endFrame: selection.endFrame,
-            inputHash: blobs[0].hash, inputFormat: inputFormat, originalHash: blobs[1].hash, stemHash: blobs[2].hash, clipHash: blobs[3].hash)
+            inputHash: blobs[0].hash, inputFormat: inputFormat, originalHash: blobs[1].hash, stemHash: blobs[2].hash, clipHash: blobs[3].hash, parentMaterialID: origin.record?.id)
         let draft = MaterialDraft(id: id, record: record, additionalBytes: additional, workingBytes: working)
         pending[id] = Pending(draft: draft, directory: directory, blobs: blobs)
         retained = true
@@ -295,10 +361,31 @@ actor MaterialStore {
             guard stem[1] == r.stemHash else { throw AudioError.invalid("分離パートの内容が一致しません。") }
             let existing = try db.rows("SELECT payload FROM materials WHERE stemID=? AND start=? AND end=?", [stem[0], String(r.startFrame), String(r.endFrame)])
             let result: MaterialRecord
-            if let old = existing.first { result = try JSONDecoder().decode(MaterialRecord.self, from: Data(old[0].utf8)) }
+            if let old = existing.first {
+                result = try JSONDecoder().decode(MaterialRecord.self, from: Data(old[0].utf8))
+                guard try trashDate(result.id, db: db) == nil else {
+                    throw AudioError.invalid("同じ区間の素材がゴミ箱にあります。ゴミ箱から復元してください。")
+                }
+            }
             else {
+                var inherited = MaterialAnnotations.empty
+                if let parentID = r.parentMaterialID {
+                    guard parentID != r.id,
+                          let row = try db.rows("SELECT payload FROM materials WHERE id=? UNION ALL SELECT payload FROM material_tombstones WHERE id=?", [parentID, parentID]).first else {
+                        throw AudioError.invalid("親素材が見つかりません。")
+                    }
+                    let parent = try JSONDecoder().decode(MaterialRecord.self, from: Data(row[0].utf8))
+                    guard parent.provenance == r.provenance, parent.inputHash == r.inputHash,
+                          parent.originalHash == r.originalHash, parent.stemHash == r.stemHash else {
+                        throw AudioError.invalid("親素材と元曲の来歴が一致しません。")
+                    }
+                    if !(try db.rows("SELECT id FROM materials WHERE id=?", [parentID])).isEmpty { inherited = try annotations(parentID, db: db) }
+                }
                 try db.execute("INSERT INTO materials VALUES(?,?,?,?,?,?,?,?)", [r.id, stem[0], String(r.startFrame), String(r.endFrame), r.name, String(r.created.timeIntervalSince1970), r.clipHash, try Self.json(r)])
-                try db.execute("INSERT INTO material_annotations VALUES(?,?,?)", [r.id, "", Self.searchKey(r, .empty)])
+                try db.execute("INSERT INTO material_annotations VALUES(?,?,?)", [r.id, inherited.note, Self.searchKey(r, inherited)])
+                if let parentID = r.parentMaterialID {
+                    try db.execute("INSERT INTO material_tags SELECT ?,tagID FROM material_tags WHERE materialID=?", [r.id, parentID])
+                }
                 result = r
             }
             try db.execute("COMMIT")
@@ -307,9 +394,10 @@ actor MaterialStore {
         } catch { try? db.execute("ROLLBACK"); throw error }
     }
 
-    func restore(_ id: String) throws -> MaterialRestoration {
+    func restore(_ id: String, includeDeleted: Bool = false) throws -> MaterialRestoration {
         let db = try database()
-        guard let row = try db.rows("SELECT payload FROM materials WHERE id=?", [id]).first else { throw AudioError.invalid("素材が見つかりません。") }
+        let rows = try db.rows(includeDeleted ? "SELECT payload FROM materials WHERE id=? UNION ALL SELECT payload FROM material_tombstones WHERE id=?" : "SELECT payload FROM materials WHERE id=?", includeDeleted ? [id, id] : [id])
+        guard let row = rows.first else { throw AudioError.invalid("素材は完全削除されたか、見つかりません。来歴は参照記録で確認できます。") }
         let r = try JSONDecoder().decode(MaterialRecord.self, from: Data(row[0].utf8))
         guard r.id == id, r.startFrame >= 0, r.endFrame <= r.provenance.frames,
               r.endFrame > r.startFrame, r.endFrame - r.startFrame <= 30 * 44100,
@@ -329,7 +417,16 @@ actor MaterialStore {
         try Self.validateAudio(stem, frames: r.provenance.frames)
         try Self.validateAudio(clip, frames: r.endFrame - r.startFrame)
         return MaterialRestoration(record: r, origin: MaterialOrigin(provenance: r.provenance,
-            input: input, original: original, stem: stem, lease: nil), clip: clip)
+            input: input, original: original, stem: stem, lease: nil, record: r, audioLease: acquireLease(r)), clip: clip)
+    }
+    /// A missing library never prevents a self-contained instrument from playing.
+    func resolve(_ provenance: InstrumentProvenance) throws -> MaterialOrigin? {
+        guard FileManager.default.fileExists(atPath: root.appendingPathComponent("catalog.sqlite").path) else { return nil }
+        let restored = try restore(provenance.material.id, includeDeleted: true)
+        guard restored.record == provenance.material else { throw AudioError.invalid("楽器と素材ライブラリの来歴が一致しません。") }
+        var origin = restored.origin
+        origin.frameOffset = provenance.startFrame
+        return origin
     }
     private static func json<T: Encodable>(_ value: T) throws -> String {
         let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
@@ -350,7 +447,7 @@ actor MaterialStore {
     }
 }
 
-private final class MaterialDatabase {
+final class MaterialDatabase {
     private var db: OpaquePointer?
     init(_ url: URL) throws {
         guard sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil) == SQLITE_OK else {

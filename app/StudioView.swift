@@ -135,6 +135,14 @@ struct StudioView: View {
                     .font(.caption).foregroundStyle(muted).lineLimit(3).textSelection(.enabled)
                     .accessibilityIdentifier("materials.origin")
             }
+            if let provenance = model.instrumentProvenance {
+                Text("楽器の来歴: " + provenance.material.provenance.sourceName + "\n" + provenance.location)
+                    .font(.caption).foregroundStyle(muted).lineLimit(3).textSelection(.enabled)
+                    .accessibilityIdentifier("instrument.provenance")
+                Button("元素材を確認…") {
+                    model.stop(); model.revealMaterialID = provenance.material.id; showingMaterials = true
+                }.buttonStyle(StudioButton()).disabled(model.busy).accessibilityIdentifier("instrument.showMaterial")
+            }
             Text("出力").font(.system(size: 11, weight: .semibold)).tracking(1.4).padding(.top, 24)
             HStack(spacing: 18) {
                 VStack(alignment: .trailing, spacing: 0) {

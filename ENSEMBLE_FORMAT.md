@@ -1,20 +1,20 @@
-# 構成ファイル形式 v11
+# 構成ファイル形式 v11 / v12
 
 正本は[EnsembleDocument.swift](app/EnsembleDocument.swift)。操作は[ENSEMBLE.md](ENSEMBLE.md)。UTF-8 JSON、拡張子.sfensemble、最大384 MiB。音源同梱で外部パスへ依存しない。
 
 ## フィールド
-v5はsectionsと各パートのadditionalClipsが必須。sectionIDは省略/nullでSong。v1〜v4は追加クリップなしへ移行し、v1〜v3はセクションなし、v1/v2は繰り返し回数1、v1の開始位置は0へ移行。v6は各パートのpanも必須。v1〜v5のpanは中央0へ移行。v7はeqも必須。v1〜v6のEQはフラットへ移行。v8はreverbも必須。v1〜v7はリバーブ0へ移行。v9はdelayも必須。v1〜v8はディレイオフへ移行。v10はcompressorも必須。v1〜v9はコンプレッサーオフへ移行。v11は曲全体のlimiterも必須。旧v1〜v10はリミッターオフへ移行。保存は常にv11。未知のversionを拒否する。
+v5はsectionsと各パートのadditionalClipsが必須。sectionIDは省略/nullでSong。v1〜v4は追加クリップなしへ移行し、v1〜v3はセクションなし、v1/v2は繰り返し回数1、v1の開始位置は0へ移行。v6は各パートのpanも必須。v1〜v5のpanは中央0へ移行。v7はeqも必須。v1〜v6のEQはフラットへ移行。v8はreverbも必須。v1〜v7はリバーブ0へ移行。v9はdelayも必須。v1〜v8はディレイオフへ移行。v10はcompressorも必須。v1〜v9はコンプレッサーオフへ移行。v11は曲全体のlimiterも必須。旧v1〜v10はリミッターオフへ移行。来歴付き楽器を含む場合はv12、それ以外はv11で保存する。v12はv11の全項目と来歴付き楽器v5を扱い、v1〜v11は楽器の来歴を拒否する。未知のversionを拒否する。
 
 | 場所・フィールド | 内容 |
 | --- | --- |
-| version | 整数11（読込は1〜10も可） |
+| version | 整数11または12（読込は1〜12） |
 | tempo | 共通テンポ、有限数40〜240 BPM |
 | limiter | v11必須、{enabled: Bool, ceilingDB: 有限数−12〜−0.1 dBFS, releaseMS: 有限数1〜60 ms}。既定false/−1/24。全パートの合算に適用 |
 | masterDB | Ensemble共通Master、有限数−60〜0 dB |
 | parts | 順序付き1〜4パート |
 | parts[].name | パート名、1〜80文字、空白のみ不可 |
 | parts[].instrumentName | 楽器の表示名、最大255文字 |
-| parts[].instrument | InstrumentArchiveの楽器オブジェクト（書込時v4）を直接格納。基準音・ADSR・ループ・クロスフェード・音源名とbase64 WAVを含む |
+| parts[].instrument | InstrumentArchiveの楽器オブジェクト（来歴なしv4、来歴ありv5）を直接格納。基準音・ADSR・ループ・クロスフェード・音源名とbase64 WAVを含む |
 | parts[].performance | [演奏形式v1](PERFORMANCE_FORMAT.md)のオブジェクト。元のtempoも保持し、再生時のみ共通tempoを優先 |
 | parts[].gainDB | パート音量、有限数−36〜0 dB |
 | parts[].muted | 真偽値 |
@@ -33,7 +33,7 @@ v5はsectionsと各パートのadditionalClipsが必須。sectionIDは省略/nul
 | parts[].repeatCount | v3必須、整数1〜16。追加回数ではなく合計演奏回数 |
 | parts[].startBeat | v2必須、有限数0〜256拍。小数可。曲頭からの待機拍数 |
 
-楽器形式の正本は[InstrumentDocument.swift](app/InstrumentDocument.swift)のInstrumentArchive/makeArchive/restore。同梱WAVはPCM Float32、サンプル上限64 MiBとWAVヘッダー分。各楽器は既存のv1〜v4読み込み検証を共有する。基準音48〜72、最大30秒・デコード後64 MiB、全ADSR/ループ制限を満たす必要がある。
+楽器形式の正本は[InstrumentDocument.swift](app/InstrumentDocument.swift)のInstrumentArchive/makeArchive/restore。同梱WAVはPCM Float32、サンプル上限64 MiBとWAVヘッダー分。各楽器は既存のv1〜v5読み込み検証を共有する。基準音48〜72、最大30秒・デコード後64 MiB、全ADSR/ループ制限を満たす必要がある。
 保存前と読込時に各演奏の形式・重複・保持8音以内・ペダル終端・楽器Root±24半音を検証する。ミュートしたパートも検証対象。AI生成専用の16拍/64音符制限を構成全体へ追加せず、通常の演奏形式の範囲を使う。
 
 ## 保存・復元の境界
@@ -48,3 +48,5 @@ repeatCountは元のperformanceを複製して保存せず、再生/出力時に
 セクションは配列順に隙間なく連結する。part.startBeatは割り当て先内の相対拍。繰り返し込みの演奏終端がセクションのbeatsを超える場合は拒否。Songパートは従来の曲頭基準。曲長は全セクション合計と全イベント終端の大きい方で、空のセクションも含む。正本は[EnsembleSections.swift](app/EnsembleSections.swift)。
 
 最初の演奏と追加クリップを合わせて1〜8個。全演奏を同じ楽器Rootで検証し、セクション範囲と同一パート内の時間的重複を拒否する。音源とmixはパートに一度だけ格納し、追加クリップ内へ音源や外部パスを保存しない。最初のクリップのUI用IDは復元時に新規生成し、追加クリップIDはファイルから復元。正本は[EnsembleClips.swift](app/EnsembleClips.swift)。
+
+楽器v5は`provenance`必須。元素材のMaterialRecordと元曲基準のstartFrame/endFrameを持ち、差分は内包PCMのframe数と一致する。旧楽器v1〜v4は来歴なし。元曲・全長パートや外部絶対パスは追加同梱しない。構成の再保存、設定編集、Undo/Redo、AI編曲採用も来歴を保持する。詳細は[素材ライブラリ](MATERIAL_LIBRARY.md)。

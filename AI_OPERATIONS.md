@@ -102,7 +102,7 @@ APIキーやCLI認証情報をチャット・文書・ログへ転記しない�
 再生中は割り当てを変えず、Mute・音量・パン・EQ・リバーブ・ディレイ・コンプレッサーを操作できる。全パートは共通tempoに従い、ファイル内tempoは変更しない。構成は保存…した状態だけがディスクへ保存される。閉じるで閉じただけ、または● 未保存の状態を保存済みだと報告しない。外部操作APIは未実装。
 
 ## 構成の保存と起動時復元の判定
-[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v11](ENSEMBLE_FORMAT.md)を参照。保存…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
+[ENSEMBLE.md](ENSEMBLE.md)と[構成形式v11/v12](ENSEMBLE_FORMAT.md)を参照。保存…→busy=false・error=nil・dirty=false・fileURL/ファイル名を確認。全パートと音源を同梱するため、元の楽器/演奏パスを構成へ別途転記しない。新しいファイルを選んだだけ、保存ダイアログを開いただけでは保存成功と判定しない。
 開く…の未保存置換確認では必要に応じてキャンセル→先に保存…。失敗時の前のパート/保存先保持も確認する。起動時はrestoreLastSessionで最後の正常なファイルを一度だけ復元し、Restored・保存済み・設定・playing=falseを確認してから全体を再生。音量/Mute/共通tempo/Ensemble Master、楽器と演奏の一致を確認する。ファイル欠落時はエラーを読み開く…へ進み、復元成功と報告しない。
 保存対象は現在の設定スナップショットで、未保存変更や発音状態の自動復旧ではない。再生中はSave/Openを行わず、全停止後に保存する。起動時復元で本体の単一楽器やAI生成設定を置き換えない。
 
@@ -282,3 +282,18 @@ Sample Studio右側`materials.library`（保存した素材…）が入口。名
 入口は`materials.library`。「現在の選択を保存」は`materials.saveSection`の開閉内にある。`materials.search`は名前/曲/タグ/メモ、`materials.tagFilter`は完全一致タグ。`materials.count`と一覧で結果を判定し、`materials.previous/next`で50件ずつ移動。searching中の古い一覧を結果と扱わない。検索変更では試聴を停止し、編集フォームは保持する。
 素材を選び、`materials.tags`/`materials.note`を編集→`materials.annotations.save`で確定。未保存表示/annotationDirtyと保存成功のstatusを区別する。切替・閉じる・編集へ渡す時の保存/破棄/戻るに従う。注釈編集は楽器/曲を変更しない。
 `materials.preview.clip/original/stem`で同一区間を比較。previewLoadingは準備中、previewKindで発音種別、previewPositionは区間内秒。`materials.preview.seek`で位置を指定、`materials.preview.stop`または全停止で停止する。検索/選択変更、画面終了、非アクティブ化で準備中の遅延発音も止まる。試聴中は本体の再生/MIDIと重ねない。
+
+## 保存素材の再編集・来歴付き楽器
+`materials.reedit`（素材だけを再編集）→未保存注釈/楽器の確認→短い波形を開く。PlayerModel.openMaterial(clip: true)で範囲0始まり、元曲位置はmaterialSelectionInSourceで確認する。別区間をmaterials.prepare/commitで保存し「保存済み」と親素材を確認する。`materials.parent`は親素材詳細、`instrument.showMaterial`は楽器の元素材詳細へ移動する。範囲選択だけでは楽器の来歴は変わらず、楽器化に成功した時点で固定する。`instrument.provenance`の表示と保存後のv5、再読込後の元曲名/絶対位置を確認する。構成は来歴ありv12/なしv11。停止は全停止とmaterialsの試聴停止で発音/準備を解除する。ライブラリ不在でも楽器PCM/来歴は保持し、元曲音声を自動生成しない。
+
+## 素材のゴミ箱・復元
+materials.library→素材選択→`materials.moveToTrash`。未保存注釈の確認後、`materials.status`の移動成功と通常一覧からの除外を確認する。`materials.trash`でゴミ箱、`materials.active`で通常一覧へ切り替える。検索・タグ・ページングは現在の表示だけが対象。`materials.trashedAt`と復元ボタンで状態を確認し、`materials.restore`→成功statusと通常一覧への復帰で判定する。処理中の表示だけでは成功としない。
+Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切替は未保存注釈/保存準備中に実行しない。停止はmaterials.preview.stop/全停止、処理取消はmaterials.cancel。変更のcommit後は成功として扱う。親/元素材へのrevealはゴミ箱も含めて探し、必要なら表示を切り替える。ゴミ箱内で再編集/波形を開くには復元する。ゴミ箱移動では音声回収を行わない。完全削除は次節を参照。
+
+## 完全削除・回収確認
+入口はゴミ箱の`materials.delete.review`。未保存注釈の確認後、MaterialLibraryModel.reviewDeletion→MaterialStore.prepareDeletionで計画を作る。`materials.delete.capacity`と`materials.delete.references`で回収容量と保護対象を確認する。準備中/計画表示を成功と扱わない。`materials.delete.cancel`で削除せず戻る、明示確定は`materials.delete.confirm`。確認後に参照等が変われば削除せず再確認を促す。Store入口はdeletePermanently、成功判定はstatusの完全削除済みと実回収容量/未回収件数、通常/ゴミ箱一覧からの除外。
+削除済みIDへのrevealは`materials.deleted`の参照記録を示す。音声が保護されていれば比較試聴可能。`materials.delete.pending`→削除済み素材→`materials.delete.retry`で未回収分を再確認でき、再起動後もjournalを保持する。停止は全停止/試聴停止、確認前取消はmaterials.cancel。commit後に回収だけ失敗しても素材は削除済みとして表示し、復元成功や全回収成功と誤認しない。保護範囲と一覧外ファイルの扱いは[MATERIAL_DELETION](MATERIAL_DELETION.md)を参照。
+
+素材参照の入口はmaterials.protection.review、削除済み保護対象はmaterials.protection.deletedメニュー。materials.protection.prepare→materials.protection.capacityで選択素材と削除済み祖先の新規回収可能容量を確認する。materials.protection.confirmは使用中/登録ファイルの同一保護があると無効。成功は一覧から記録が消えることとstatusで判定し、音声回収済みとは扱わない。materials.protection.closeまたは「解除せず戻る」で取消。開く前に試聴停止、閉じる/取消でも発音しない。変更があれば解除を停止して再確認する。
+
+一括完全削除はmaterials.batch.item.素材UUIDのチェック、materials.batch.selectPage/clearで対象を選ぶ。materials.batch.countの件数とmaterials.batch.review→materials.delete.targetsの全対象/容量/参照を確認する。取消/確定は既存materials.delete.cancel/confirm。状態変化は全件拒否。成功はstatusの完全削除済み件数と実回収容量/未回収件数で判定し、確認画面の表示と区別する。検索・ページ・表示変更でチェック解除。試聴停止は既存の停止、処理取消はmaterials.cancel、commit後の取消で素材が戻ったと扱わない。

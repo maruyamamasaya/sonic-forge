@@ -270,6 +270,6 @@ struct WorkspaceView: View {
     private var currentInstrument: EnsembleInstrument? {
         guard let sample = model.instrumentSample else { return nil }
         return EnsembleInstrument(sample: sample, root: model.rootNote, envelope: model.envelope, loop: model.sampleLoop,
-                                  name: model.instrumentFileURL?.deletingPathExtension().lastPathComponent ?? sample.name)
+                                  name: model.instrumentFileURL?.deletingPathExtension().lastPathComponent ?? sample.name, provenance: model.instrumentProvenance)
     }
 }

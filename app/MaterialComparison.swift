@@ -13,7 +13,8 @@ enum MaterialPreviewKind: String, CaseIterable, Identifiable {
 final class MaterialComparison: @unchecked Sendable {
     let directory: URL
     let record: MaterialRecord
-    init(directory: URL, record: MaterialRecord) { self.directory = directory; self.record = record }
+    let audioLease: MaterialAudioLease?
+    init(directory: URL, record: MaterialRecord, audioLease: MaterialAudioLease? = nil) { self.directory = directory; self.record = record; self.audioLease = audioLease }
     func url(_ kind: MaterialPreviewKind) -> URL { directory.appendingPathComponent(kind.rawValue + ".wav") }
     deinit { try? FileManager.default.removeItem(at: directory) }
 }
@@ -21,10 +22,10 @@ final class MaterialComparison: @unchecked Sendable {
 extension MaterialStore {
     func comparison(_ id: String) throws -> MaterialComparison {
         try Task.checkCancellation()
-        let restored = try restore(id)
+        let restored = try restore(id, includeDeleted: true)
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SonicForge-MaterialPreview-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let result = MaterialComparison(directory: directory, record: restored.record)
+        let result = MaterialComparison(directory: directory, record: restored.record, audioLease: restored.origin.audioLease)
         try FileManager.default.copyItem(at: restored.clip, to: result.url(.clip))
         for (kind, source) in [(MaterialPreviewKind.original, restored.origin.original), (.stem, restored.origin.stem)] {
             try Task.checkCancellation()

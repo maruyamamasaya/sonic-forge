@@ -27,7 +27,7 @@
 | Feature | Primary paths | Search keywords / Key entry points | Related tests |
 | --- | --- | --- | --- |
 | アプリ入口・メイン制作画面 | app/SonicForgeApp.swift、app/WorkspaceView.swift、app/WorkspaceInspector.swift、app/WorkspaceSectionInspector.swift、app/WorkspaceAppearance.swift | WorkspaceView、ensembleWorkspaceActive、Selected clip、setInstrumentSettings | 実アプリ手動確認 |
-| 来歴付き素材の保存・復元 | app/MaterialOrigin.swift、app/MaterialStore.swift、app/MaterialLibraryModel.swift、app/MaterialLibraryView.swift、app/MaterialComparison.swift | MaterialStore.search/updateAnnotations/comparison、MaterialLibraryModel.preview/stopPreview、MaterialStore.prepare/commit/restore、PlayerModel.openMaterial、SeparationLease | tests/MaterialTests.swift、tests/MaterialSearchTests.swift |
+| 来歴付き素材の保存・復元 | app/MaterialOrigin.swift、app/MaterialStore.swift、app/MaterialLibraryModel.swift、app/MaterialLibraryView.swift、app/MaterialComparison.swift、app/MaterialDeletion.swift | MaterialStore.setTrashed/search/updateAnnotations/comparison、MaterialLibraryModel.showTrash/changeTrashState、MaterialLibraryModel.preview/stopPreview、MaterialStore.prepare/commit/restore/resolve、PlayerModel.openMaterial(clip:)、InstrumentProvenance、SeparationLease | tests/MaterialTests.swift、tests/MaterialSearchTests.swift、tests/MaterialReuseTests.swift、tests/MaterialDeletionTests.swift |
 | 曲の分離・試聴・素材採用 | app/SeparationClient.swift、app/SeparationModel.swift、app/SeparationView.swift、scripts/separation_worker.py | SeparationClient.run/validate、SeparationModel.start/cancel/preview、useSeparatedAudio | tests/SeparationTests.swift、実モデルと実UI |
 | WAV・デモ・波形解析 | app/AudioAsset.swift | AudioAsset.load、DemoAudio.write、peaks | tests/AudioTests.swift |
 | 再生・ファイル選択・状態 | app/PlayerModel.swift | open、load、toggle、stop、seek、playSelection、refreshPlaybackState | tests/AudioTests.swift --playback |
@@ -126,3 +126,9 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 パートコンプレッサー: app/PartCompressor.swift（isValid/apply/makeNode）、EnsemblePart.compressor、EnsembleVoice.setCompressor、EnsembleCompressorControl（WorkspaceInspector/EnsembleView）、addDemos(compressed:)。検証はtests/EnsembleCompressorTests.swift、保存形式はENSEMBLE_FORMAT.md。
 
 マスターリミッター: app/MasterLimiter.swift（MasterLimiter/EnsembleMasterBus）、EnsembleModel.limiter/updateGains/play、EnsembleExport.write、app/MasterLimiterControl.swift（下段/全パート）、addDemos(limited:)。検証はtests/MasterLimiterTests.swift、操作はMASTER_LIMITER.md。
+
+完全削除/容量回収: [MATERIAL_DELETION.md](MATERIAL_DELETION.md)、MaterialStore.prepareDeletion/deletePermanently/retain/pendingReclaims、MaterialAudioLease、MaterialLibraryModel.reviewDeletion/confirmDeletion、MaterialDeletionReview。検証はtests/MaterialDeletionTests.swift。
+
+素材参照・保護解除: app/MaterialDeletion.swift（protectionReview/prepareRelease/releaseProtection）、app/MaterialLibraryModel.swift（reviewProtections/reviewRelease/confirmRelease）、app/MaterialLibraryView.swift（参照シート）。
+
+素材の一括完全削除: app/MaterialDeletion.swift（prepareBatchDeletion/集合単位のdeletionPlan/deletePermanently）、app/MaterialLibraryModel.swift（deletionSelection/reviewBatchDeletion）、app/MaterialLibraryView.swift（ゴミ箱のチェック/対象一覧/共通確認）。

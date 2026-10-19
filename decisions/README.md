@@ -122,3 +122,13 @@ Status: proposed / accepted / superseded
 - [0049: 来歴付き素材の保存基盤](0049-material-persistence.md)
 
 - [0050: 素材の注釈検索と同一区間の比較試聴](0050-material-search-comparison.md)
+
+- [0051: 素材の再編集と可搬な楽器来歴](0051-material-reuse-provenance.md)
+
+- [0052: 音声と来歴を保持する素材ゴミ箱](0052-material-trash.md)
+
+- [0053: 来歴を残す完全削除と参照保護付き音声回収](0053-material-permanent-deletion.md)
+
+- [0054: 保護記録の明示解除と音声回収の分離](0054-material-protection-release.md)
+
+- [0055: 複数素材を集合単位で完全削除](0055-material-batch-deletion.md)
