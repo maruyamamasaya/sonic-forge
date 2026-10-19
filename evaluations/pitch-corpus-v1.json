@@ -1,0 +1,909 @@
+{
+  "corpus_version" : 1,
+  "method" : "production PitchEstimator; A4=440; source nominal notes, no independent tuning measurement",
+  "results" : [
+    {
+      "analysis_seconds" : 0.027078166604042053,
+      "candidates" : [
+        {
+          "cents" : 0.85167493123740645,
+          "hz" : 41.223719500670619,
+          "note" : 28,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-pp-E1",
+      "input_sha256" : "a464c5b8e7aff3730af8ad85ae83a3608d8d164b12d30090f6b9251f4bc74ba5",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース E1 · pp（弓）",
+      "octave_error" : false,
+      "reference_cents_error" : 0.85167493123740645,
+      "reference_notes" : [
+        28
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022911166772246361,
+      "candidates" : [
+        {
+          "cents" : -9.2126499966178415,
+          "hz" : 97.478749498827142,
+          "note" : 43,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-pp-G1",
+      "input_sha256" : "3819c302f73c84b7eaf48daf21650120fed4d1f54f6e8ceebe314d025cf70411",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース G1 · pp（弓）",
+      "octave_error" : true,
+      "reference_cents_error" : 1190.7873500033822,
+      "reference_notes" : [
+        31
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 12,
+      "status" : "安定した候補",
+      "top1_correct" : false,
+      "top3_contains_reference" : false,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022288958542048931,
+      "candidates" : [
+        {
+          "cents" : -10.951598707967678,
+          "hz" : 61.346113766012451,
+          "note" : 35,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-pp-B1",
+      "input_sha256" : "55b6510b09b4449fa0bf4fa4c3da443afee11dacbbe32d4aadec58598237c4a4",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース B1 · pp（弓）",
+      "octave_error" : false,
+      "reference_cents_error" : -10.951598707967678,
+      "reference_notes" : [
+        35
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022121916525065899,
+      "candidates" : [
+        {
+          "cents" : 2.5706392430769349,
+          "hz" : 65.503582763549744,
+          "note" : 36,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-pp-C2",
+      "input_sha256" : "2274bc90cbc82187bd2d85e70ebee75db265d2e6dfb4261ae4eb4d8a9119a56b",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C2 · pp",
+      "octave_error" : false,
+      "reference_cents_error" : 2.5706392430769349,
+      "reference_notes" : [
+        36
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 0.875,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.014727958478033543,
+      "candidates" : [
+        {
+          "cents" : 4.3220046015843794,
+          "hz" : 262.27952628346486,
+          "note" : 60,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-pp-C4",
+      "input_sha256" : "10994d1e293aafb559df067a840056a78a4773abc728bb4e4e6a4bcc4b8025d6",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C4 · pp",
+      "octave_error" : false,
+      "reference_cents_error" : 4.3220046015843794,
+      "reference_notes" : [
+        60
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "要確認",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 0.625,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.0096147498115897179,
+      "candidates" : [
+        {
+          "cents" : 11.462730761718939,
+          "hz" : 1053.454281506841,
+          "note" : 84,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-pp-C6",
+      "input_sha256" : "a8311840d7a5389e095c7b4ce977e3e5068f1e111865354c3ddc116dedfd91df",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C6 · pp",
+      "octave_error" : false,
+      "reference_cents_error" : 11.462730761718939,
+      "reference_notes" : [
+        84
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "要確認",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 0.25,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.020776541903614998,
+      "candidates" : [
+        {
+          "cents" : -41.222483597038057,
+          "hz" : 80.467872092887703,
+          "note" : 40,
+          "support" : 1
+        }
+      ],
+      "group" : "guitar",
+      "id" : "guitar-pp-E2",
+      "input_sha256" : "c0f551497c1f442ad514807cceb003c6acca1f0ae962807646aaf24409d46694",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ギター E2 · pp",
+      "octave_error" : false,
+      "reference_cents_error" : -41.222483597038057,
+      "reference_notes" : [
+        40
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.020638624671846628,
+      "candidates" : [
+
+      ],
+      "group" : "guitar",
+      "id" : "guitar-pp-B3",
+      "input_sha256" : "2c8309503a9a5a95cc13ee276b249db9cdbd0826abf2c67f546b6e27a8012f68",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ギター B3 · pp",
+      "reference_notes" : [
+        59
+      ],
+      "seconds" : 1.2,
+      "status" : "推定できませんでした",
+      "top1_correct" : false,
+      "top3_contains_reference" : false,
+      "voiced_fraction" : 0,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.021919416729360819,
+      "candidates" : [
+        {
+          "cents" : 0.29174306121575588,
+          "hz" : 41.210388696560408,
+          "note" : 28,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-mf-E1",
+      "input_sha256" : "232a751ed5f309b8ceb9c9642dac853a1f961aa4dceff79bb47ea0f35f1bc51c",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース E1 · mf（弓）",
+      "octave_error" : false,
+      "reference_cents_error" : 0.29174306121575588,
+      "reference_notes" : [
+        28
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022104041650891304,
+      "candidates" : [
+        {
+          "cents" : -2.6631988589592432,
+          "hz" : 97.848220895083756,
+          "note" : 43,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-mf-G1",
+      "input_sha256" : "157ecc9ee2f2431cc3a2e6909ee45468736c1c0600016856eec0b5f115b92a65",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース G1 · mf（弓）",
+      "octave_error" : true,
+      "reference_cents_error" : 1197.3368011410407,
+      "reference_notes" : [
+        31
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 12,
+      "status" : "安定した候補",
+      "top1_correct" : false,
+      "top3_contains_reference" : false,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022051791660487652,
+      "candidates" : [
+        {
+          "cents" : -6.3631582820722388,
+          "hz" : 61.508920370779784,
+          "note" : 35,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-mf-B1",
+      "input_sha256" : "7248deb6f260f94971eca3e1cfcabb04349878d3de807c82df9e9c937579c548",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース B1 · mf（弓）",
+      "octave_error" : false,
+      "reference_cents_error" : -6.3631582820722388,
+      "reference_notes" : [
+        35
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022300916723906994,
+      "candidates" : [
+        {
+          "cents" : 7.7430936393041696,
+          "hz" : 65.699582225056631,
+          "note" : 36,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-mf-C2",
+      "input_sha256" : "e4bb5af4cc86a59aa45fb4bf15d628417e4ab171b46590c47059a887f4eb206f",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C2 · mf",
+      "octave_error" : false,
+      "reference_cents_error" : 7.7430936393041696,
+      "reference_notes" : [
+        36
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.021977999713271856,
+      "candidates" : [
+        {
+          "cents" : 7.2105206026020019,
+          "hz" : 262.717497669598,
+          "note" : 60,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-mf-C4",
+      "input_sha256" : "e8dea8789c609dee1306a3a56cf2a93a7986e27b6600b21d26ce0e4ea5491546",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C4 · mf",
+      "octave_error" : false,
+      "reference_cents_error" : 7.2105206026020019,
+      "reference_notes" : [
+        60
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.019375249743461609,
+      "candidates" : [
+        {
+          "cents" : 10.71125739441773,
+          "hz" : 1052.9971099025283,
+          "note" : 84,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-mf-C6",
+      "input_sha256" : "9b3477c25c7b19fbfffb306ccdeceb4091b79ac7f6dd59716d8b3ef695df3b84",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C6 · mf",
+      "octave_error" : false,
+      "reference_cents_error" : 10.71125739441773,
+      "reference_notes" : [
+        84
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 0.875,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.020967000164091587,
+      "candidates" : [
+        {
+          "cents" : -39.554455651313347,
+          "hz" : 80.545439502893132,
+          "note" : 40,
+          "support" : 1
+        }
+      ],
+      "group" : "guitar",
+      "id" : "guitar-mf-E2",
+      "input_sha256" : "fbfc7c753266992fb424ef538226a79ecaf3b191f3957918ec1984ae86ee93c8",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ギター E2 · mf",
+      "octave_error" : false,
+      "reference_cents_error" : -39.554455651313347,
+      "reference_notes" : [
+        40
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.021236208267509937,
+      "candidates" : [
+        {
+          "cents" : -20.328979618024313,
+          "hz" : 244.05890189202393,
+          "note" : 59,
+          "support" : 1
+        }
+      ],
+      "group" : "guitar",
+      "id" : "guitar-mf-B3",
+      "input_sha256" : "980d238b60e211de643fdcaf2dc1e835bedcbedb4345a410af07884f8e26532b",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ギター B3 · mf",
+      "octave_error" : false,
+      "reference_cents_error" : -20.328979618024313,
+      "reference_notes" : [
+        59
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.025526874698698521,
+      "candidates" : [
+        {
+          "cents" : 1.2087041456987331,
+          "hz" : 41.232221869222833,
+          "note" : 28,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-ff-E1",
+      "input_sha256" : "b470f4dd78d27cc8e1e1585c86acb5bfddaa1463b22a084879804f98b91b85be",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース E1 · ff（弓）",
+      "octave_error" : false,
+      "reference_cents_error" : 1.2087041456987331,
+      "reference_notes" : [
+        28
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.0226369583979249,
+      "candidates" : [
+        {
+          "cents" : 5.7241436020519529,
+          "hz" : 98.323418197515537,
+          "note" : 43,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-ff-G1",
+      "input_sha256" : "d79bde4b9103747308dfbfdd9edca94b6c5036c7299f036acc9727d2766eeda2",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース G1 · ff（弓）",
+      "octave_error" : true,
+      "reference_cents_error" : 1205.724143602052,
+      "reference_notes" : [
+        31
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 12,
+      "status" : "安定した候補",
+      "top1_correct" : false,
+      "top3_contains_reference" : false,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022365041542798281,
+      "candidates" : [
+        {
+          "cents" : -5.1028423823086868,
+          "hz" : 61.553714368582312,
+          "note" : 35,
+          "support" : 1
+        }
+      ],
+      "group" : "bass",
+      "id" : "bass-ff-B1",
+      "input_sha256" : "eca351f43422f54d9adf96635bd9992e228ad45f4b0fd1311148d2186473907b",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ベース B1 · ff（弓）",
+      "octave_error" : false,
+      "reference_cents_error" : -5.1028423823086868,
+      "reference_notes" : [
+        35
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022089750040322542,
+      "candidates" : [
+        {
+          "cents" : 3.7737024444942007,
+          "hz" : 65.549118107428995,
+          "note" : 36,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-ff-C2",
+      "input_sha256" : "b114a5776fed0edaded603e05fa24fbe1b896e4f06c89606dbc8c3ad15d6616a",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C2 · ff",
+      "octave_error" : false,
+      "reference_cents_error" : 3.7737024444942007,
+      "reference_notes" : [
+        36
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "要確認",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 0.375,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.021833000238984823,
+      "candidates" : [
+        {
+          "cents" : 14.311206481858989,
+          "hz" : 263.79725075102021,
+          "note" : 60,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-ff-C4",
+      "input_sha256" : "f722378ac3cc92261e17ab7b5a13a129b4435df6c4d1e5246cd9ddfbd72cefff",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C4 · ff",
+      "octave_error" : false,
+      "reference_cents_error" : 14.311206481858989,
+      "reference_notes" : [
+        60
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.021922000218182802,
+      "candidates" : [
+        {
+          "cents" : 11.681313578166682,
+          "hz" : 1053.5872973409257,
+          "note" : 84,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-ff-C6",
+      "input_sha256" : "8d42bb2bbe34a0dacdaae87dc23ddbde6ebb9b575665950aa5d2784ff2992e40",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ C6 · ff",
+      "octave_error" : false,
+      "reference_cents_error" : 11.681313578166682,
+      "reference_notes" : [
+        84
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.021285207942128181,
+      "candidates" : [
+        {
+          "cents" : -37.03555192952178,
+          "hz" : 80.662716468605268,
+          "note" : 40,
+          "support" : 1
+        }
+      ],
+      "group" : "guitar",
+      "id" : "guitar-ff-E2",
+      "input_sha256" : "6b2b677cffb7772efe93519152910a22647f855f0383eeb87b472fb2c85810c0",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ギター E2 · ff",
+      "octave_error" : false,
+      "reference_cents_error" : -37.03555192952178,
+      "reference_notes" : [
+        40
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.021518958266824484,
+      "candidates" : [
+        {
+          "cents" : -17.304870763827189,
+          "hz" : 244.48559502572451,
+          "note" : 59,
+          "support" : 1
+        }
+      ],
+      "group" : "guitar",
+      "id" : "guitar-ff-B3",
+      "input_sha256" : "c3b658ac9801e888b2a24d74721368381ba2e52b3d7994395338caa41d986c55",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ギター B3 · ff",
+      "octave_error" : false,
+      "reference_cents_error" : -17.304870763827189,
+      "reference_notes" : [
+        59
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022989583201706409,
+      "candidates" : [
+        {
+          "cents" : 9.2419358900419279,
+          "hz" : 331.39192990868634,
+          "note" : 64,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-mf-E4",
+      "input_sha256" : "c26b3f9afbac6365db5b749b7f1d0a13cd1105c79959a0ab2bd82b724d56c5d2",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ E4 · mf",
+      "octave_error" : false,
+      "reference_cents_error" : 9.2419358900419279,
+      "reference_notes" : [
+        64
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.023187874816358089,
+      "candidates" : [
+        {
+          "cents" : 11.153985156246119,
+          "hz" : 394.52913529621759,
+          "note" : 67,
+          "support" : 1
+        }
+      ],
+      "group" : "piano",
+      "id" : "piano-mf-G4",
+      "input_sha256" : "4e0687ed5b3467a1289e057594679aa505abcf20bbe3a152e97973f4df92c9ce",
+      "input_unchanged" : true,
+      "kind" : "single",
+      "label" : "ピアノ G4 · mf",
+      "octave_error" : false,
+      "reference_cents_error" : 11.153985156246119,
+      "reference_notes" : [
+        67
+      ],
+      "seconds" : 1.2,
+      "semitone_error" : 0,
+      "status" : "安定した候補",
+      "top1_correct" : true,
+      "top3_contains_reference" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.023045666515827179,
+      "candidates" : [
+        {
+          "cents" : 14.450054989203331,
+          "hz" : 65.954602169466327,
+          "note" : 36,
+          "support" : 0.5
+        },
+        {
+          "cents" : 8.687192116277302,
+          "hz" : 131.47084024838594,
+          "note" : 48,
+          "support" : 0.5
+        }
+      ],
+      "group" : "chord",
+      "id" : "chord-C-major",
+      "input_sha256" : "ca1e800b55c632f820e0f5b52b74e1ba6572c13ea053c5b6a2a8f75c313e5d2f",
+      "input_unchanged" : true,
+      "kind" : "chord",
+      "label" : "ピアノ C4\/E4\/G4（合成和音）",
+      "reference_notes" : [
+        60,
+        64,
+        67
+      ],
+      "seconds" : 1.2,
+      "status" : "要確認",
+      "steady_on_non_single" : false,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022909082937985659,
+      "candidates" : [
+        {
+          "cents" : 7.6949681477001279,
+          "hz" : 65.697755908881717,
+          "note" : 36,
+          "support" : 1
+        }
+      ],
+      "group" : "chord",
+      "id" : "chord-C-octave",
+      "input_sha256" : "e29011c160d71eb2a739ebc096b82cb1bc3f1f1727c8f282a2f8adfa1d6f62bf",
+      "input_unchanged" : true,
+      "kind" : "chord",
+      "label" : "ピアノ C2\/C4（オクターブ重ね）",
+      "reference_notes" : [
+        36,
+        60
+      ],
+      "seconds" : 1.2,
+      "status" : "安定した候補",
+      "steady_on_non_single" : true,
+      "voiced_fraction" : 1,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.0090942084789276123,
+      "candidates" : [
+        {
+          "cents" : 21.86667674468961,
+          "hz" : 1587.9120334455351,
+          "note" : 91,
+          "support" : 1
+        }
+      ],
+      "group" : "percussion",
+      "id" : "percussion-5.5wb.mf",
+      "input_sha256" : "4c8932f2d9841084d2ec44c89af50c4f7199a4d2824140b7dd77cf096d379950",
+      "input_unchanged" : true,
+      "kind" : "percussion",
+      "label" : "ウッドブロック · 音程ラベルなし",
+      "reference_notes" : [
+
+      ],
+      "seconds" : 0.69999999999999996,
+      "status" : "要確認",
+      "steady_on_non_single" : false,
+      "voiced_fraction" : 0.25,
+      "windows" : 8
+    },
+    {
+      "analysis_seconds" : 0.022056583315134048,
+      "candidates" : [
+        {
+          "cents" : -30.559244270907996,
+          "hz" : 647.72023729981322,
+          "note" : 76,
+          "support" : 1
+        }
+      ],
+      "group" : "percussion",
+      "id" : "percussion-graniteblock1.mf",
+      "input_sha256" : "da5bb5dffe85c7b27433f8aa77adb4c85b107ed1b75b5d653377de73d5b91531",
+      "input_unchanged" : true,
+      "kind" : "percussion",
+      "label" : "グラナイトブロック · 音程ラベルなし",
+      "reference_notes" : [
+
+      ],
+      "seconds" : 0.69999999999999996,
+      "status" : "要確認",
+      "steady_on_non_single" : false,
+      "voiced_fraction" : 0.375,
+      "windows" : 8
+    }
+  ],
+  "summary" : [
+    {
+      "count" : 9,
+      "group" : "bass",
+      "octave_errors" : 3,
+      "steady_on_non_single" : 0,
+      "top1_correct" : 6,
+      "top3_contains_reference" : 6,
+      "unavailable" : 0
+    },
+    {
+      "count" : 11,
+      "group" : "piano",
+      "octave_errors" : 0,
+      "steady_on_non_single" : 0,
+      "top1_correct" : 11,
+      "top3_contains_reference" : 11,
+      "unavailable" : 0
+    },
+    {
+      "count" : 6,
+      "group" : "guitar",
+      "octave_errors" : 0,
+      "steady_on_non_single" : 0,
+      "top1_correct" : 5,
+      "top3_contains_reference" : 5,
+      "unavailable" : 1
+    },
+    {
+      "count" : 2,
+      "group" : "chord",
+      "octave_errors" : 0,
+      "steady_on_non_single" : 1,
+      "top1_correct" : 0,
+      "top3_contains_reference" : 0,
+      "unavailable" : 0
+    },
+    {
+      "count" : 2,
+      "group" : "percussion",
+      "octave_errors" : 0,
+      "steady_on_non_single" : 0,
+      "top1_correct" : 0,
+      "top3_contains_reference" : 0,
+      "unavailable" : 0
+    }
+  ],
+  "version" : 1
+}

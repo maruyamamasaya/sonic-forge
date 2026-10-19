@@ -304,6 +304,20 @@ final class PlayerModel: ObservableObject {
         }
     }
 
+    func loadPitchDemo(_ entry: PitchCorpus.Entry) async {
+        guard !busy else { return }
+        do {
+            guard let directory = PitchCorpus.bundledDirectory else { throw AudioError.invalid("評価音源がありません。") }
+            let url = try PitchCorpus.verifiedURL(entry, in: directory)
+            stop(); library.stopPreview()
+            await load(url)
+            if asset?.url == url {
+                await prepareInstrument(useSelection: false)
+                exportMessage = "評価デモ: " + entry.label + "。音程を推定して正解ラベルと比較してください。"
+            }
+        } catch { self.error = error.localizedDescription }
+    }
+
     func loadDemo() async {
         guard !busy else { return }
         do {

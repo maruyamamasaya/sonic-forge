@@ -308,3 +308,10 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 [仕様](PITCH_ESTIMATION.md)。入口はStudio/Inspectorのpitch.estimate。対象は取り込み済み楽器PCMで、波形の選択を変更しただけでは対象は変わらない。PitchAnalysis.analyze/ result / running / canApplyが内部入口と判定。pitch.statusの状態、pitch.candidate.MIDI番号の音名/Hz/セントを確認し、pitch.rootで修正、pitch.applyで明示採用する。候補完成を適用済みと扱わない。適用後のInstrument root / Selected instrument root、未保存状態、保存後rootNoteを確認する。停止はpitch.cancel、閉じるはpitch.close、再解析はpitch.retry。閉じるだけでは設定変更なし。解析開始は発音を止め、音源変更時の古い結果を拒否する。結果は正解確率ではなく、候補なしや複数候補では人の確認を優先。AIへの音声送信や自動調律は行わない。
 
 音程推定の静的テキストはmacOSのアクセシビリティツリー上で一つにまとめられる場合がある。pitch.status / pitch.candidateの個別IDが見えない場合は、ポップオーバーに表示された状態・音名・Hz・セントのまとまったテキストを確認する。ボタンとpitch.rootの操作IDを使用する。
+
+## 音程評価用の録音デモ
+[評価結果と再実行](PITCH_EVALUATION.md)。Studio上部のpitch.demo（デモ）→音程評価デモ→楽器群→pitch.demo.IDが入口。ID/正解音/種別はapp/Resources/PitchCorpus/manifest.jsonを正本とする。未保存時は「保存して開く」「保存せずに開く」「キャンセル」で選び、キャンセルでは元の音を保持。読み込み完了はbusy=false、波形とinstrumentSampleの対象、評価デモの状態メッセージを確認する。rootNoteは名目正解へ自動変更しない。pitch.estimateで得られた候補とラベルを比較し、採用しない限り現在の基準音を保持する。
+
+比較の代表: piano-mf-C4→C4、bass-mf-G1→G2（既知のオクターブ違い）、guitar-pp-B3→候補なし、chord-C-major→C2/C3要確認、chord-C-octave→C2安定、percussion-5.5wb.mf→G6要確認。この固定デモの観測を一般化しない。波形試聴は既存の再生/停止、鍵盤は全音停止、解析はpitch.cancel/close。デモ選択で再生を止め、音源交換により古い推定結果を無効化する。
+
+自動評価はscripts/evaluate_pitch_corpus.shの新規JSON出力を使う。単音の第一候補一致・上位3候補・オクターブ違い・候補なしと、和音/打楽器の安定表示を別集計する。候補の安定性を正解確率にしない。同梱音源はオフラインで使用でき、原録音の再取得はprepare_pitch_corpus.py --downloadの明示時のみ。

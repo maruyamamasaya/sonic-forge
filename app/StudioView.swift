@@ -107,8 +107,7 @@ struct StudioView: View {
                 Label("WAV書き出し…", systemImage: "square.and.arrow.up")
             }.buttonStyle(StudioButton()).disabled(model.editor.selection == nil)
                 .help("選択した素材を32-bit Float WAVへ書き出します。楽器の音色設定は含みません。⇧⌘E")
-            Button("デモを開く") { Task { await model.loadDemo() } }.buttonStyle(StudioButton())
-                .help("8秒の合成デモ音源を用意します。音源ファイルがなくても試せます。")
+            PitchDemoMenu(model: model).menuStyle(.borderlessButton).fixedSize()
             Button("WAVを開く…") { model.open() }.buttonStyle(StudioButton()).keyboardShortcut("o", modifiers: .command)
         }.padding(.horizontal, 20).frame(height: 56).background(panel).disabled(model.busy)
     }

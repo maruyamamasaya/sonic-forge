@@ -1,0 +1,611 @@
+{
+  "version": 1,
+  "attribution": "University of Iowa Electronic Music Studios / Lawrence Fritts",
+  "license_url": "https://theremin.music.uiowa.edu/MIS.html",
+  "reference": "Nominal source note labels; A4=440 comparison; no independent tuning measurement",
+  "transforms": "Fixed time crop, stereo arithmetic mean, PCM16 mono; no normalization or retuning; chords arithmetic mean of source clips",
+  "sources": [
+    {
+      "id": "bass-pp",
+      "group": "bass",
+      "dynamic": "pp",
+      "start_note": 28,
+      "count": 8,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Strings/doublebass/Bass.arco.pp.sulE.E1B1.aiff",
+      "sha256": "ad4f8ad2dfc153ae3de00e352ac05e873a4f1a94ce6a427cf11607fe9f055980"
+    },
+    {
+      "id": "guitar-pp",
+      "group": "guitar",
+      "dynamic": "pp",
+      "start_note": 40,
+      "count": 8,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/Guitar.pp.sulE.E2B2.mono.aif",
+      "sha256": "8523d89b6a8e6c29d1f3c81502343ff6fb5e13280c2c5d2ccbf5d1315add9350"
+    },
+    {
+      "id": "piano-pp-C2",
+      "group": "piano",
+      "dynamic": "pp",
+      "note": 36,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.pp.C2.aiff",
+      "sha256": "7ff5b7bd53e73ea7da25129d94a90998256a59aef65560caf8d324d36383a0ed"
+    },
+    {
+      "id": "piano-pp-C4",
+      "group": "piano",
+      "dynamic": "pp",
+      "note": 60,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.pp.C4.aiff",
+      "sha256": "94540df460e6f4b1517d9ae0bb1a1cc5b4b28ffd61106eda3e89475544ee545d"
+    },
+    {
+      "id": "piano-pp-C6",
+      "group": "piano",
+      "dynamic": "pp",
+      "note": 84,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.pp.C6.aiff",
+      "sha256": "8bbf93badcb6ddc82ad0c6ba4681df512cc46a691f8705c129e01060e796618c"
+    },
+    {
+      "id": "bass-mf",
+      "group": "bass",
+      "dynamic": "mf",
+      "start_note": 28,
+      "count": 8,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Strings/doublebass/Bass.arco.mf.sulE.E1B1.aiff",
+      "sha256": "661b339e4c4aacc0c58712013bd8a473b21b52f3b6f1bb4d603bf2787d25a5a8"
+    },
+    {
+      "id": "guitar-mf",
+      "group": "guitar",
+      "dynamic": "mf",
+      "start_note": 40,
+      "count": 8,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/Guitar.mf.sulE.E2B2.mono.aif",
+      "sha256": "faef0e44dff6fcf99b2bd1cb50ab1ed519980e6c70951069cdbce38597c58b23"
+    },
+    {
+      "id": "piano-mf-C2",
+      "group": "piano",
+      "dynamic": "mf",
+      "note": 36,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.C2.aiff",
+      "sha256": "a794e41d4a1f67265e6e67c1a91ef7e0ea5d85cf9cfebdb772c43c27c355ba5f"
+    },
+    {
+      "id": "piano-mf-C4",
+      "group": "piano",
+      "dynamic": "mf",
+      "note": 60,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.C4.aiff",
+      "sha256": "1a7d8ddea94a3639fa58d79ebcc0b09b170b9c324811d2b705f97e278fdefac2"
+    },
+    {
+      "id": "piano-mf-C6",
+      "group": "piano",
+      "dynamic": "mf",
+      "note": 84,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.C6.aiff",
+      "sha256": "897480810c72f06e4fc89cfe555925a344a7413230bd374d374a1796ae88acee"
+    },
+    {
+      "id": "bass-ff",
+      "group": "bass",
+      "dynamic": "ff",
+      "start_note": 28,
+      "count": 8,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Strings/doublebass/Bass.arco.ff.sulE.E1B1.aiff",
+      "sha256": "ebe75b308a51ea7d90a374637e4ffd52f92c721f56feb4b02cd968c01fbe4f11"
+    },
+    {
+      "id": "guitar-ff",
+      "group": "guitar",
+      "dynamic": "ff",
+      "start_note": 40,
+      "count": 8,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/Guitar.ff.sulE.E2B2.mono.aif",
+      "sha256": "3c1af9a8162241461d3b17cb7b36e17c151a74ab15cc0af69e623a31e91e47ee"
+    },
+    {
+      "id": "piano-ff-C2",
+      "group": "piano",
+      "dynamic": "ff",
+      "note": 36,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.ff.C2.aiff",
+      "sha256": "647d72cdcc351e25e2f22048f2c04f35b833960af8d6f115f1d88ac220aec1cc"
+    },
+    {
+      "id": "piano-ff-C4",
+      "group": "piano",
+      "dynamic": "ff",
+      "note": 60,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.ff.C4.aiff",
+      "sha256": "92f65bcbfb326257869017ea88da346bda98285183f13a78394f5d1c83218e0f"
+    },
+    {
+      "id": "piano-ff-C6",
+      "group": "piano",
+      "dynamic": "ff",
+      "note": 84,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.ff.C6.aiff",
+      "sha256": "3c01f95dc0474531fd21db5294399a4568338fb953de9fbebd33d816772e3a17"
+    },
+    {
+      "id": "piano-mf-E4",
+      "group": "piano",
+      "dynamic": "mf",
+      "note": 64,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.E4.aiff",
+      "sha256": "3ee2ace7fd571c8868b3582b68417b1e456ef71169b136b732804d2f4eeabd9d"
+    },
+    {
+      "id": "piano-mf-G4",
+      "group": "piano",
+      "dynamic": "mf",
+      "note": 67,
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.G4.aiff",
+      "sha256": "0bf10e0279d77cec93fe3c6cc47c53c4bab6b650e342b7c4badfa9bc11b9c3e3"
+    },
+    {
+      "id": "5.5wb.mf",
+      "group": "percussion",
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Percussion/hand%20percussion/woodblocks/5.5wb.mf.aif",
+      "sha256": "2346c6b905c387ac305a91eb1a0698157b7c531d77ca1fa0f0eff3ae54c69734"
+    },
+    {
+      "id": "graniteblock1.mf",
+      "group": "percussion",
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Percussion/hand%20percussion/graniteblocks/graniteblock1.mf.aif",
+      "sha256": "1df3975505f7a175d9a5091627484442102039e45aeb8a8330c79dc7e8d84583"
+    },
+    {
+      "id": "guitar-B3-pp",
+      "group": "guitar",
+      "note": 59,
+      "dynamic": "pp",
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/Guitar.pp.sulB.B3.mono.aif",
+      "sha256": "98bdd14f91bc0e1bb9ee12337ca6576376c5d3626ee3e103d1f202951530abfb"
+    },
+    {
+      "id": "guitar-B3-mf",
+      "group": "guitar",
+      "note": 59,
+      "dynamic": "mf",
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/Guitar.mf.sulB.B3.mono.aif",
+      "sha256": "5afbcddce7bb8a2135232872984a6d2403ff3da1c1daaf03dacb17f29b454489"
+    },
+    {
+      "id": "guitar-B3-ff",
+      "group": "guitar",
+      "note": 59,
+      "dynamic": "ff",
+      "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/Guitar.ff.sulB.B3.mono.aif",
+      "sha256": "7f015af411e0f3efbb6d2ab83f4a03721d1fb05947a8cb7140ae94b8ee39c309"
+    }
+  ],
+  "entries": [
+    {
+      "id": "bass-pp-E1",
+      "group": "bass",
+      "label": "ベース E1 · pp（弓）",
+      "file": "bass-pp-E1.wav",
+      "kind": "single",
+      "notes": [
+        28
+      ],
+      "source_id": "bass-pp",
+      "start_seconds": 0.89,
+      "duration_seconds": 1.2,
+      "sha256": "a464c5b8e7aff3730af8ad85ae83a3608d8d164b12d30090f6b9251f4bc74ba5"
+    },
+    {
+      "id": "bass-pp-G1",
+      "group": "bass",
+      "label": "ベース G1 · pp（弓）",
+      "file": "bass-pp-G1.wav",
+      "kind": "single",
+      "notes": [
+        31
+      ],
+      "source_id": "bass-pp",
+      "start_seconds": 14.54,
+      "duration_seconds": 1.2,
+      "sha256": "3819c302f73c84b7eaf48daf21650120fed4d1f54f6e8ceebe314d025cf70411"
+    },
+    {
+      "id": "bass-pp-B1",
+      "group": "bass",
+      "label": "ベース B1 · pp（弓）",
+      "file": "bass-pp-B1.wav",
+      "kind": "single",
+      "notes": [
+        35
+      ],
+      "source_id": "bass-pp",
+      "start_seconds": 31.67,
+      "duration_seconds": 1.2,
+      "sha256": "55b6510b09b4449fa0bf4fa4c3da443afee11dacbbe32d4aadec58598237c4a4"
+    },
+    {
+      "id": "piano-pp-C2",
+      "group": "piano",
+      "label": "ピアノ C2 · pp",
+      "file": "piano-pp-C2.wav",
+      "kind": "single",
+      "notes": [
+        36
+      ],
+      "source_id": "piano-pp-C2",
+      "start_seconds": 0.35,
+      "duration_seconds": 1.2,
+      "sha256": "2274bc90cbc82187bd2d85e70ebee75db265d2e6dfb4261ae4eb4d8a9119a56b"
+    },
+    {
+      "id": "piano-pp-C4",
+      "group": "piano",
+      "label": "ピアノ C4 · pp",
+      "file": "piano-pp-C4.wav",
+      "kind": "single",
+      "notes": [
+        60
+      ],
+      "source_id": "piano-pp-C4",
+      "start_seconds": 0.35,
+      "duration_seconds": 1.2,
+      "sha256": "10994d1e293aafb559df067a840056a78a4773abc728bb4e4e6a4bcc4b8025d6"
+    },
+    {
+      "id": "piano-pp-C6",
+      "group": "piano",
+      "label": "ピアノ C6 · pp",
+      "file": "piano-pp-C6.wav",
+      "kind": "single",
+      "notes": [
+        84
+      ],
+      "source_id": "piano-pp-C6",
+      "start_seconds": 0.1,
+      "duration_seconds": 1.2,
+      "sha256": "a8311840d7a5389e095c7b4ce977e3e5068f1e111865354c3ddc116dedfd91df"
+    },
+    {
+      "id": "guitar-pp-E2",
+      "group": "guitar",
+      "label": "ギター E2 · pp",
+      "file": "guitar-pp-E2.wav",
+      "kind": "single",
+      "notes": [
+        40
+      ],
+      "source_id": "guitar-pp",
+      "start_seconds": 0.12,
+      "duration_seconds": 1.2,
+      "sha256": "c0f551497c1f442ad514807cceb003c6acca1f0ae962807646aaf24409d46694"
+    },
+    {
+      "id": "guitar-pp-B3",
+      "group": "guitar",
+      "label": "ギター B3 · pp",
+      "file": "guitar-pp-B3.wav",
+      "kind": "single",
+      "notes": [
+        59
+      ],
+      "source_id": "guitar-B3-pp",
+      "start_seconds": 0.1,
+      "duration_seconds": 1.2,
+      "sha256": "2c8309503a9a5a95cc13ee276b249db9cdbd0826abf2c67f546b6e27a8012f68"
+    },
+    {
+      "id": "bass-mf-E1",
+      "group": "bass",
+      "label": "ベース E1 · mf（弓）",
+      "file": "bass-mf-E1.wav",
+      "kind": "single",
+      "notes": [
+        28
+      ],
+      "source_id": "bass-mf",
+      "start_seconds": 0.85,
+      "duration_seconds": 1.2,
+      "sha256": "232a751ed5f309b8ceb9c9642dac853a1f961aa4dceff79bb47ea0f35f1bc51c"
+    },
+    {
+      "id": "bass-mf-G1",
+      "group": "bass",
+      "label": "ベース G1 · mf（弓）",
+      "file": "bass-mf-G1.wav",
+      "kind": "single",
+      "notes": [
+        31
+      ],
+      "source_id": "bass-mf",
+      "start_seconds": 13.92,
+      "duration_seconds": 1.2,
+      "sha256": "157ecc9ee2f2431cc3a2e6909ee45468736c1c0600016856eec0b5f115b92a65"
+    },
+    {
+      "id": "bass-mf-B1",
+      "group": "bass",
+      "label": "ベース B1 · mf（弓）",
+      "file": "bass-mf-B1.wav",
+      "kind": "single",
+      "notes": [
+        35
+      ],
+      "source_id": "bass-mf",
+      "start_seconds": 29.78,
+      "duration_seconds": 1.2,
+      "sha256": "7248deb6f260f94971eca3e1cfcabb04349878d3de807c82df9e9c937579c548"
+    },
+    {
+      "id": "piano-mf-C2",
+      "group": "piano",
+      "label": "ピアノ C2 · mf",
+      "file": "piano-mf-C2.wav",
+      "kind": "single",
+      "notes": [
+        36
+      ],
+      "source_id": "piano-mf-C2",
+      "start_seconds": 0.6,
+      "duration_seconds": 1.2,
+      "sha256": "e4bb5af4cc86a59aa45fb4bf15d628417e4ab171b46590c47059a887f4eb206f"
+    },
+    {
+      "id": "piano-mf-C4",
+      "group": "piano",
+      "label": "ピアノ C4 · mf",
+      "file": "piano-mf-C4.wav",
+      "kind": "single",
+      "notes": [
+        60
+      ],
+      "source_id": "piano-mf-C4",
+      "start_seconds": 0.5,
+      "duration_seconds": 1.2,
+      "sha256": "e8dea8789c609dee1306a3a56cf2a93a7986e27b6600b21d26ce0e4ea5491546"
+    },
+    {
+      "id": "piano-mf-C6",
+      "group": "piano",
+      "label": "ピアノ C6 · mf",
+      "file": "piano-mf-C6.wav",
+      "kind": "single",
+      "notes": [
+        84
+      ],
+      "source_id": "piano-mf-C6",
+      "start_seconds": 0.45,
+      "duration_seconds": 1.2,
+      "sha256": "9b3477c25c7b19fbfffb306ccdeceb4091b79ac7f6dd59716d8b3ef695df3b84"
+    },
+    {
+      "id": "guitar-mf-E2",
+      "group": "guitar",
+      "label": "ギター E2 · mf",
+      "file": "guitar-mf-E2.wav",
+      "kind": "single",
+      "notes": [
+        40
+      ],
+      "source_id": "guitar-mf",
+      "start_seconds": 0.22,
+      "duration_seconds": 1.2,
+      "sha256": "fbfc7c753266992fb424ef538226a79ecaf3b191f3957918ec1984ae86ee93c8"
+    },
+    {
+      "id": "guitar-mf-B3",
+      "group": "guitar",
+      "label": "ギター B3 · mf",
+      "file": "guitar-mf-B3.wav",
+      "kind": "single",
+      "notes": [
+        59
+      ],
+      "source_id": "guitar-B3-mf",
+      "start_seconds": 0.1,
+      "duration_seconds": 1.2,
+      "sha256": "980d238b60e211de643fdcaf2dc1e835bedcbedb4345a410af07884f8e26532b"
+    },
+    {
+      "id": "bass-ff-E1",
+      "group": "bass",
+      "label": "ベース E1 · ff（弓）",
+      "file": "bass-ff-E1.wav",
+      "kind": "single",
+      "notes": [
+        28
+      ],
+      "source_id": "bass-ff",
+      "start_seconds": 1.88,
+      "duration_seconds": 1.2,
+      "sha256": "b470f4dd78d27cc8e1e1585c86acb5bfddaa1463b22a084879804f98b91b85be"
+    },
+    {
+      "id": "bass-ff-G1",
+      "group": "bass",
+      "label": "ベース G1 · ff（弓）",
+      "file": "bass-ff-G1.wav",
+      "kind": "single",
+      "notes": [
+        31
+      ],
+      "source_id": "bass-ff",
+      "start_seconds": 15.61,
+      "duration_seconds": 1.2,
+      "sha256": "d79bde4b9103747308dfbfdd9edca94b6c5036c7299f036acc9727d2766eeda2"
+    },
+    {
+      "id": "bass-ff-B1",
+      "group": "bass",
+      "label": "ベース B1 · ff（弓）",
+      "file": "bass-ff-B1.wav",
+      "kind": "single",
+      "notes": [
+        35
+      ],
+      "source_id": "bass-ff",
+      "start_seconds": 32.67,
+      "duration_seconds": 1.2,
+      "sha256": "eca351f43422f54d9adf96635bd9992e228ad45f4b0fd1311148d2186473907b"
+    },
+    {
+      "id": "piano-ff-C2",
+      "group": "piano",
+      "label": "ピアノ C2 · ff",
+      "file": "piano-ff-C2.wav",
+      "kind": "single",
+      "notes": [
+        36
+      ],
+      "source_id": "piano-ff-C2",
+      "start_seconds": 0.4,
+      "duration_seconds": 1.2,
+      "sha256": "b114a5776fed0edaded603e05fa24fbe1b896e4f06c89606dbc8c3ad15d6616a"
+    },
+    {
+      "id": "piano-ff-C4",
+      "group": "piano",
+      "label": "ピアノ C4 · ff",
+      "file": "piano-ff-C4.wav",
+      "kind": "single",
+      "notes": [
+        60
+      ],
+      "source_id": "piano-ff-C4",
+      "start_seconds": 0.7,
+      "duration_seconds": 1.2,
+      "sha256": "f722378ac3cc92261e17ab7b5a13a129b4435df6c4d1e5246cd9ddfbd72cefff"
+    },
+    {
+      "id": "piano-ff-C6",
+      "group": "piano",
+      "label": "ピアノ C6 · ff",
+      "file": "piano-ff-C6.wav",
+      "kind": "single",
+      "notes": [
+        84
+      ],
+      "source_id": "piano-ff-C6",
+      "start_seconds": 0.6,
+      "duration_seconds": 1.2,
+      "sha256": "8d42bb2bbe34a0dacdaae87dc23ddbde6ebb9b575665950aa5d2784ff2992e40"
+    },
+    {
+      "id": "guitar-ff-E2",
+      "group": "guitar",
+      "label": "ギター E2 · ff",
+      "file": "guitar-ff-E2.wav",
+      "kind": "single",
+      "notes": [
+        40
+      ],
+      "source_id": "guitar-ff",
+      "start_seconds": 0.25,
+      "duration_seconds": 1.2,
+      "sha256": "6b2b677cffb7772efe93519152910a22647f855f0383eeb87b472fb2c85810c0"
+    },
+    {
+      "id": "guitar-ff-B3",
+      "group": "guitar",
+      "label": "ギター B3 · ff",
+      "file": "guitar-ff-B3.wav",
+      "kind": "single",
+      "notes": [
+        59
+      ],
+      "source_id": "guitar-B3-ff",
+      "start_seconds": 0.1,
+      "duration_seconds": 1.2,
+      "sha256": "c3b658ac9801e888b2a24d74721368381ba2e52b3d7994395338caa41d986c55"
+    },
+    {
+      "id": "piano-mf-E4",
+      "group": "piano",
+      "label": "ピアノ E4 · mf",
+      "file": "piano-mf-E4.wav",
+      "kind": "single",
+      "notes": [
+        64
+      ],
+      "source_id": "piano-mf-E4",
+      "start_seconds": 0.6,
+      "duration_seconds": 1.2,
+      "sha256": "c26b3f9afbac6365db5b749b7f1d0a13cd1105c79959a0ab2bd82b724d56c5d2"
+    },
+    {
+      "id": "piano-mf-G4",
+      "group": "piano",
+      "label": "ピアノ G4 · mf",
+      "file": "piano-mf-G4.wav",
+      "kind": "single",
+      "notes": [
+        67
+      ],
+      "source_id": "piano-mf-G4",
+      "start_seconds": 0.6,
+      "duration_seconds": 1.2,
+      "sha256": "4e0687ed5b3467a1289e057594679aa505abcf20bbe3a152e97973f4df92c9ce"
+    },
+    {
+      "id": "chord-C-major",
+      "group": "chord",
+      "label": "ピアノ C4/E4/G4（合成和音）",
+      "file": "chord-C-major.wav",
+      "kind": "chord",
+      "notes": [
+        60,
+        64,
+        67
+      ],
+      "components": [
+        "piano-mf-C4",
+        "piano-mf-E4",
+        "piano-mf-G4"
+      ],
+      "sha256": "ca1e800b55c632f820e0f5b52b74e1ba6572c13ea053c5b6a2a8f75c313e5d2f"
+    },
+    {
+      "id": "chord-C-octave",
+      "group": "chord",
+      "label": "ピアノ C2/C4（オクターブ重ね）",
+      "file": "chord-C-octave.wav",
+      "kind": "chord",
+      "notes": [
+        36,
+        60
+      ],
+      "components": [
+        "piano-mf-C2",
+        "piano-mf-C4"
+      ],
+      "sha256": "e29011c160d71eb2a739ebc096b82cb1bc3f1f1727c8f282a2f8adfa1d6f62bf"
+    },
+    {
+      "id": "percussion-5.5wb.mf",
+      "group": "percussion",
+      "label": "ウッドブロック · 音程ラベルなし",
+      "file": "percussion-5.5wb.mf.wav",
+      "kind": "percussion",
+      "notes": [],
+      "source_id": "5.5wb.mf",
+      "start_seconds": 0,
+      "duration_seconds": 0.7,
+      "sha256": "4c8932f2d9841084d2ec44c89af50c4f7199a4d2824140b7dd77cf096d379950"
+    },
+    {
+      "id": "percussion-graniteblock1.mf",
+      "group": "percussion",
+      "label": "グラナイトブロック · 音程ラベルなし",
+      "file": "percussion-graniteblock1.mf.wav",
+      "kind": "percussion",
+      "notes": [],
+      "source_id": "graniteblock1.mf",
+      "start_seconds": 0,
+      "duration_seconds": 0.7,
+      "sha256": "da5bb5dffe85c7b27433f8aa77adb4c85b107ed1b75b5d653377de73d5b91531"
+    }
+  ]
+}

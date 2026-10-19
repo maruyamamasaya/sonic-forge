@@ -138,3 +138,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 低音の基準音: NotePitch.rootRange/keyboardRange/computerBase、PlayerModel.computerNote、MIDIInput.resetPerformance、InstrumentKeyboard/WorkspaceInspector。保存はInstrumentDocument/EnsembleDocument、検証はtests/RootRangeTests.swift（--roots-only / --playback）。[仕様](ROOT_NOTE_RANGE.md)。
 
 音高推定: app/PitchEstimation.swift（PitchEstimator/PitchAnalysis）、app/PitchEstimateControl.swift（Studio/Inspector共通）。tests/PitchEstimationTests.swift / --pitch-only、実音源はscripts/evaluate_pitch.sh → scripts/pitch_evaluation.swift。[仕様](PITCH_ESTIMATION.md)。
+
+音程評価デモ: app/PitchCorpus.swift / app/PitchDemoMenu.swift、PlayerModel.loadPitchDemo。データはapp/Resources/PitchCorpus、検証はtests/PitchCorpusTests.swift、再作成scripts/prepare_pitch_corpus.py、評価scripts/evaluate_pitch_corpus.sh → scripts/pitch_corpus_evaluation.swift。[評価記録](PITCH_EVALUATION.md)。

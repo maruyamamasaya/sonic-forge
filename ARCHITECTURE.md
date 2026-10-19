@@ -45,7 +45,7 @@ scripts/build.shがbuild/SonicForge.appを生成してローカル用ad-hoc署�
 InstrumentSampleが全体／選択をバックグラウンドでFloat32 PCMへ取り込む（最大30秒・デコード後64 MB）。
 SampleInstrumentは8本のSourceNode（InstrumentVoice＋ADSR）→ 各Varispeed → 出力Mixer → system outputで和音を演奏。
 再生速度は2^((鍵盤ノート−基準音)/12)。基準音はC1〜C7（MIDI24〜96）。画面は25鍵で、旧範囲C3〜C5はそのまま、低音/高音では基準音を含む音域へ切り替える。MIDIは基準音±24半音の範囲で演奏可能。高い音ほど短くなる。
-デモの基準音はA3、外部WAVは手動指定の初期値C4。自動ピッチ検出は行わない。
+合成金属音デモの基準音はA3、外部WAV/評価録音は初期値C4。音高推定は明示操作で候補を示し、採用するまで基準音を変更しない。
 MainActorで発音・停止を制御し、キー操作時のファイル読み込みは行わない。完了状態はUIタイマーで確認し、音声コールバックからUIを更新しない。
 Mixer tapのRMSを右メーターへ表示。音声スレッドのメーター更新はロックが取れなければ待たずに破棄する。
 従来の試聴とは排他再生。停止・音源交換・基準音変更・フォーカス喪失で発音を止める。離鍵はADSRのReleaseへ移行する。
@@ -256,3 +256,5 @@ MaterialDeletionのprotectionReview/prepareRelease/releaseProtectionが保護一
 
 ## 基準音の候補推定
 PitchEstimateControl/Panel → PitchAnalysis（MainActorの状態・音源ID/世代・Task取消）→ PitchEstimator（バックグラウンドのFIR/周期解析）。取り込み済みInstrumentSampleは解析中も参照保持し、PCMを変更しない。StudioはrootNote、InspectorはsetInstrumentSettingsへ明示採用だけ渡す。保存構造は維持。[仕様](PITCH_ESTIMATION.md)。
+
+評価録音: PitchCorpusの同梱manifest/WAVをPitchDemoMenu → PlayerModel.loadPitchDemo → 既存load/prepareInstrumentへ接続。推定器は変えず、CLI評価も同じ検証済みWAVを使う。原本/変換後SHA-256・固定切片・名目正解音を保持。[評価](PITCH_EVALUATION.md)。
