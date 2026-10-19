@@ -130,12 +130,12 @@ Other AIは共通の指示とschemaをコピーしJSONを貼り付ける手動�
 ## Ensemble
 EnsembleModelが最大4つのEnsemblePartをメモリ内に保持する。各パートはPCM/Root/ADSR/LoopのスナップショットとPerformanceDocumentを持つ。InstrumentDocumentからの読込はバックグラウンドで全検証し、PCM取得後に展開一時領域を清掃する。失敗時は以前の割り当てを保持する。演奏読込は既存形式の検証を再利用する。
 全パートを開始前に検証し、各演奏のtempoを共通テンポへ置換したコピーからイベントを作り、startBeat × 60 / tempo秒を音符・離鍵・ペダルへ加算する。開始位置は有限数0〜256拍。終了拍もシフト後の最後のイベントから求める。元の演奏データは書き換えない。各パートの±24半音・8音上限は既存検証を再利用。1つでも未割当/不正なら全体を開始しない。ミュートしたパートも検証する。
-再生ごとに1つのAVAudioEngineとパート別の入力Mixer/EQ/ディレイ/リバーブ/パンMixerを準備。SampleInstrumentのdestination/panDestination引数で出力と左右配置を分け、各パンMixerをmainMixerの別busへ接続する。単一楽器の既定出力は従来通りmainMixer。EnsembleVoiceはパート別にMIDIの押鍵所有権/チャンネルCC64を管理し、同音程の別パートを干渉させない。ペダル中の同音再押鍵は再発音する。
+再生ごとに1つのAVAudioEngineとパート別の入力Mixer/EQ/コンプレッサー/ディレイ/リバーブ/パンMixerを準備。SampleInstrumentのdestination/panDestination引数で出力と左右配置を分け、各パンMixerをmainMixerの別busへ接続する。単一楽器の既定出力は従来通りmainMixer。EnsembleVoiceはパート別にMIDIの押鍵所有権/チャンネルCC64を管理し、同音程の別パートを干渉させない。ペダル中の同音再押鍵は再発音する。
 全イベントを1つのTaskから単調時計の共通開始時刻に対する絶対秒で配送する。睡眠時間の積算によるずれは避けるが、サンプル精度ではない。再生後はパートごとのReleaseを待ち、最大6秒で終了。停止はTask取消/世代変更/全ボイス停止/共通engine破棄。閉じる・アプリ非アクティブ・本体の音声再生/全音停止でも終了する。
 パートMixerの音量・ミュートは30 Hzで更新。共通出力は最大4パート分の固定1/4ヘッドルームと専用Masterを使用。各サンプラーの1/8ヘッドルームは維持する。パートと共通出力それぞれの実RMSを表示し、本体のメーターとは区別。割り当てはシートを閉じても保持し、保存した構成は起動時に復元する。操作は[ENSEMBLE.md](ENSEMBLE.md)。
 
 ## Ensemble Persistence
-EnsembleDocumentが.sfensemble v9を管理。旧v1〜v5のpanは中央0、v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読み込む。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
+EnsembleDocumentが.sfensemble v10を管理。旧v1〜v5のpanは中央0、v1〜v3はセクションなし、v1/v2はrepeatCount=1、v1は開始位置0で読み込む。EnsembleSnapshotへ全パートのPCM/設定・演奏・mixと共通tempo/masterを固定し、InstrumentDocument.makeArchiveの楽器v4をJSON内へ直接埋め込む。二重base64や外部パス参照を避ける。InstrumentDocument.restoreを共有し、読み込み用一時音源は各パートのPCM取得後に清掃。全パートの検証/復号成功後にだけモデルへ反映する。
 保存/復号はバックグラウンド。保存は検証・全エンコード・サイズ確認後のatomic write。モデルはbusyで編集を止め、保存中に内部状態が変わった場合もrevisionでdirty解除を防ぐ。名前/開始位置/繰り返し回数/音量/Muteのパートpublisherとtempo/master/割り当て変更を監視し、voice/meter/位置更新は監視しない。形式の正本は[ENSEMBLE_FORMAT.md](ENSEMBLE_FORMAT.md)。
 EnsembleModelは最後に正常保存/読込したパスだけをUserDefaultsのlastEnsemblePathV1へ保持。PlayerModel.startSessionから一度だけ復元し、本体の楽器復元とは独立。無音・停止状態で復元し、自動再生しない。欠落/破損時は構成エラーを表示して手動Openへ導く。復元前の構成や正常な保存先を失敗で更新しない。
 
@@ -206,7 +206,7 @@ EnsembleModelのpositionBeats/playbackRange/rangeLoopEnabled/playbackPassは試�
 EnsemblePart.panとEnsemblePartSnapshot.panは−1〜1の有限数、既定0。SongStateにも含めdirty/全体Undo/Redoを共有する。SampleInstrument.panがパートのAVAudioMixerNode.panを更新し、ライブはupdateGainsで30 Hz、EnsembleExportは固定Snapshotで同じ設定を適用。中央0では既存の出力を維持する。構成v6はpan必須、v1〜v5は中央へ移行して安価なメタデータ検証後に音源を復号。AI編曲materializeは既存panを保持し提案schemaは変更しない。UIはWorkspaceInspectorのEnsemblePanControlを全パートでも共有、addDemos(panned:)が左右配置デモの入口。
 
 ## Part EQ
-PartEQは低音200 HzのlowShelf・中音1 kHz/1 octaveのparametric・高音4 kHzのhighShelfを管理する。各帯域は有限数±12 dB、0 dBはその帯域をbypass。EnsembleVoiceの音声経路はSampleInstrument→入力Mixer→AVAudioUnitEQ→AVAudioUnitDelay→AVAudioUnitReverb→パン用Mixer→mainMixer。mono素材も48 kHz stereoで処理し、メーターはEQ後を測る。単体Sample Studioは従来の経路。ライブはupdateGainsで30 Hz、WAVは同じvoiceへSnapshotのEQを設定する。SongState/dirty/Undo/RedoとAI編曲の既存値保持に含め、構成v7はEQ必須、v1〜v6はフラットへ移行する。
+PartEQは低音200 HzのlowShelf・中音1 kHz/1 octaveのparametric・高音4 kHzのhighShelfを管理する。各帯域は有限数±12 dB、0 dBはその帯域をbypass。EnsembleVoiceの音声経路はSampleInstrument→入力Mixer→AVAudioUnitEQ→AUDynamicsProcessor→AVAudioUnitDelay→AVAudioUnitReverb→パン用Mixer→mainMixer。mono素材も48 kHz stereoで処理し、メーターはEQ後を測る。単体Sample Studioは従来の経路。ライブはupdateGainsで30 Hz、WAVは同じvoiceへSnapshotのEQを設定する。SongState/dirty/Undo/RedoとAI編曲の既存値保持に含め、構成v7はEQ必須、v1〜v6はフラットへ移行する。
 
 全パートシートはセクション/タイムライン/パート設定を一つの縦ScrollViewへまとめ、固定760 pt高でも各EQへ到達できる。トランスポートはスクロール外に固定する。
 
@@ -217,3 +217,6 @@ PartReverbはAVAudioUnitReverbのsmallRoomプリセットと余韻予算3秒を�
 ## Part Delay
 PartDelayはtimeMS（50〜1000）、mix（0〜100）、feedback（0〜60）の有限数を保持。既定300/0/35で、mix=0はbypass。EnsembleVoiceのEQ→AVAudioUnitDelay（lowPassCutoff=20 kHz）→リバーブ→出力Mixerをライブ/WAVで共有し、setDelayは30 Hzで差分反映。オフとvoice.stopでAUをresetする。
 余韻は最初のエコーを含めfeedbackが振幅−60 dB未満になるまでの回数×間隔（feedback=0は1回）。最大15秒で、リバーブの3秒と足し合わせる。WAVは各パートのRelease＋非Muteの効果予算の最大値、ライブはADSR完了後に最大予算を待つ。全停止/一時停止/シーク/範囲周回は遅延音も消す。SongState/dirty/Undo/Redo・AI編曲の既存値保持に含め、構成v9は3値必須、v1〜v8は既定のオフへ移行。
+
+## Part Compressor
+PartCompressorはApple AUDynamicsProcessorをAVAudioUnitEffectで使用。EQ後/ディレイ前で48 kHz stereo処理する。thresholdDB −40〜0、headroomDB 0.1〜40、attackMS 0.1〜200、releaseMS 10〜3000、makeupDB 0〜24の有限数とenabledを持つ。既定はオフ/−24/5/10/150/0。固定ratioは使わずheadroomが小さいほど強い圧縮。ExpansionRatio=1でゲート/エキスパンダーを無効化する。オフは補正音量もbypassし、他の値を保持。EnsembleVoice.setCompressorでライブ30 Hz/固定WAVを共有し、オン/オフ切替とvoice.stopでAUをreset。音声生成/残響を行わず余韻予算は追加しない。全停止/一時停止/シーク/周回も同じ停止経路。SongState/dirty/Undo/Redo・AI編曲時の手動値保持に含む。構成v10は6項目必須、v1〜v9は既定オフへ移行。判断は[0043](decisions/0043-part-compressor.md)。

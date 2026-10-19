@@ -51,7 +51,7 @@ enum EnsembleExport {
         // Mixer connection parameters must be set after the graph is initialized.
         for (voice, part) in zip(voices, snapshot.parts) {
             voice.sampler.gain = part.muted ? 0 : Float(pow(10, part.gainDB / 20))
-            voice.sampler.pan = Float(part.pan); voice.setEQ(part.eq); voice.setReverb(part.reverb); voice.setDelay(part.delay)
+            voice.sampler.pan = Float(part.pan); voice.setEQ(part.eq); voice.setReverb(part.reverb); voice.setDelay(part.delay); voice.setCompressor(part.compressor)
         }
         // Close the file before publishing it by atomic rename.
         do {

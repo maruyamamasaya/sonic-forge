@@ -117,3 +117,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 パートリバーブ: app/PartReverb.swift（isValid/tailSeconds/makeNode）、EnsemblePart.reverb、EnsembleVoice.setReverb、EnsembleReverbControl（WorkspaceInspector/EnsembleView）、addDemos(reverberant:)。余韻はEnsembleModel.play/EnsembleExport.write、検証はtests/EnsembleReverbTests.swift。
 
 パートディレイ: app/PartDelay.swift（isValid/tailSeconds/apply）、EnsemblePart.delay、EnsembleVoice.setDelay、EnsembleDelayControl（WorkspaceInspector/EnsembleView）、addDemos(delayed:)。余韻はEnsembleModel.play/EnsembleExport.write、検証はtests/EnsembleDelayTests.swift。
+
+パートコンプレッサー: app/PartCompressor.swift（isValid/apply/makeNode）、EnsemblePart.compressor、EnsembleVoice.setCompressor、EnsembleCompressorControl（WorkspaceInspector/EnsembleView）、addDemos(compressed:)。検証はtests/EnsembleCompressorTests.swift、保存形式はENSEMBLE_FORMAT.md。

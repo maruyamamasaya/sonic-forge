@@ -106,3 +106,5 @@ Status: proposed / accepted / superseded
 - [0041: パート単位のリバーブ](0041-part-reverb.md)
 
 - [0042: パート単位のディレイ](0042-part-delay.md)
+
+- [0043: パート単位のコンプレッサー](0043-part-compressor.md)

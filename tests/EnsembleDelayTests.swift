@@ -70,7 +70,7 @@ enum EnsembleDelayTests {
             let saved = await model.save(to: file, remember: false); precondition(saved && !model.dirty)
             let original = try Data(contentsOf: file)
             let object = try JSONSerialization.jsonObject(with: original) as! [String: Any]
-            precondition(object["version"] as! Int == 9)
+            precondition(object["version"] as! Int == 10)
             let restored = EnsembleModel(); let loaded = await restored.load(file, remember: false)
             precondition(loaded && restored.parts.map(\.delay) == [settings, other.delay])
             var off = settings; off.mix = 0; part.delay = off

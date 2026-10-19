@@ -28,6 +28,8 @@ struct WorkspaceInspector: View {
                     Divider()
                     EnsembleReverbControl(part: part, ensemble: ensemble)
                     Divider()
+                    EnsembleCompressorControl(part: part, ensemble: ensemble)
+                    Divider()
                     EnsembleDelayControl(part: part, ensemble: ensemble)
                     Button("パート削除") { ensemble.remove(part.id) }.disabled(!ensemble.canEdit)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 3)
@@ -234,6 +236,43 @@ struct EnsembleDelayControl: View {
             }), in: range, step: step)
                 .accessibilityIdentifier("Delay \(key) for \(part.id)")
                 .accessibilityLabel("\(part.name) のディレイ・\(name)")
+        }
+    }
+}
+
+struct EnsembleCompressorControl: View {
+    @ObservedObject var part: EnsemblePart
+    @ObservedObject var ensemble: EnsembleModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle("コンプレッサー・音量を整える", isOn: Binding(get: { part.compressor.enabled }, set: { value in
+                var settings = part.compressor; settings.enabled = value; part.compressor = settings
+            }))
+                .accessibilityIdentifier("Compressor enabled for \(part.id)")
+                .accessibilityLabel("\(part.name) のコンプレッサーを有効にする")
+                .help("大きな音を抑えて強弱の差を整えます。EQの後、ディレイ・リバーブの前に作用。再生・構成保存・WAVに反映します。オフで圧縮と補正音量をバイパス。自動音量合わせではありません。")
+            band("しきい値", key: "threshold", path: \.thresholdDB, range: -40...0, step: 1, unit: "dB")
+                .help("このレベルを超える大きな音を抑えます。値を下げるほど多くの音に作用します。")
+            band("ヘッドルーム", key: "headroom", path: \.headroomDB, range: 0.1...40, step: 0.1, unit: "dB")
+                .help("小さい値ほど強く圧縮します。固定の比率（レシオ）ではありません。")
+            band("アタック", key: "attack", path: \.attackMS, range: 0.1...200, step: 0.1, unit: "ms")
+                .help("大きな音を抑え始める速さ。短いほど立ち上がりも抑えます。")
+            band("リリース", key: "release", path: \.releaseMS, range: 10...3000, step: 10, unit: "ms")
+                .help("圧縮を解除する速さ。楽器のADSRの余韻とは別です。")
+            band("補正音量", key: "makeup", path: \.makeupDB, range: 0...24, step: 1, unit: "dB")
+                .help("圧縮で小さくなった音量を補います。上げすぎた場合はパート音量を下げてください。")
+            Text(part.compressor.enabled ? "オン・全クリップで共通" : "オフ・設定を保持")
+                .font(.system(size: 9)).foregroundStyle(.secondary)
+        }.font(.system(size: 10)).disabled(ensemble.busy)
+    }
+    private func band(_ name: String, key: String, path: WritableKeyPath<PartCompressor, Double>, range: ClosedRange<Double>, step: Double, unit: String) -> some View {
+        VStack(spacing: 3) {
+            HStack { Text(name); Spacer(); Text(String(format: "%.1f", part.compressor[keyPath: path]) + " " + unit).monospacedDigit() }
+            Slider(value: Binding(get: { part.compressor[keyPath: path] }, set: { value in
+                var settings = part.compressor; settings[keyPath: path] = value; part.compressor = settings
+            }), in: range, step: step)
+                .accessibilityIdentifier("Compressor \(key) for \(part.id)")
+                .accessibilityLabel("\(part.name) のコンプレッサー・\(name)")
         }
     }
 }
