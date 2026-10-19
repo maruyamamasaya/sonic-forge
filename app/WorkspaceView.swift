@@ -95,6 +95,7 @@ struct WorkspaceView: View {
                             Button("デモ曲") { Task { await ensemble.addSharedSongDemo() } }.disabled(!ensemble.parts.isEmpty || !ensemble.sections.isEmpty)
                             Button("デモ2パート") { Task { await ensemble.addDemos() } }
                             Button("左右配置デモ") { Task { await ensemble.addDemos(panned: true) } }
+                            Button("リバーブデモ") { Task { await ensemble.addDemos(reverberant: true) } }
                             Button("音質調整デモ") { Task { await ensemble.addDemos(equalized: true) } }
                             Button("4拍遅れて入るデモ") { Task { await ensemble.addDemos(staggered: true) } }
                             Button("繰り返しデモ") { Task { await ensemble.addDemos(staggered: true, repeating: true) } }

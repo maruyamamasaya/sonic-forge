@@ -11,6 +11,7 @@ struct AudioTests {
         try await EnsembleExportTests.run()
         try await EnsemblePanTests.run()
         try await EnsembleEQTests.run()
+        try await EnsembleReverbTests.run()
         try await EnsembleSectionTests.run()
         try await SectionDuplicationTests.run()
         try await WorkspaceTests.run()

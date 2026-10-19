@@ -199,3 +199,7 @@ EnsemblePanTestsがモノラル/ステレオ合成素材を実AVAudioEngineでWA
 ## Part EQ
 EnsembleEQTestsは60 Hz/1 kHz/12 kHzの合成素材を本番AVAudioEngineでWAV出力・再読み込みし、mono/stereo各帯域±6 dBの増減、他帯域への影響、左右比維持、フラット、パン端/Muteを測定する。v7保存/復元、v1〜v6フラット互換、欠落/null/型違い/範囲外/非有限を拒否し元データを保持、Undo/RedoとAI編曲時の保持も検証。
 実UIは音質調整デモ→右設定/全パートの3帯域→フラット→Undo/Redo→再生中変更→全停止→別名保存/再起動→WAV出力/再読込。1920幅と最小1100幅で設定へ到達すること。聴感の良し悪しや実機音響の評価は別。
+
+## Part Reverb
+EnsembleReverbTestsはmono/stereoの短い音を本番グラフでWAV出力・再読み込みし、量に応じた離鍵後の非ゼロ残響、OFFの正確な復帰、追加3秒/終端減衰、出力gain比・pan端・Muteを測定する。v8のパート別保存/復元、v1〜v7 OFF互換、欠落/null/型違い/範囲外/非有限の原子的拒否、Undo/Redo、AI編曲時の保持を検証。--playbackでデモ・再生中変更・余韻を含むMute/停止も確認する。実デバイスのタップと30 Hz更新を考慮し、Muteのメーター判定は最大1秒待つ。
+GUIは右設定/全パートの量とオフ、Undo/Redo、最小1100幅、再生中調整、別名保存/再起動、曲全体WAV書き出し→Studio再読み込み/再生。聴感の品質・実機音響・長時間負荷の保証とは分ける。

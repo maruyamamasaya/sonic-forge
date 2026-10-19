@@ -25,6 +25,8 @@ struct WorkspaceInspector: View {
                     EnsemblePanControl(part: part, ensemble: ensemble)
                     Divider()
                     EnsembleEQControl(part: part, ensemble: ensemble)
+                    Divider()
+                    EnsembleReverbControl(part: part, ensemble: ensemble)
                     Button("パート削除") { ensemble.remove(part.id) }.disabled(!ensemble.canEdit)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 3)
             }
@@ -177,5 +179,27 @@ struct EnsembleEQControl: View {
                 .accessibilityIdentifier("EQ \(key) for \(part.id)").accessibilityLabel("\(part.name) のEQ・\(name)")
                 .help(detail + " −12〜+12 dB、0.5 dB刻み。")
         }
+    }
+}
+
+struct EnsembleReverbControl: View {
+    @ObservedObject var part: EnsemblePart
+    @ObservedObject var ensemble: EnsembleModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text("リバーブ・響き").foregroundStyle(.secondary)
+                Spacer()
+                Button("オフ") { part.reverb = 0 }
+                    .accessibilityIdentifier("Reset reverb for \(part.id)")
+                    .accessibilityLabel("\(part.name) のリバーブをオフにする")
+            }
+            Slider(value: $part.reverb, in: 0...100, step: 1)
+                .accessibilityIdentifier("Reverb for \(part.id)")
+                .accessibilityLabel("\(part.name) のリバーブ・響きの量")
+            Text(part.reverb == 0 ? "オフ・小さな部屋" : String(format: "響き %.0f%%・小さな部屋", part.reverb))
+                .monospacedDigit().foregroundStyle(.secondary)
+        }.font(.system(size: 10)).disabled(ensemble.busy)
+            .help("小さな部屋の響きを加えます。0%でオフ、100%で響きだけになります。同じパートの全クリップで共通。再生・構成保存・WAVに反映し、余韻は最大3秒まで残します。全停止で余韻も止まります。")
     }
 }

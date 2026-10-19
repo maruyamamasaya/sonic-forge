@@ -201,6 +201,7 @@ private struct EnsemblePartRow: View {
                 EnsemblePanControl(part: part, ensemble: ensemble).frame(width: 250)
                 EnsembleEQControl(part: part, ensemble: ensemble).frame(maxWidth: 320)
             }
+            EnsembleReverbControl(part: part, ensemble: ensemble).frame(maxWidth: 320)
             HStack {
                 Text("演奏クリップ・\(part.allClips.count) / 8・音色と音量は共通")
                     .font(.system(size: 9)).foregroundStyle(.secondary)

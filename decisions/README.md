@@ -102,3 +102,5 @@ Status: proposed / accepted / superseded
 - [0039: パート単位のパンと構成形式v6](0039-part-pan.md)
 
 - [0040: パート単位の3バンドEQ](0040-part-eq.md)
+
+- [0041: パート単位のリバーブ](0041-part-reverb.md)

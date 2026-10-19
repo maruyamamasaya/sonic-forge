@@ -164,7 +164,7 @@ final class SampleInstrument {
     private(set) var sample: InstrumentSample?
     let meter = InstrumentMeter()
     var pan: Float = 0 { didSet { panOutput.pan = pan } }
-    var gain: Float = 0.25 { didSet { output.outputVolume = gain } }
+    var gain: Float = 0.25 { didSet { panOutput.outputVolume = gain } }
     var isSounding: Bool { slots.contains { $0.voice.isActive } }
     var heldNotes: Set<Int> { Set(slots.compactMap { $0.held && $0.voice.isActive ? $0.note : nil }) }
     var soundingCount: Int { slots.filter { $0.voice.isActive }.count }
@@ -213,8 +213,8 @@ final class SampleInstrument {
             ?? slots.min { $0.age < $1.age }!
         slot.voice.stop()
         slot.speed.rate = rate
-        output.outputVolume = gain
         if !engine.isRunning { engine.prepare(); try engine.start() }
+        panOutput.outputVolume = gain
         sequence &+= 1
         slot.note = note; slot.held = true; slot.age = sequence
         slot.voice.trigger(envelope, rate: Double(rate), loop: loop, velocity: velocity)
