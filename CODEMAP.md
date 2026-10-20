@@ -145,4 +145,42 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 
 MIDIファイル: app/MIDIFileImport.swift、app/MIDIFileImportView.swift、WorkspaceViewのmidi.import.open、EnsembleModel.importMIDI。tests/MIDIFileImportTests.swift / --midi-file-only、公開fixture tests/Fixtures。私有素材の限定分析はscripts/prepare_midi_materials.py → midi_material_scan.swift → midi_material_demo.swift。[仕様](MIDI_IMPORT.md)。
 
+ボイス単体の音作り比較: `scripts/voice_sound_study.swift`。既存ローカルvoice/input.wavから3条件の楽器/構成/WAVを新規buildへ生成。[比較記録](sessions/2026-10-20-voice-sound-study.md)。
+
+声の長音化/母音旋律: scripts/voice_vowel_song.py、別話者の日本語仮歌: scripts/japanese_nursery_study.py、信号検証: scripts/test_voice_vowel_song.py。[処理](VOICE_SOUND_DESIGN.md)。
+
+ローカル母音モデル試作: scripts/local_vowel_model_study.py。[モデル/入口/限界](LOCAL_VOWEL_MODEL.md)。取得済みローカルモデルと参照音声だけで実行し、私有音声やモデルはbuild内。
+
+5母音の比較編集: scripts/prepare_five_vowel_comparison.py。生成はlocal_vowel_model_study.pyの--five-vowels。前回UのPCM一致/先頭発声切出し/RMS合わせ/試聴列を扱う。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+長音の短長比較: scripts/prepare_sustained_vowel_comparison.py。元の5母音WAVを保持し、同じ3秒参照で生成した長音の先頭発声をRMS合わせで並べる。[結果](LOCAL_VOWEL_MODEL.md)。
+
+母音和音の単体比較: scripts/vowel_chord_study.py。既存長音へローカルRubber Bandのフォルマント保持移調を使い、3音の長三和音と単音比較を生成。[処理/結果](LOCAL_VOWEL_MODEL.md)。
+
+母音コード進行の響き比較: scripts/vowel_progression_study.py。長音からI–vi–IV–Vと短いルーム残響の有無を生成。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音の小曲: scripts/vowel_miniature_study.py。童謡/固定版ジムノペディの短い抜粋を、うの旋律と薄いあの伴奏へ編曲。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音のフレーズ表情: scripts/vowel_expressive_gymnopedie.py。ジムノペディ16小節へ音量の山/息継ぎ/緩いテンポ変化を付け、均一版と比較。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音レガート比較: scripts/vowel_legato_study.py。表情版reportから旋律を接続し、前回コーラスを保持して新旧比較。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音ビブラート比較: scripts/vowel_vibrato_study.py。レガート旋律へ遅れて入る微小変調、既知リバーブの復元、コーラス不変の新旧比較。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音のフレーズ切替: vowel_legato_study.pyの--phrase-vowels → vowel_vibrato_study.py → scripts/prepare_vowel_phrase_comparison.py。既存ビブラート版との同区間/RMS比較。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音切替の連続化: scripts/vowel_transition_study.py。共通位相の旋律へaの包絡を徐々に移し、母音切替版との比較を出力。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音の息づかい/語尾: scripts/vowel_breath_study.py。連続化版のフレーズ前後へ小さな合成息成分と語尾減衰を加え、前回比較。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+日本語歌詞/声区の試作: local_vowel_model_study.py --lyric-study → scripts/japanese_lyric_gymnopedie.py。ローカル参照条件付き音声を動的移調/時間配置し、地声/裏声風の音色と母音版比較を出力。[仕様と制限](LOCAL_VOWEL_MODEL.md)。
+
+歌詞の拍感改善: japanese_lyric_gymnopedie.pyの--mora-grid / --previous-lyrics。近似モーラ境界/拍配置と追加音程補正。[仕様と限界](LOCAL_VOWEL_MODEL.md)。
+
+短い歌詞のリズム: japanese_lyric_gymnopedie.pyの--rhythmic-words / --vowel-fill。半拍単語群、発音窓、推定頭の輪郭強調、母音補完と前回比較。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+歌詞の接続診断: scripts/lyric_connection_recovery.py。完全な元発話/原尺を保つ朗読寄り比較。自然な歌唱としては未達。[品質不良と診断](LOCAL_VOWEL_MODEL.md)。
+
+声の用途/歌唱中止の判断: [VOICE_STUDY_SUMMARY.md](VOICE_STUDY_SUMMARY.md)。
+
 ナレーション完成版: [設定と再生成](NARRATION.md)。原稿はscripts/spoken_low_laugh_text.json。生成はspoken_character_study.py（--low-register-anchor）、加工はprepare_spoken_character_demo.py→narration_natural_highs.pyのsoft-highs→spoken_breath_endings.py。追加のsource prosodyは使用しない。[圧縮履歴](NARRATION_HISTORY.md)。

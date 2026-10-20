@@ -324,6 +324,47 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 
 採用はmidi.import.apply→構成の置き換え確認。先に元構成を保存。取消やmidi.import.closeでは元を維持する。成功は2〜4パート等の期待数・音符数・共通テンポ・dirty=true、Undo/Redoで確認。MIDIは任意の音色/GMを自動再現せず、未反映CC/再押鍵の注意を隠さない。テンポ変化は時刻へ換算される。256音/64ペダル/8音を超える場合は範囲や候補を変え、勝手に間引かない。停止は既存の全停止、保存/書き出しは通常入口。生成された私有楽器はローカルでだけ扱い、声素材は本人の新しい発言や歌唱を生成したものと報告しない。
 
+## 母音/歌唱実験の保存記録
+
+以下は過去の検証入口を残した記録で、実行の新しい依頼ではない。母音/コーラスは再利用候補、日本語歌詞歌唱は中止。今回の整理ではこれらを実行せず、アプリにも組み込まない。採否は[実験まとめ](VOICE_STUDY_SUMMARY.md)を参照。
+
+### ボイスの音作りだけを比較する
+`scripts/voice_sound_study.swift`を通常テストと同じappソースでコンパイルし、新規build出力フォルダを引数に実行。既存のvoice/input.wavだけを読み、ネットワーク/AI/普段の構成・ライブラリ変更なし。原音ハッシュ不変、各WAVの有限/非無音/ピーク、楽器・構成の保存復元を成功条件とする。取消はプロセス停止、途中の出力は未完了として扱う。安定した音高を自然な母音と断定しない。試聴音源はローカルに置き、声の本人による新しい発言/歌唱と説明しない。[手順](MIDI_IMPORT.md)。
+
+声の母音/歌詞試作は[VOICE_SOUND_DESIGN.md](VOICE_SOUND_DESIGN.md)。元声の候補01/長音02/母音旋律03/和音04と、別のKyoko歌詞05を区別。成功はreport.jsonと有限/非無音/非クリップ/入力不変で判定。停止はプロセス取消、途中生成は未完了扱い。自然な母音や歌詞の認識成功を推測しない。普段の構成/ライブラリへ自動採用しない。
+
+ローカルの声質条件付き母音生成は[LOCAL_VOWEL_MODEL.md](LOCAL_VOWEL_MODEL.md)。scripts/local_vowel_model_study.pyへローカルモデル/参照/新規出力先を渡す。完了はreport.json、上限到達はtrials.limit_reachedで別判定。全出力の技術検査が通っても、音韻や本人らしさを成功と断定しない。停止はプロセス取消。原音・生成音はローカルだけで、構成や素材DBに自動採用しない。
+
+5母音比較はlocal_vowel_model_study.pyの--five-vowels --max-tokens 96と同じ3秒参照を使用。prepare_five_vowel_comparison.pyで前回好評UのPCM一致を確認し、先頭発声のみを切り出して音量を合わせる。生出力の上限到達/後続音はreportへ残し、音韻・声質の成功と混同しない。停止と採否は[ローカル試作](LOCAL_VOWEL_MODEL.md)を参照。
+
+長音の単体比較は同じ3秒参照で「あー。/うー。」を各1件生成し、prepare_sustained_vowel_comparison.pyで短音と比較する。短音そのものの伸縮やループとは区別し、上限到達した生出力と短い先頭発声の採材を別記録する。曲へ混ぜる前に声質の採否を確認。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+長音の和音比較はvowel_chord_study.py。追加AI生成ではなく、選択済みa-long/u-longへRubber Band R3/フォルマント保持で−4/+3半音を足す。出力reportでソース不変/単音byte一致/既知信号の音程/レベルを確認。停止はCLIプロセス取消、出力途中は採用しない。人の声質評価前にアプリへ採用せず、独立した複数人の歌唱と説明しない。[詳細](LOCAL_VOWEL_MODEL.md)。
+
+母音コード進行はvowel_progression_study.pyへ既存長音/新規出力先を指定。完了はreport.json、原音hash不変/出力PCM検査/RMS一致で判定。停止はCLI取消、途中出力は未完了。既存音の移調と畳み込みのみで、新しいAI歌唱やアプリ採用と扱わない。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音の小曲はvowel_miniature_study.pyへ長音/既存固定MIDI/新規出力先を指定。report完成・元音不変・PCM検査で技術完了。停止はCLI取消。mix/melody/chorusを分けて確認し、自然な歌唱の成功とは区別。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+表情付き母音演奏はvowel_expressive_gymnopedie.py。長音/固定MIDI/新規出力先を渡し、reportのtechnical_validationとhash/ステム和/RMSを確認。停止はプロセス取消。均一版との比較で人が抑揚を評価し、モデル再学習や連続歌唱の生成と説明しない。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音接続調整はvowel_legato_study.pyへ前回表情版/長音/新規出力先を指定。reportのhash/コーラスbyte不変/接続数/RMSと比較WAVで確認。停止はCLI取消、途中出力は未完了。人工の吸気音や新しいAI歌唱とは扱わず、聴感判定は別。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音ビブラートはvowel_vibrato_study.pyへ前回レガート/新規出力先を指定。reportの入力不変/既知信号/コーラス一致/RMSと比較WAVで確認。制御値WAVを音楽音源と取り違えない。停止はCLI取消。AI学習/生成ではなくDSP調整、聴感の採否は人が判断。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音フレーズ切替はvowel_legato_study.pyへ--phrase-vowels u,a,u,aを渡し、既存ビブラート工程後、prepare_vowel_phrase_comparison.pyで前回版と比較する。完了はフレーズ割当/原音不変/コーラスbyte一致/RMS/reportで判定。停止は各CLI取消、途中出力は未完了。母音/歌唱らしさの聴感を技術完了と分ける。[手順](LOCAL_VOWEL_MODEL.md)。
+
+母音の連続化はvowel_transition_study.pyへ前回母音切替/う単独ビブラート/新規出力先を指定。入力hash/コーラス一致/700 ms重み/report/比較WAVで技術完了を確認。停止はCLI取消。包絡変換による試作で、本人の連続実録歌唱やAIモデル再生成とは説明しない。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+息づかい試作はvowel_breath_study.pyへ前回連続化版/フレーズreport/新規出力先を指定。hash/コーラスbyte一致/呼吸非重複/語尾ゲイン/report/比較WAVで技術完了を確認。停止はCLI取消。空気成分は合成ノイズで本人の実呼吸と説明しない。聴感は別判定。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+日本語歌詞試作はlocal_vowel_model_study.pyの--lyric-study --max-tokens 96と同じ3秒参照を使用。EOS/原音不変/通信遮断を確認後、japanese_lyric_gymnopedie.pyへ歌詞出力/息づかい版/フレーズreport/新規出力先を渡す。停止はCLI取消、途中出力は未完了。声区切替はE4〜G4のDSP近似で生理モデルではない。完了はreport/PCM検査/比較で判定し、日本語や本人らしさ/調律は人の確認を必要とする。[手順と限界](LOCAL_VOWEL_MODEL.md)。
+
+歌詞の拍配置はjapanese_lyric_gymnopedie.pyへ--mora-grid --previous-lyrics <前回歌詞版>を追加。既存生音声を使い、28モーラの拍/先頭時間map/前回・コーラス不変/RMS/reportで技術確認する。停止はCLI取消。境界は推定であり、子音保存/発音成功/精密調律を保証しない。前回との比較で人が判断。[手順](LOCAL_VOWEL_MODEL.md)。
+
+短い単語リズムはjapanese_lyric_gymnopedie.pyへ--rhythmic-words --vowel-fill <既存の母音旋律>を追加し、--previous-lyricsへ直前の拍配置版を渡す。reportの28発音窓/半拍配置/0.75秒以内/RMS/コーラス一致で確認。停止はCLI取消。音素は推定で明瞭さは人が比較、補完の母音を歌詞発音と誤認しない。[手順](LOCAL_VOWEL_MODEL.md)。
+
+歌詞の音質不良指摘後は技術PASSを歌唱成功と扱わない。lyric_connection_recovery.pyで内部切断/時間伸縮/音程補正を外した原音/軽加工/曲の比較を作り、reportのmelody_is_sung=falseを維持。停止はCLI取消。未加工生成の発音自体を確認してから方式を再検討する。[診断](LOCAL_VOWEL_MODEL.md)。
+
 ## ナレーション完成版
 
 入口と固定設定は[NARRATION.md](NARRATION.md)のみを正本とする。1.7B Base/従来3.2秒参照/低めの早口を維持し、原稿→生成→速度→高域軽減（natural/soft-highs）→息/語尾の順で進める。追加のsource prosodyは重ねない。停止は各CLIのCtrl-C。完了は全EOS/参照不変/通信0/report/PCM検査で確認し、新原稿の声質や自然さは試聴で判断する。途中出力を完成扱いしない。高域軽減版はユーザー採用済み、アプリ未組込、日本語歌詞歌唱は中止を維持。[圧縮履歴](NARRATION_HISTORY.md)。

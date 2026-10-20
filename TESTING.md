@@ -263,6 +263,42 @@ PitchEstimationTestsは正解付き正弦C1〜C7/44.1・48k、セント差、基
 
 MIDIファイル取込: sh scripts/test.sh --midi-file-only（通常/Fullにも含む）。形式0/1、running status、テンポマップ、CC64/途中範囲/終端解除、同音再押鍵、欠損/不正VLQ/サイズ/形式、未変更ジムノペディ、原状態保持・Undo/Redo・構成保存/WAVを確認。[仕様と実素材](MIDI_IMPORT.md)。私有音源の分離/素材化は通常検証に含めない。
 
+声単体の比較スクリプト `scripts/voice_sound_study.swift` は通常テストと同じappソースでコンパイルする。新規出力先だけを受け付け、3条件を保存復元して製品エンジンからWAV出力、AudioAsset再読込、全サンプルの有限/非無音/ピークと入力ハッシュ不変を確認する。音高推定の安定表示から母音や自然な声を保証しない。[記録](sessions/2026-10-20-voice-sound-study.md)。
+
+母音長音化と日本語仮歌の独立検証は[VOICE_SOUND_DESIGN.md](VOICE_SOUND_DESIGN.md)。scripts/test_voice_vowel_song.pyは既存venvのnumpy/soundfileで既知音高・長さ・無音/ノイズを検査する。生成ファイルは再読込/有限/非無音/ピークと入力不変で確認し、聴感と区別する。
+
+ローカル音声モデルの独立検証は[LOCAL_VOWEL_MODEL.md](LOCAL_VOWEL_MODEL.md)。モデル取得後はoffline/通信拒否で生成し、参照不変/有限/非無音/非クリップ/WAV再読込一致、tokens上限/EOSを分けて記録する。音韻と声質維持は人の評価待ち。アプリnative検証の代用にはしない。
+
+5母音比較はprepare_five_vowel_comparison.pyで前回Uの生PCM完全一致、先頭切片の再読込一致/有限/非無音/ピーク、発声区間RMS−24 dBFSを確認する。原音hashと通信拒否は生成reportで確認。母音・声質の評価はユーザー試聴と区別。[結果](LOCAL_VOWEL_MODEL.md)。
+
+長音比較はprepare_sustained_vowel_comparison.pyで同じ参照hash/3秒、短音byte一致、長音が短音の1.4倍以上/2秒以内、切出し×ゲインPCM一致、ペア/音列連結一致を検査する。コーラス適性や自然な音韻の判定とは分ける。[長音試作](LOCAL_VOWEL_MODEL.md)。
+
+母音和音試作はvowel_chord_study.pyで既知220 Hzの−4/+3半音（10 cents以内）とフレーム数、source hash/単音byte不変、混合と連結PCM一致、RMS差0.001 dB以内、有限/非無音/非クリップを検査する。フォルマント保持設定の使用と聴感の成功は区別。[結果](LOCAL_VOWEL_MODEL.md)。
+
+母音コード進行はvowel_progression_study.pyで原音hash不変、WAV再読込PCM一致、有限/非無音/ピーク−3 dBFS未満、ドライ/残響付きRMS差0.001 dB以内、末尾0.2秒の残響収束を検査する。音程処理は既存和音スクリプトと共通。聴感判定とは分ける。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音の小曲はvowel_miniature_study.pyで元音hash不変、有限/非無音/非クリップ、全WAV再読込PCM一致、mixと2ステム和の差1e-7未満を検査。固定版MIDIは既存のSHA照合を使用。主観的な調律/声質は試聴待ち。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+表情付きジムノペディ試作はvowel_expressive_gymnopedie.pyで原音不変、有限/非無音/非クリップ/再読込一致、ステム和誤差1e-7未満、全曲比較RMS差0.001 dB以内、フレーズ/全体音量カーブの山と減衰を確認する。聴感評価とは分ける。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音レガート試作はvowel_legato_study.pyで原音/前回不変、前回/コーラスのbyte一致、ステム和差1e-7未満、RMS差0.001 dB以内、接続の120 ms重なり、比較PCM一致、有限/非無音/非クリップを確認。4小節境界の非接続を別途確認。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音ビブラート試作はvowel_vibrato_study.pyで既知220 Hzの12 cents/5 Hz変調をゼロ交差で測定（RMS誤差1 cent未満）、リバーブ逆変換/再構成差1e-7未満、入力不変/コーラスbyte一致/ステム和差1e-7未満/全曲RMS差0.001 dB以内/比較PCM一致を確認。自然さの聴感判定とは分ける。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音フレーズ切替はレガートの既定処理が前回とbyte一致すること、指定時の12拍ごとのu/a/u/a割当、a/u入力hash不変、浅いビブラート制御値一致、前回/コーラスbyte一致、全WAV再読込/有限/非クリップ、比較PCM一致/ステム和差1e-7未満/全曲RMS差0.001 dB以内を確認。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音連続化はvowel_transition_study.pyでSTFT往復差1e-7未満、残響再構成差1e-7未満、入力不変/コーラスbyte一致/ステム和差1e-7未満/全曲RMS差0.001 dB以内を検査。3か所の700 ms重みの単調遷移、比較PCM一致と有限/非クリップを別途確認。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+母音の息づかい試作はvowel_breath_study.pyで入力不変/前回・コーラスbyte一致/ステム和差1e-7未満/全曲RMS差0.001 dB以内、吸気呼気非重複、指定区間外の空気成分ゼロ、語尾ゲイン0.45〜1、比較PCM一致、全WAV再読込/有限/非無音/非クリップを確認。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+日本語歌詞試作は既存ローカルモデルの4行EOS/参照hash不変/通信遮断、japanese_lyric_gymnopedie.pyの原音不変/前回・コーラスbyte一致/全WAV再読込/有限/非無音/非クリップ/ステム和差1e-7未満/全曲RMS差0.001 dB以内/比較PCM一致を確認。既知220 Hzに動的pitchmap +3半音を使い10 cents以内を検査する。声の音高推定/音素対応/発音/自然な声区切替は別の聴感検証とし、未評価を明記。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+歌詞の拍配置はjapanese_lyric_gymnopedie.pyの--mora-gridで28モーラの拍配置/境界単調性/先頭30〜65 msの等長mapを確認。既定処理の前回byte一致と、入力不変/前回・コーラスbyte一致/全WAV再読込/有限/非クリップ/ステム和差1e-7未満/全曲RMS差0.001 dB以内/比較PCM一致を検査する。音素境界と発音の正しさは試聴で別判定。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+短い単語リズムはjapanese_lyric_gymnopedie.pyの--rhythmic-wordsで28発音窓/半拍配置/最大0.75秒/ゲート0〜1/発音制御区間合計13秒未満、入力不変/コーラスbyte一致/再読込/有限/非クリップ/ステム和差1e-7未満/全曲RMS差0.001 dB以内/比較PCM一致を確認。従来mora-grid出力7WAVのbyte一致を再検査。聞き取りやすさとは別判定。[仕様](LOCAL_VOWEL_MODEL.md)。
+
+歌詞の接続診断はlyric_connection_recovery.pyで原発話のフレーム数/原音byte一致、入力不変/前回・コーラスbyte一致、再読込/有限/非クリップ/ステム和/RMS/比較PCMを確認。これは朗読寄りの切り分け版で、自然な歌詞歌唱の合格ではない。ユーザーの音質不良指摘を優先する。[診断](LOCAL_VOWEL_MODEL.md)。
+
 ## ナレーション完成版
 
 [採用設定と再生成](NARRATION.md)に対し、生成の全EOS/通信0/参照hash不変、既定生成1件と加工2WAVの過去byte一致、既知180/220/280 Hz、既知250 msの間、候補score選択、語尾区間外PCM/長さ不変、連結全PCM/無音/有限・非無音・非クリップを検査済み。完成版の音源/参照/原稿/reportはmanifestのSHA-256とGit除外を確認する。新しい原稿の声質/笑い/感情は試聴で別判定する。
@@ -270,3 +306,5 @@ MIDIファイル取込: sh scripts/test.sh --midi-file-only（通常/Fullにも�
 過去の条件別検査は[圧縮履歴](NARRATION_HISTORY.md)。文書統合時はFast/Full文書検査・リンク・git diff --check、ZIPの元内容一致と完成素材hashを確認。アプリ/音声処理を変えない整理ではnative検証の過去の環境制約と未再実行を作業記録へ明記する。
 
 採用済みの高域軽減版は追加加工なしclipの元pace WAVとのbyte一致、220 Hzの変化-50 dB未満/6 kHzの減衰、最大2.5 dB制限、独立再計算PCM/全連結/間/入力hash/保存manifest/Git除外を検査。高域軽減版はユーザー採用済み。完成素材は採用WAVとのbyte一致とmanifestの全hash/Git除外を確認し、新原稿の声質/自然さは試聴する。[設定](NARRATION.md)。
+
+母音/歌唱記録の整理時は新規歌唱を生成せず、test_voice_vowel_song.pyの既知16/44.1 kHz信号（長さ/±2半音/低オクターブ/無音・ノイズ拒否）を再検査。残存Pythonの構文/ローカルimport、Swift実験スクリプトの構文、代表28素材のhash/Git除外と文書リンクを確認する。これを歌唱の聴感成功と扱わない。

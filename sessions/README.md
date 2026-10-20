@@ -137,9 +137,56 @@ Date: YYYY-MM-DD
 
 - [MIDI読込と私有音源の楽器化](2026-10-20-midi-import.md)
 
+- [2026-10-20 声の音作り比較](2026-10-20-voice-sound-study.md)
+
+- [2026-10-20 母音と日本語の短い歌](2026-10-20-voice-vowel-song.md)
+
+- [2026-10-20 加工前の歌声素材の選び直し](2026-10-20-natural-vocal-samples.md)
+
+- [2026-10-20 提供ボイスの原音候補](2026-10-20-original-voice-candidates.md)
+
+- [2026-10-20 元声の単一切片](2026-10-20-selected-original-vowel.md)
+
+- [2026-10-20 ローカル音声モデルの母音試作](2026-10-20-local-vowel-model.md)
+
+- [2026-10-20 元音源3秒参照の5母音比較](2026-10-20-five-vowel-model-study.md)
+
+- [2026-10-20 同じ声の長音比較](2026-10-20-sustained-vowel-model-study.md)
+
+- [2026-10-20 長音の3音和音比較](2026-10-20-vowel-chord-study.md)
+
+- [母音コーラスのコード進行と残響比較](2026-10-20-vowel-progression-study.md)
+
+- [母音の旋律と繊細なコーラス](2026-10-20-vowel-miniatures.md)
+
+- [長い母音ジムノペディへ歌唱的な表情](2026-10-20-expressive-gymnopedie.md)
+
+- [ジムノペディの母音接続と息継ぎ](2026-10-20-vowel-legato.md)
+
+- [母音レガートへ浅いビブラート](2026-10-20-vowel-vibrato.md)
+
+- [フレーズごとの母音切替](2026-10-20-phrase-vowels.md)
+
+- [母音の切替を連続した声へ近づける](2026-10-20-vowel-transitions.md)
+
+- [息づかいと語尾の抜け](2026-10-20-vowel-breath.md)
+
+- [日本語歌詞と地声/裏声風の音色](2026-10-20-japanese-lyric-register.md)
+
+- [歌詞の間延びと拍配置を改善する試作](2026-10-20-clear-japanese-lyrics.md)
+
+- [短い単語リズムと発音頭の輪郭](2026-10-20-rhythmic-japanese-lyrics.md)
+
+- [歌詞の品質不良を受けた接続診断](2026-10-20-lyric-connection-diagnostic.md)
+
 - [ナレーション開発の要約](2026-10-20-narration-summary.md)
+
 - [ナレーション文書の圧縮](2026-10-20-narration-doc-consolidation.md)
+
 - [ナレーションの高域軽減候補](2026-10-20-natural-narration-highs.md)
+
 - [高域軽減版を完成版へ採用](2026-10-20-narration-soft-highs-adopted.md)
 
 - [ナレーション関連のコミットとプッシュ](2026-10-20-narration-commit.md)
+
+- [母音/歌唱実験の記録を保存](2026-10-20-vocal-experiment-archive.md)

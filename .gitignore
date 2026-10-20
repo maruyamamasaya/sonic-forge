@@ -8,3 +8,6 @@ build/
 
 # Local source music for separation experiments
 sample_music/
+
+# Generated Python bytecode
+__pycache__/
