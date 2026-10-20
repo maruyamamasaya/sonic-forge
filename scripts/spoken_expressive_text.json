@@ -1,0 +1,114 @@
+[
+  {
+    "category": "話し始めの親しさ",
+    "text": "ねえ、今日は何から話そうか。さっきまで考えてたこと、いざ話そうとすると忘れちゃうんだよね。あ、でも、一つ聞いてほしいことがあるの。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "好きな早口の調子",
+    "text": "ねえ、聞いて！ちょっと触るだけのつもりが、音も手触りもすごくよくて、これも試したい、あっちも見たいって、もう止まらなくなっちゃった。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "うれしさと照れ",
+    "text": "え、本当に？そんなふうに言ってもらえると思ってなかった。うれしいな。……なんか、急に照れちゃうね。ありがとう、ちゃんと覚えておく。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "考えながら言い直す",
+    "text": "あのね、昨日の、えっと、駅の近くのお店。名前が出てこないな。白い看板の……そう、そこ！今度、一緒に行けたらいいなと思って。",
+    "reference": "calm-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "喜びから焦りそして安堵",
+    "text": "できた、やっとできた！……あれ、保存したっけ。ちょっと待って、消えてないよね？あ、残ってた。よかったあ、今のは本当に焦った。",
+    "reference": "subdued-2",
+    "pace": "settle",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "息をついて安心",
+    "text": "ふう、間に合った。走ってきたから、まだちょっと落ち着かない。少しだけ待ってね。……うん、大丈夫。やっと、ちゃんと話せそう。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "小さな落胆から希望",
+    "text": "そっか、今日は無理なんだね。楽しみにしてたから、少し残念。でも、また今度にしよう。慌てなくていいよ、その時はゆっくり話そう。",
+    "reference": "calm-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "話すうちに弾む",
+    "text": "最初はね、うまくいくか心配だったんだけど、一つできたら次もやりたくなって、気づいたら、こんなに増えてた。見て、これが一番のお気に入り。",
+    "reference": "subdued-2",
+    "pace": "accelerate",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "優しく待つ",
+    "text": "うん、聞いてるよ。言葉にするの、難しい時もあるよね。急がなくていいから、思いついたところから話して。途中で変わっても、大丈夫。",
+    "reference": "calm-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "驚きと笑い",
+    "text": "あ、そっちだったの？私、ずっと反対のこと考えてた。ふふ、なんで気づかなかったんだろう。今わかったら、急におかしくなっちゃった。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "慌てた早口",
+    "text": "待って待って、まだ準備できてない！かばんと、鍵と、あと何だっけ。あ、スマホ。……って、今これ持ってるじゃん。もう、落ち着こう、私。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "低めの内緒話",
+    "text": "実はね、少しだけ自信がなかったんだ。平気な顔してたけど、本当はずっと気にしてて。だから、さっきの一言、すごくうれしかった。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "迷いから前向きへ",
+    "text": "できるかな。……いや、一回やってみよう。うまく言えなかったら、言い直せばいいし。最初から完璧じゃなくても、少しずつ、ね。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "余韻を残して締める",
+    "text": "はあ、なんだか、たくさん話しちゃった。聞いてくれてありがとう。こうやって話せると、少し気持ちが軽くなるね。また、ゆっくり話そう。",
+    "reference": "calm-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  }
+]

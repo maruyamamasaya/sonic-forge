@@ -262,3 +262,11 @@ PitchEstimationTestsは正解付き正弦C1〜C7/44.1・48k、セント差、基
 公開楽譜の制作例は[手順](SCORE_DEMO.md)の新規build/出力先で再実行する。固定入力MIDIのハッシュ・音数/余剰離鍵数、原録音ハッシュ不変、構成保存/復元、WAV再読込/有限値/非無音/ピーク上限を確認。原本取得・長い楽曲レンダーは通常テストに含めない。
 
 MIDIファイル取込: sh scripts/test.sh --midi-file-only（通常/Fullにも含む）。形式0/1、running status、テンポマップ、CC64/途中範囲/終端解除、同音再押鍵、欠損/不正VLQ/サイズ/形式、未変更ジムノペディ、原状態保持・Undo/Redo・構成保存/WAVを確認。[仕様と実素材](MIDI_IMPORT.md)。私有音源の分離/素材化は通常検証に含めない。
+
+## ナレーション完成版
+
+[採用設定と再生成](NARRATION.md)に対し、生成の全EOS/通信0/参照hash不変、既定生成1件と加工2WAVの過去byte一致、既知180/220/280 Hz、既知250 msの間、候補score選択、語尾区間外PCM/長さ不変、連結全PCM/無音/有限・非無音・非クリップを検査済み。完成版の音源/参照/原稿/reportはmanifestのSHA-256とGit除外を確認する。新しい原稿の声質/笑い/感情は試聴で別判定する。
+
+過去の条件別検査は[圧縮履歴](NARRATION_HISTORY.md)。文書統合時はFast/Full文書検査・リンク・git diff --check、ZIPの元内容一致と完成素材hashを確認。アプリ/音声処理を変えない整理ではnative検証の過去の環境制約と未再実行を作業記録へ明記する。
+
+採用済みの高域軽減版は追加加工なしclipの元pace WAVとのbyte一致、220 Hzの変化-50 dB未満/6 kHzの減衰、最大2.5 dB制限、独立再計算PCM/全連結/間/入力hash/保存manifest/Git除外を検査。高域軽減版はユーザー採用済み。完成素材は採用WAVとのbyte一致とmanifestの全hash/Git除外を確認し、新原稿の声質/自然さは試聴する。[設定](NARRATION.md)。

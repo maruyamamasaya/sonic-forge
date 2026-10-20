@@ -1,0 +1,114 @@
+[
+  {
+    "category": "自然な入り",
+    "text": "こんにちは。今日は、少し肩の力を抜いて話してみます。きれいに言おうとすると、かえって緊張しちゃうんだよね。",
+    "reference": "subdued-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "勢いのある早口",
+    "text": "ねえ、聞いて！さっき試したら、思ってたよりずっとよくて、あれもこれも話したくなっちゃって。ごめん、ちょっと早口になってるね。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "言葉を探して詰まる",
+    "text": "えっと、その、なんて言うんだっけ。あの、窓のそばに置いてある、小さな……そう、それ。やっと名前を思い出した。",
+    "reference": "calm-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "言い間違いと訂正",
+    "text": "明日の三時……あ、ごめん、四時だった。さっき違う時間を言っちゃったね。もう一度だけ、ちゃんと確認しておこう。",
+    "reference": "subdued-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "喜びから焦りへ",
+    "text": "やった、これで終わり！……あ、待って。ここ、まだ直ってない。うわあ、どうしよう。でも、まあ、一つずつやろう。",
+    "reference": "subdued-2",
+    "pace": "settle",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "かすれ寄りの声の候補",
+    "text": "あれ、ちょっと声が、かすれてるね。さっきまで夢中で話していたからかな。少しだけ、ゆっくり話すね。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0.018
+  },
+  {
+    "category": "話の途中で迷う",
+    "text": "それでさ、この話って、どこまで話したっけ。……ああ、そうそう。途中で別のことを考えて、わからなくなっちゃった。",
+    "reference": "calm-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0.18,
+    "air_mix": 0
+  },
+  {
+    "category": "だんだん早口になる",
+    "text": "最初はね、ただ見ているだけのつもりだったのに、少し触ったら楽しくなって、気づいたら、こんな時間になってた。",
+    "reference": "calm-2",
+    "pace": "accelerate",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "落ち着いて相手を待つ",
+    "text": "うん、急がなくていいよ。話がまとまらなくても、途中で止まっても大丈夫。続きは、ゆっくり聞かせて。",
+    "reference": "subdued-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "照れ笑い混じりの台詞",
+    "text": "ふふ、いまのは、ちょっとおかしかったね。笑うつもりはなかったんだけど、思い出したら、また笑っちゃいそう。",
+    "reference": "calm-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "焦って探し物をする",
+    "text": "待って、鍵、鍵はどこだっけ。かばんに入れた……よね？あ、手に持ってた。もう、急いでる時に限って、こうなるんだ。",
+    "reference": "subdued-1",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "内緒話のような台詞",
+    "text": "ここだけの話なんだけど、私も最初は、少し怖かったんだ。でも、一緒にやってくれる人がいて、ほっとした。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0.012
+  },
+  {
+    "category": "自信が揺れて持ち直す",
+    "text": "大丈夫、たぶんできる。……いや、たぶん、じゃなくて。できる、と思う。うん、まずは一回、やってみようか。",
+    "reference": "subdued-1",
+    "pace": "normal",
+    "pitch_wander_semitones": 0.22,
+    "air_mix": 0
+  },
+  {
+    "category": "息を抜く締め",
+    "text": "ふう、いろいろ話したね。途中で言い直したり、急に早口になったりしたけど、こういう話し方も、なんだか落ち着くね。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  }
+]

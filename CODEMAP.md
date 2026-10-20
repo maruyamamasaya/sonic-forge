@@ -144,3 +144,5 @@ rgがなければ git grep やIDEの検索・シンボル検索を使う。git g
 公開楽譜の制作例: scripts/create_score_demo.py（Satieの固定版MIDI/声部分配）→ scripts/score_demo.swift（音源コピーの準備・既存保存/レンダーAPI）。[仕様と出典](SCORE_DEMO.md)。
 
 MIDIファイル: app/MIDIFileImport.swift、app/MIDIFileImportView.swift、WorkspaceViewのmidi.import.open、EnsembleModel.importMIDI。tests/MIDIFileImportTests.swift / --midi-file-only、公開fixture tests/Fixtures。私有素材の限定分析はscripts/prepare_midi_materials.py → midi_material_scan.swift → midi_material_demo.swift。[仕様](MIDI_IMPORT.md)。
+
+ナレーション完成版: [設定と再生成](NARRATION.md)。原稿はscripts/spoken_low_laugh_text.json。生成はspoken_character_study.py（--low-register-anchor）、加工はprepare_spoken_character_demo.py→narration_natural_highs.pyのsoft-highs→spoken_breath_endings.py。追加のsource prosodyは使用しない。[圧縮履歴](NARRATION_HISTORY.md)。

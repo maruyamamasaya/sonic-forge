@@ -1,0 +1,114 @@
+[
+  {
+    "category": "笑い混じりの早口",
+    "text": "ねえ、さっきの話、まだ続きがあって。これもできる、あれもできるって触ってたら、戻し方がわからなくなっちゃった。ふふ、欲張りすぎたね。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "おかしくて少し詰まる",
+    "text": "それでね、私、ちゃんとしまったつもりで、えっと、しまった場所を忘れて。ふふ、何のために片づけたんだろうって、自分でおかしくなっちゃった。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "うれしさから照れへ",
+    "text": "うん、すごくうれしかった。思ってたより、ずっと。……あんまり言うと照れちゃうな。ふふ、でも、もう一回だけ。ありがとう。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "迷ってから勢いづく",
+    "text": "あの、うまく説明できないんだけど、少し音が近くなった感じ。あ、そう、それ。そこがよくて、つい何回も聴きたくなっちゃうんだよね。",
+    "reference": "subdued-2",
+    "pace": "accelerate",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "喜んで焦って安心する",
+    "text": "これで終わり、と思ったら、最後の一つが残ってて。あ、待って、今度こそ。……うん、できた。ふう、よかった。ちょっと冷や汗かいた。",
+    "reference": "subdued-2",
+    "pace": "settle",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "息をつきながら笑う",
+    "text": "ふう、よく笑った。何がそんなにおかしかったんだろうね。話そうとすると、また、ふふ、だめだ。少し待って、ちゃんと話すから。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "小さな失敗を笑って流す",
+    "text": "私、さっきから同じところを探してたね。そりゃ見つからないわけだ。ふふ、疲れてるのかな。いったん休んで、後でもう一回やってみよう。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "話しながら考えを直す",
+    "text": "最初はこっちかなって思って、いや、こっちもいいなって。ごめん、ころころ変わるね。でも、比べてる時間も、なんだか楽しいんだよね。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "穏やかにからかって気づかう",
+    "text": "今の、ちょっと得意げだったね。ふふ、私も人のこと言えないけど。……あ、嫌な意味じゃないよ。うまくいって、うれしそうだったから。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "残念から前向きへ",
+    "text": "そっか、少し違ったか。いい感じだと思ったんだけどな。……うん、でも、何が好きなのかは見えてきた。次はそこを、もう少し大事にしよう。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "早口から静かな内緒話",
+    "text": "それで、あれもこれも試してたら、時間なんてあっという間で。……ここだけの話、少し夢中になりすぎたかも。ふふ、内緒にしておいてね。",
+    "reference": "subdued-2",
+    "pace": "settle",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "ためらって本音を話す",
+    "text": "本当はね、ちょっとだけ心配してた。変に聞こえたらどうしようって。でも、似てるって言ってもらえて、肩の力が抜けた。ふう、よかった。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "言い間違いから照れ笑い",
+    "text": "明後日、じゃなくて、明日だった。あれ、さっきも間違えたね。ふふ、ごめん。楽しみにしすぎて、頭の中だけ先に進んじゃってるのかな。",
+    "reference": "subdued-2",
+    "pace": "quick",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  },
+  {
+    "category": "低めの声で余韻を残す",
+    "text": "はあ、たくさん話したね。途中で笑ったり、話がそれたりしたけど、こういう時間、好きだな。聞いてくれてありがとう。また、続きも話そうね。",
+    "reference": "subdued-2",
+    "pace": "normal",
+    "pitch_wander_semitones": 0,
+    "air_mix": 0
+  }
+]

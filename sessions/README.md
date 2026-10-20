@@ -136,3 +136,10 @@ Date: YYYY-MM-DD
 - [公開楽譜からの試作音源](2026-10-20-score-demo.md)
 
 - [MIDI読込と私有音源の楽器化](2026-10-20-midi-import.md)
+
+- [ナレーション開発の要約](2026-10-20-narration-summary.md)
+- [ナレーション文書の圧縮](2026-10-20-narration-doc-consolidation.md)
+- [ナレーションの高域軽減候補](2026-10-20-natural-narration-highs.md)
+- [高域軽減版を完成版へ採用](2026-10-20-narration-soft-highs-adopted.md)
+
+- [ナレーション関連のコミットとプッシュ](2026-10-20-narration-commit.md)
