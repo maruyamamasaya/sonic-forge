@@ -1,9 +1,12 @@
 import Foundation
 import AVFoundation
+import Darwin
 
 @main
 struct AudioTests {
     @MainActor static func main() async throws {
+        setbuf(stdout, nil) // Keep the last completed check visible if a later assertion aborts.
+        if CommandLine.arguments.contains("--clips-only") { try await EnsembleClipTests.run(); return }
         try SamplePreparationTests.run()
         if CommandLine.arguments.contains("--sample-preparation-only") { return }
         try await MIDIFileImportTests.run()

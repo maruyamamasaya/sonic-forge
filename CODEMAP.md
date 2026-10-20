@@ -186,3 +186,5 @@ MIDIファイル: app/MIDIFileImport.swift、app/MIDIFileImportView.swift、Work
 ナレーション完成版: [設定と再生成](NARRATION.md)。原稿はscripts/spoken_low_laugh_text.json。生成はspoken_character_study.py（--low-register-anchor）、加工はprepare_spoken_character_demo.py→narration_natural_highs.pyのsoft-highs→spoken_breath_endings.py。追加のsource prosodyは使用しない。[圧縮履歴](NARRATION_HISTORY.md)。
 
 楽器サンプルの仕上げ: app/SamplePreparation.swift（SamplePreparationProcessor.process）→app/SamplePreparationModel.swift（render/prepare/preview/cancel）→app/SamplePreparationView.swift。InstrumentKeyboard入口、PlayerModel.applyPreparedSample/undoSamplePreparationで採用。tests/SamplePreparationTests.swift、--sample-preparation-only。[仕様](SAMPLE_PREPARATION.md)。
+
+クリップ実再生の集中検査: tests/EnsembleClipTests.swift のverifyLive、tests/AudioTests.swift の`--clips-only`入口。実音出力は`sh scripts/test.sh --clips-only --playback`。正確なタイムライン/WAV検査と、期限付きのライブ状態観測を分ける。

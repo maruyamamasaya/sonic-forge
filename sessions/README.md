@@ -194,3 +194,5 @@ Date: YYYY-MM-DD
 - [NarrationStudioへ切り出し](2026-10-20-narration-extraction.md)
 
 - [サンプルの音量とフェード](2026-10-20-sample-preparation.md)
+
+- [2026-10-20: 全体実再生検査の停止調査](2026-10-20-clip-playback-validation.md)

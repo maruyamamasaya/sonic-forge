@@ -72,11 +72,7 @@ enum EnsembleClipTests {
         }
         precondition(abs(Double(buffer.frameLength) / 48000 - 2.05) < 0.001)
         precondition(energy(0.05, 0.2) > 1e-8 && energy(1.05, 1.2) > 1e-8 && energy(0.8, 0.95) < 1e-12)
-        if CommandLine.arguments.contains("--playback") {
-            restored.play(); try await Task.sleep(nanoseconds: 1_100_000_000)
-            precondition(restored.playing && restored.heldNotes(part: restored.parts[0].id) == [64])
-            restored.stop(); precondition(restored.parts[0].voices == 0)
-        }
+        if CommandLine.arguments.contains("--playback") { try await verifyLive(restored, clipID: clipID) }
         model.removeClip(part: part.id, clip: clipID)
         precondition(part.additionalClips.isEmpty && part.performance == intro)
         await restored.addSharedSongDemo() // Existing content is retained.
@@ -132,4 +128,47 @@ enum EnsembleClipTests {
         print("PASS: primary/additional clip duplication, independent variation, atomic rejection, v5 restoration and repeated copied-section WAV reload")
         print("PASS: shared instrument clips, independent performances/placement, v5 save/v4 migration, invalid/overlap preservation, same-row intro/chorus WAV and stop")
     }
+    @MainActor private static func verifyLive(_ model: EnsembleModel, clipID: UUID) async throws {
+        let part = model.parts[0]
+        // Keep the exact 125 ms timeline/WAV assertions above. For live observation,
+        // use 500 ms notes/gap so a delayed test wakeup is not mistaken for a missing note.
+        model.editClipNotes(part: part.id, clip: part.primaryClipID) { $0[0].duration = 2 }
+        model.editClipNotes(part: part.id, clip: clipID) { $0[0].duration = 2 }
+        let events = try model.timeline()
+        precondition(events.map(\.time) == [0, 0.5, 1, 1.5])
+        let began = ProcessInfo.processInfo.systemUptime
+        func observe(_ stage: String, timeout: Double = 2, condition: () -> Bool) async throws {
+            let deadline = ProcessInfo.processInfo.systemUptime + timeout
+            while true {
+                if let error = model.error { throw AudioError.invalid("Clip playback \(stage): \(error)") }
+                if condition() { return }
+                if ProcessInfo.processInfo.systemUptime >= deadline {
+                    throw AudioError.invalid("Clip playback timeout (\(stage)): elapsed=\(ProcessInfo.processInfo.systemUptime - began), playing=\(model.playing), held=\(model.heldNotes(part: part.id)), voices=\(part.voices), level=\(model.level), beat=\(model.positionBeats)")
+                }
+                try await Task.sleep(nanoseconds: 10_000_000)
+            }
+        }
+        defer { model.stop() }
+        model.play()
+        try await observe("intro note 57 with audio") {
+            model.playing && model.heldNotes(part: part.id) == [57] && part.voices > 0 && model.level > -60
+        }
+        try await observe("gap after intro") { model.playing && model.heldNotes(part: part.id).isEmpty }
+        try await observe("additional clip note 64 with audio") {
+            model.playing && model.heldNotes(part: part.id) == [64] && part.voices > 0 && model.level > -60
+        }
+        try await observe("natural completion", timeout: 4) {
+            !model.playing && model.heldNotes(part: part.id).isEmpty && part.voices == 0 && model.level == -60
+        }
+        model.stop()
+        model.play()
+        try await observe("intro on replay") { model.playing && model.heldNotes(part: part.id) == [57] }
+        model.stop()
+        precondition(!model.playing && model.heldNotes(part: part.id).isEmpty && part.voices == 0)
+        // The cancelled scheduler must not deliver the later clip after Stop.
+        try await Task.sleep(nanoseconds: 1_600_000_000)
+        precondition(!model.playing && model.heldNotes(part: part.id).isEmpty && part.voices == 0 && model.level == -60)
+        print("PASS: live clip note/audio sequence, gap, natural completion, replay and cancellation without late notes")
+    }
+
 }
