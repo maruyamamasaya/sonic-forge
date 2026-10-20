@@ -308,3 +308,9 @@ MIDIファイル取込: sh scripts/test.sh --midi-file-only（通常/Fullにも�
 採用済みの高域軽減版は追加加工なしclipの元pace WAVとのbyte一致、220 Hzの変化-50 dB未満/6 kHzの減衰、最大2.5 dB制限、独立再計算PCM/全連結/間/入力hash/保存manifest/Git除外を検査。高域軽減版はユーザー採用済み。完成素材は採用WAVとのbyte一致とmanifestの全hash/Git除外を確認し、新原稿の声質/自然さは試聴する。[設定](NARRATION.md)。
 
 母音/歌唱記録の整理時は新規歌唱を生成せず、test_voice_vowel_song.pyの既知16/44.1 kHz信号（長さ/±2半音/低オクターブ/無音・ノイズ拒否）を再検査。残存Pythonの構文/ローカルimport、Swift実験スクリプトの構文、代表28素材のhash/Git除外と文書リンクを確認する。これを歌唱の聴感成功と扱わない。
+
+## サンプル音量/フェード
+
+集中実行はsh scripts/test.sh --sample-preparation-only（通常Fullにも含む）。正規化なしのPCM一致、目標ピーク、逆相ステレオの左右比、フェード端/中間、1フレーム/無音/24 dB上限、不正PCM/不正設定を検査。デモの元WAV不変、加工WAVの全PCM一致、本番楽器保存復元/root/loop/全PCM一致も確認する。UIは準備→比較→設定変更で古い結果無効→中止→再準備→採用→鍵盤→加工Undo→楽器保存/再読込、シートを閉じた後の試聴停止、最小サイズを確認。[仕様](SAMPLE_PREPARATION.md)。
+
+2026-10-20のサンプル仕上げ追加では、集中テスト/全体非実再生回帰/アプリビルド/デモUIの比較・採用・Undo・3音和音を確認。通常環境のCoreAudio/iconutil制約は権限を切り分けて検査した。全体--playbackは未変更のEnsembleClipTests.swift:77（1.1秒後のplaying/保持音64）で停止し、全実再生の合格ではない。原因の切り分けと検査改善は残課題。

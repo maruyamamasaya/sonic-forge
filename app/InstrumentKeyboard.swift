@@ -3,6 +3,7 @@ import SwiftUI
 struct InstrumentKeyboard: View {
     @ObservedObject var model: PlayerModel
     @State private var pressedScreenNote: Int?
+    @State private var preparingSample = false
     private let accent = Color(red: 0.96, green: 0.72, blue: 0.33)
     private var whiteNotes: [Int] { NotePitch.keyboardRange(root: model.rootNote).filter { ![1, 3, 6, 8, 10].contains($0 % 12) } }
     var body: some View {
@@ -31,6 +32,14 @@ struct InstrumentKeyboard: View {
                     .foregroundStyle(accent).font(.system(size: 12, weight: .medium, design: .monospaced)).frame(width: 90)
             }
             HStack(spacing: 12) {
+                Button("音を整える…") { model.stop(); model.library.stopPreview(); model.suspendMIDI(true); preparingSample = true }
+                    .controlSize(.small).disabled(model.instrumentSample == nil)
+                    .accessibilityIdentifier("samplePreparation.open")
+                    .help("楽器サンプルの音量を合わせ、前後をフェードして聴き比べます。")
+                if model.samplePreparationCanUndo {
+                    Button("加工を戻す") { model.undoSamplePreparation() }.controlSize(.small)
+                        .accessibilityIdentifier("samplePreparation.undo")
+                }
                 Toggle("鍵盤を保持", isOn: $model.holdKeys).toggleStyle(.checkbox)
                     .help("ONで画面鍵盤をクリックして音を保持。もう一度クリックして離鍵。")
                 Button(model.demoChordActive ? "和音を離す" : "デモ和音") { model.toggleDemoChord() }
@@ -65,6 +74,11 @@ struct InstrumentKeyboard: View {
             }.font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
         }
         .disabled(model.busy || model.asset == nil)
+        .sheet(isPresented: $preparingSample, onDismiss: { model.suspendMIDI(false) }) {
+            if let source = model.instrumentSample {
+                SamplePreparationView(source: source) { prepared in model.applyPreparedSample(prepared, expected: source) }
+            }
+        }
         .onChange(of: model.rootNote) { _, _ in pressedScreenNote = nil }
         .onDisappear { pressedScreenNote = nil; model.suspendMIDI(true) }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in

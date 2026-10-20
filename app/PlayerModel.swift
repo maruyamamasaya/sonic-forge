@@ -27,6 +27,39 @@ final class PlayerModel: ObservableObject {
     var busy: Bool { loading || exporting || preparingInstrument || separation.busy || adoptingSeparation || materials.busy }
     @Published private(set) var preparingInstrument = false
     @Published private(set) var instrumentSample: InstrumentSample?
+    @Published private(set) var samplePreparationCanUndo = false
+    private var samplePreparationUndo: InstrumentSample?
+
+    func applyPreparedSample(_ prepared: InstrumentSample, expected: InstrumentSample) -> Bool {
+        guard !busy, instrumentSample?.buffer === expected.buffer,
+              prepared.buffer.frameLength == expected.buffer.frameLength,
+              prepared.buffer.format == expected.buffer.format,
+              prepared.selection == expected.selection else { return false }
+        stop()
+        samplePreparationUndo = expected
+        samplePreparationCanUndo = true
+        instrument.install(prepared)
+        instrument.gain = Float(pow(10, gainDB / 20))
+        instrumentSample = prepared
+        instrumentDirty = true
+        exportMessage = "サンプルの音量・フェードを採用しました。楽器を保存して残せます。"
+        return true
+    }
+    func undoSamplePreparation() {
+        guard !busy, let sample = samplePreparationUndo else { return }
+        stop()
+        instrument.install(sample)
+        instrument.gain = Float(pow(10, gainDB / 20))
+        instrumentSample = sample
+        samplePreparationUndo = nil
+        samplePreparationCanUndo = false
+        instrumentDirty = true
+        exportMessage = "直前のサンプル加工を戻しました。"
+    }
+    private func resetSamplePreparationUndo() {
+        samplePreparationUndo = nil
+        samplePreparationCanUndo = false
+    }
     enum NoteInput: Hashable { case screen, computer, demo, midi(UInt8), midiSustain(UInt8) }
     @Published private(set) var activeNotes: Set<Int> = []
     @Published private(set) var soundingVoices = 0
@@ -282,6 +315,7 @@ final class PlayerModel: ObservableObject {
             asset = restored.asset
             editor = WaveformEditor(frameCount: Int64(restored.sample.buffer.frameLength), sampleRate: restored.sample.buffer.format.sampleRate)
             instrumentSample = restored.sample
+            resetSamplePreparationUndo()
             rootNote = restored.rootNote
             envelope = restored.envelope
             sampleLoop = restored.loop
@@ -350,6 +384,7 @@ final class PlayerModel: ObservableObject {
             stopInstrument()
             instrument.shutdown()
             instrumentSample = nil
+            resetSamplePreparationUndo()
             instrumentFileURL = nil
             instrumentDirty = false
             if let instrumentDirectory { try? FileManager.default.removeItem(at: instrumentDirectory); self.instrumentDirectory = nil }
@@ -401,6 +436,7 @@ final class PlayerModel: ObservableObject {
             instrument.install(sample)
             instrument.gain = Float(pow(10, gainDB / 20))
             instrumentSample = sample
+            resetSamplePreparationUndo()
             instrumentProvenance = provenance
             sampleLoop = SampleLoop(endFrame: Int64(sample.buffer.frameLength))
             instrumentDirty = true

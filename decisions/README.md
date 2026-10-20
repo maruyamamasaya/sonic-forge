@@ -138,3 +138,5 @@ Status: proposed / accepted / superseded
 - [0057: ローカル音高推定を候補として提示する](0057-pitch-suggestions.md)
 
 - [0058: Standard MIDI Fileの取り込み](0058-standard-midi-import.md)
+
+- [0059: サンプルの音量/フェードをPCMコピーへ適用](0059-baked-sample-preparation.md)

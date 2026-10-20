@@ -190,3 +190,7 @@ Date: YYYY-MM-DD
 - [ナレーション関連のコミットとプッシュ](2026-10-20-narration-commit.md)
 
 - [母音/歌唱実験の記録を保存](2026-10-20-vocal-experiment-archive.md)
+
+- [NarrationStudioへ切り出し](2026-10-20-narration-extraction.md)
+
+- [サンプルの音量とフェード](2026-10-20-sample-preparation.md)

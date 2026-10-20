@@ -76,3 +76,7 @@ natural/soft-highsが採用経路。natural/pace-onlyは比較用で完成版に
 生成reportのall_natural_eos/all_references_unchanged=true、blocked_network_attempts=0を確認。候補seed/音域と加工reportを残し、WAVの再読込・有限/非無音/非クリップ・元参照hash・連結/間を検査する。声の近さ/笑い/自然さは試聴で判断する。今回の採用版はユーザー指定で完成扱いとするが、任意の新原稿まで品質を保証しない。
 
 停止は実行中CLIをCtrl-C。report未完成の出力は途中結果。既存検証は[TESTING.md](TESTING.md)を参照。アプリへの組込や歌唱の再開は今回の範囲に含めない。
+
+## 独立プロジェクトへの切り出し
+
+採用した処理/参照/設定を`/Users/maruyamasusumuya/Development/NarrationStudio`へコピーして独立CLI化。移し先では一文から生成でき、固定14場面/100秒以上の制約を外した。以降のナレーション制作機能は移し先で育て、SonicForgeのアプリには組み込まない。元の記録/音源/設定は保存する。モデルとPython環境は重複コピーせず設定で既存配置を参照している。

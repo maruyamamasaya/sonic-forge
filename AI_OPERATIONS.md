@@ -368,3 +368,7 @@ Model入口はshowTrash/changeTrashState、Store入口はsetTrashed。表示切�
 ## ナレーション完成版
 
 入口と固定設定は[NARRATION.md](NARRATION.md)のみを正本とする。1.7B Base/従来3.2秒参照/低めの早口を維持し、原稿→生成→速度→高域軽減（natural/soft-highs）→息/語尾の順で進める。追加のsource prosodyは重ねない。停止は各CLIのCtrl-C。完了は全EOS/参照不変/通信0/report/PCM検査で確認し、新原稿の声質や自然さは試聴で判断する。途中出力を完成扱いしない。高域軽減版はユーザー採用済み、アプリ未組込、日本語歌詞歌唱は中止を維持。[圧縮履歴](NARRATION_HISTORY.md)。
+
+## 楽器サンプルの音量/フェード
+
+[仕様とデモ手順](SAMPLE_PREPARATION.md)。先に楽器サンプルを用意し、samplePreparation.open（音を整える…）を開く。normalize/target/fadeIn/fadeOutで設定し、prepareで再準備。準備中はProgressViewと中止（cancel）、完了はresultのピーク/補正量とpreviewOriginal/previewProcessed/applyの表示で判定する。設定変更は古い結果を無効化。stopは比較試聴停止、cancelは処理/試聴/候補破棄、closeも破棄して閉じる。applyで現在の楽器に採用し、samplePreparation.undoで直前を戻せる。音符/曲のUndoとは別。採用後は楽器を保存しパートへ割り当てる。元波形/選択WAVは元素材のまま。元のファイルや来歴を変更しない。

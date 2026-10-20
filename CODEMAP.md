@@ -184,3 +184,5 @@ MIDIファイル: app/MIDIFileImport.swift、app/MIDIFileImportView.swift、Work
 声の用途/歌唱中止の判断: [VOICE_STUDY_SUMMARY.md](VOICE_STUDY_SUMMARY.md)。
 
 ナレーション完成版: [設定と再生成](NARRATION.md)。原稿はscripts/spoken_low_laugh_text.json。生成はspoken_character_study.py（--low-register-anchor）、加工はprepare_spoken_character_demo.py→narration_natural_highs.pyのsoft-highs→spoken_breath_endings.py。追加のsource prosodyは使用しない。[圧縮履歴](NARRATION_HISTORY.md)。
+
+楽器サンプルの仕上げ: app/SamplePreparation.swift（SamplePreparationProcessor.process）→app/SamplePreparationModel.swift（render/prepare/preview/cancel）→app/SamplePreparationView.swift。InstrumentKeyboard入口、PlayerModel.applyPreparedSample/undoSamplePreparationで採用。tests/SamplePreparationTests.swift、--sample-preparation-only。[仕様](SAMPLE_PREPARATION.md)。

@@ -21,3 +21,5 @@
 - 素材の永続保護解除はMaterialDeletionのprotectionReview/prepareRelease/releaseProtectionを使う。現在の楽器・構成/履歴・既知ファイルを再監査し、同一の使用中保護は解除しない。仮解除はrollbackし、確定時のsnapshot再検証後も保護行だけを削除する。音声回収は別途確認し、解除後の削除済み来歴への入口を残す。
 
 - 複数素材の完全削除は選択ID集合全体で計算し、選択内の親子を残存参照にしない。選択外の素材・楽器・構成/履歴・leaseを保護し、hash単位で容量/回収を重複排除する。全件の来歴/注釈/journalを同じtransactionで確定し、部分回収失敗は既存の再確認経路に残す。
+
+- サンプル仕上げはSamplePreparationProcessor（不変PCMコピーへの音量/フェード）→SamplePreparationAudio/Model（比較WAV所有/非同期/取消/試聴）→SamplePreparationView。PlayerModelは対象buffer identityを検査して採用し、基準音/ADSR/ループ/来歴を維持する。元の波形/ファイルは変更せず、加工PCMを既存楽器形式へ保存する。[仕様](../SAMPLE_PREPARATION.md)。

@@ -260,3 +260,7 @@ PitchEstimateControl/Panel → PitchAnalysis（MainActorの状態・音源ID/世
 評価録音: PitchCorpusの同梱manifest/WAVをPitchDemoMenu → PlayerModel.loadPitchDemo → 既存load/prepareInstrumentへ接続。推定器は変えず、CLI評価も同じ検証済みWAVを使う。原本/変換後SHA-256・固定切片・名目正解音を保持。[評価](PITCH_EVALUATION.md)。
 
 SMF import: MIDIFileImport（1 MB境界・track/channel・テンポ積分・PerformanceDocument変換）→ MIDIImportDraft/View（非同期読込・世代・範囲/楽器割当の確認）→ EnsembleModel.importMIDI（全体検証後の置換とUndo）。保存/レンダーの既存経路を共有し、形式変更なし。[仕様](MIDI_IMPORT.md)。
+
+## Offline Sample Preparation
+
+SamplePreparationProcessorは左右共通のピーク正規化と線形フェードをPCMコピーへ適用。SamplePreparationAudioがInstrumentSampleとの変換/比較WAVの所有を担当し、MainActorのSamplePreparationModelが非同期結果/取消/比較試聴を管理する。InstrumentKeyboardからSamplePreparationViewを開き、PlayerModel.applyPreparedSampleで対象buffer identityと長さ/形式/範囲を再検査して採用する。直前1回の加工Undoを保持し、元音源/楽器の変更でクリア。長さが変わらないため来歴/ADSR/ループ/基準音を維持する。楽器保存は加工済みPCMを既存形式へ同梱し、形式変更なし。[仕様](SAMPLE_PREPARATION.md)。
